@@ -1,17 +1,17 @@
-From 8a10cce2efa3d8906617939a5c644c9cb7104ef6 Mon Sep 17 00:00:00 2001
+From f859377de12e2faa46046b266ce4418c138e61ab Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:22:19 +0100
-Subject: [PATCH 17/47] backup: do not return errors in dump callback
+Subject: [PATCH 17/48] backup: do not return errors in dump callback
 
 ---
  blockdev.c | 26 ++++++++++++++++++++------
  1 file changed, 20 insertions(+), 6 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index d8b1db8..fb71cdc 100644
+index af1b9d4..4b073d4 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3013,6 +3013,11 @@ static int pvebackup_dump_cb(void *opaque, BlockBackend *target,
+@@ -3019,6 +3019,11 @@ static int pvebackup_dump_cb(void *opaque, BlockBackend *target,
  {
      PVEBackupDevInfo *di = opaque;
  
@@ -23,7 +23,7 @@ index d8b1db8..fb71cdc 100644
      if (sector_num & 0x7f) {
          if (!backup_state.error) {
              error_setg(&backup_state.error,
-@@ -3023,7 +3028,6 @@ static int pvebackup_dump_cb(void *opaque, BlockBackend *target,
+@@ -3029,7 +3034,6 @@ static int pvebackup_dump_cb(void *opaque, BlockBackend *target,
      }
  
      int64_t cluster_num = sector_num >> 7;
@@ -31,7 +31,7 @@ index d8b1db8..fb71cdc 100644
  
      int ret = -1;
  
-@@ -3031,17 +3035,27 @@ static int pvebackup_dump_cb(void *opaque, BlockBackend *target,
+@@ -3037,17 +3041,27 @@ static int pvebackup_dump_cb(void *opaque, BlockBackend *target,
          size_t zero_bytes = 0;
          ret = vma_writer_write(backup_state.vmaw, di->dev_id, cluster_num,
                                 buf, &zero_bytes);
@@ -63,7 +63,7 @@ index d8b1db8..fb71cdc 100644
  }
  
  static void pvebackup_cleanup(void)
-@@ -3113,7 +3127,7 @@ static void pvebackup_cancel(void *opaque)
+@@ -3119,7 +3133,7 @@ static void pvebackup_cancel(void *opaque)
              BlockJob *job = di->bs->job;
              if (job) {
                  if (!di->completed) {

@@ -1,7 +1,7 @@
-From fb3d52b336cd8404055bf0b3b8d825c6f5247fef Mon Sep 17 00:00:00 2001
+From bf0b444a62df49c016eb47f0299e5656d830234e Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:40:00 +0100
-Subject: [PATCH 19/47] backup: vma: remove async queue
+Subject: [PATCH 19/48] backup: vma: remove async queue
 
 ---
  blockdev.c   |   6 ++
@@ -9,10 +9,10 @@ Subject: [PATCH 19/47] backup: vma: remove async queue
  2 files changed, 38 insertions(+), 147 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index 2e51913..1491c2d 100644
+index 6253ef1..ef159b0 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3116,6 +3116,11 @@ static void pvebackup_cancel(void *opaque)
+@@ -3122,6 +3122,11 @@ static void pvebackup_cancel(void *opaque)
          error_setg(&backup_state.error, "backup cancelled");
      }
  
@@ -24,7 +24,7 @@ index 2e51913..1491c2d 100644
      /* drain all i/o (awake jobs waiting for aio) */
      bdrv_drain_all();
  
-@@ -3128,6 +3133,7 @@ static void pvebackup_cancel(void *opaque)
+@@ -3134,6 +3139,7 @@ static void pvebackup_cancel(void *opaque)
              if (job) {
                  if (!di->completed) {
                       block_job_cancel_sync(job);
@@ -33,7 +33,7 @@ index 2e51913..1491c2d 100644
              }
          }
 diff --git a/vma-writer.c b/vma-writer.c
-index 689e988..6d3119d 100644
+index 689e988..ec8da53 100644
 --- a/vma-writer.c
 +++ b/vma-writer.c
 @@ -28,14 +28,8 @@
@@ -104,9 +104,9 @@ index 689e988..6d3119d 100644
 -    DPRINTF("vma_co_write starting %zd\n", bytes);
 -
      while (done < bytes) {
-+        aio_set_fd_handler(qemu_get_aio_context(), vmaw->fd, false, NULL, vma_co_continue_write, vmaw);
++        aio_set_fd_handler(qemu_get_aio_context(), vmaw->fd, false, NULL, vma_co_continue_write, NULL, vmaw);
 +        qemu_coroutine_yield();
-+        aio_set_fd_handler(qemu_get_aio_context(), vmaw->fd, false, NULL, NULL, NULL);
++        aio_set_fd_handler(qemu_get_aio_context(), vmaw->fd, false, NULL, NULL, NULL, NULL);
 +        if (vmaw->status < 0) {
 +            DPRINTF("vma_queue_write detected canceled backup\n");
 +            done = -1;

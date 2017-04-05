@@ -1,7 +1,7 @@
-From dc5b92fbb2d405fd86228409b1f25c0bb2d6d973 Mon Sep 17 00:00:00 2001
+From e453e9a98f7f0c2a213fe5bee04ece37ce10e625 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:31:18 +0100
-Subject: [PATCH 08/47] qapi: modify query machines
+Subject: [PATCH 08/48] qapi: modify query machines
 
 provide '*is-current' in MachineInfo struct
 ---
@@ -10,19 +10,19 @@ provide '*is-current' in MachineInfo struct
  2 files changed, 8 insertions(+), 1 deletion(-)
 
 diff --git a/qapi-schema.json b/qapi-schema.json
-index 4bf7222..63507f5 100644
+index e7a8117..2c40928 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
-@@ -3027,6 +3027,8 @@
+@@ -4245,6 +4245,8 @@
  #
- # @default: #optional whether the machine is default
+ # @is-default: whether the machine is default
  #
-+# @current: #optional whether this machine is currently used
++# @is-current: whether this machine is currently used
 +#
  # @cpu-max: maximum number of CPUs supported by the machine type
  #           (since 1.5.0)
  #
-@@ -3036,7 +3038,7 @@
+@@ -4254,7 +4256,7 @@
  ##
  { 'struct': 'MachineInfo',
    'data': { 'name': 'str', '*alias': 'str',
@@ -32,12 +32,12 @@ index 4bf7222..63507f5 100644
  
  ##
 diff --git a/vl.c b/vl.c
-index 6a218ce..b226e0b 100644
+index 0b4ed52..868c489 100644
 --- a/vl.c
 +++ b/vl.c
-@@ -1509,6 +1509,11 @@ MachineInfoList *qmp_query_machines(Error **errp)
+@@ -1518,6 +1518,11 @@ MachineInfoList *qmp_query_machines(Error **errp)
          info->cpu_max = !mc->max_cpus ? 1 : mc->max_cpus;
-         info->hotpluggable_cpus = !!mc->query_hotpluggable_cpus;
+         info->hotpluggable_cpus = mc->has_hotpluggable_cpus;
  
 +        if (strcmp(mc->name, MACHINE_GET_CLASS(current_machine)->name) == 0) {
 +            info->has_is_current = true;

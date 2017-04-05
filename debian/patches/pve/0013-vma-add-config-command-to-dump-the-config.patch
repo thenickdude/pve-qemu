@@ -1,17 +1,17 @@
-From 48896281bebc5c69760f4e47625e4db81e3a9004 Mon Sep 17 00:00:00 2001
+From cfc9d20b832a3db40b4e61fa6af0fbcda911ec2e Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:46:49 +0100
-Subject: [PATCH 13/47] vma: add 'config' command to dump the config
+Subject: [PATCH 13/48] vma: add 'config' command to dump the config
 
 ---
  vma.c | 64 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 64 insertions(+)
 
 diff --git a/vma.c b/vma.c
-index d55874a..79bdd00 100644
+index ab7b766..8925407 100644
 --- a/vma.c
 +++ b/vma.c
-@@ -26,6 +26,7 @@ static void help(void)
+@@ -27,6 +27,7 @@ static void help(void)
          "usage: vma command [command options]\n"
          "\n"
          "vma list <filename>\n"
@@ -19,7 +19,7 @@ index d55874a..79bdd00 100644
          "vma create <filename> [-c config] <archive> pathname ...\n"
          "vma extract <filename> [-r <fifo>] <targetdir>\n"
          "vma verify <filename> [-v]\n"
-@@ -604,6 +605,67 @@ static int create_archive(int argc, char **argv)
+@@ -605,6 +606,67 @@ static int create_archive(int argc, char **argv)
      return 0;
  }
  
@@ -87,7 +87,7 @@ index d55874a..79bdd00 100644
  int main(int argc, char **argv)
  {
      const char *cmdname;
-@@ -633,6 +695,8 @@ int main(int argc, char **argv)
+@@ -634,6 +696,8 @@ int main(int argc, char **argv)
          return extract_content(argc, argv);
      } else if (!strcmp(cmdname, "verify")) {
          return verify_content(argc, argv);

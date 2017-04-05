@@ -15,6 +15,8 @@
 DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
 
+ARCH ?= $(shell dpkg-architecture -qDEB_HOST_GNU_CPU)
+
 PACKAGE=pve-qemu-kvm
 destdir := $(CURDIR)/debian/$(PACKAGE)
 
@@ -33,7 +35,7 @@ endif
 config.status: configure
 	dh_testdir
 	# Add here commands to configure the package.
-	./configure --with-confsuffix="/kvm" --target-list=x86_64-softmmu --prefix=/usr --datadir=/usr/share --docdir=/usr/share/doc/pve-qemu-kvm --sysconfdir=/etc --localstatedir=/var --disable-xen --enable-gnutls --enable-sdl --enable-uuid --enable-linux-aio --enable-rbd --enable-libiscsi --disable-smartcard --audio-drv-list="alsa" --enable-spice --enable-usb-redir --enable-glusterfs --enable-libusb --disable-gtk --enable-xfsctl --enable-numa --disable-strip --enable-jemalloc --disable-libnfs --disable-fdt
+	./configure --with-confsuffix="/kvm" --target-list=$(ARCH)-softmmu --prefix=/usr --datadir=/usr/share --docdir=/usr/share/doc/pve-qemu-kvm --sysconfdir=/etc --localstatedir=/var --disable-xen --enable-gnutls --enable-sdl --enable-linux-aio --enable-rbd --enable-libiscsi --disable-smartcard --audio-drv-list="alsa" --enable-spice --enable-usb-redir --enable-glusterfs --enable-libusb --disable-gtk --enable-xfsctl --enable-numa --disable-strip --enable-jemalloc --enable-virtfs --disable-libnfs --disable-fdt
 
 build: patch build-stamp
 
@@ -73,7 +75,7 @@ install: build
 	# Add here commands to install the package into debian/pve-kvm.
 	$(MAKE) DESTDIR=$(destdir) install
 
-	mv $(destdir)/usr/bin/qemu-system-x86_64 $(destdir)/usr/bin/kvm
+	mv $(destdir)/usr/bin/qemu-system-$(ARCH) $(destdir)/usr/bin/kvm
 	mv $(destdir)/usr/share/man/man1/qemu.1 $(destdir)/usr/share/man/man1/kvm.1
 
 	# Install the userspace utilities

@@ -1,20 +1,18 @@
-From e933992419bd8da2689a527ae95000891e687a2d Mon Sep 17 00:00:00 2001
+From 759fdd7b7ea2f90a463d4bc766f9c53053498c58 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:34:41 +0100
-Subject: [PATCH 24/47] qmp: add get_link_status
+Subject: [PATCH 24/48] qmp: add get_link_status
 
 ---
  net/net.c        | 27 +++++++++++++++++++++++++++
- qapi-schema.json | 15 +++++++++++++++
- qmp-commands.hx  | 23 +++++++++++++++++++++++
- scripts/qapi.py  |  2 ++
- 4 files changed, 67 insertions(+)
+ qapi-schema.json | 16 ++++++++++++++++
+ 2 files changed, 43 insertions(+)
 
 diff --git a/net/net.c b/net/net.c
-index 19b4d9e..5f890b7 100644
+index 0ac3b9e..7410c1e 100644
 --- a/net/net.c
 +++ b/net/net.c
-@@ -1362,6 +1362,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
+@@ -1373,6 +1373,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
      }
  }
  
@@ -49,14 +47,22 @@ index 19b4d9e..5f890b7 100644
  {
      NetClientState *ncs[MAX_QUEUE_NUM];
 diff --git a/qapi-schema.json b/qapi-schema.json
-index 0c0faf7..d75e932 100644
+index c33ebb3..79bfd97 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
-@@ -1786,6 +1786,21 @@
+@@ -56,6 +56,7 @@
+ { 'pragma': {
+     # Commands allowed to return a non-dictionary:
+     'returns-whitelist': [
++        'get_link_status',
+         'human-monitor-command',
+         'qom-get',
+         'query-migrate-cache-size',
+@@ -2627,6 +2628,21 @@
  { 'command': 'set_link', 'data': {'name': 'str', 'up': 'bool'} }
  
  ##
-+# @get_link_status
++# @get_link_status:
 +#
 +# Get the current link state of the nics or nic.
 +#
@@ -74,53 +80,6 @@ index 0c0faf7..d75e932 100644
  # @balloon:
  #
  # Request the balloon driver to change its balloon size.
-diff --git a/qmp-commands.hx b/qmp-commands.hx
-index 6342cd2..a84932a 100644
---- a/qmp-commands.hx
-+++ b/qmp-commands.hx
-@@ -1883,6 +1883,29 @@ Example:
- EQMP
- 
-     {
-+        .name       = "get_link_status",
-+        .args_type  = "name:s",
-+        .mhandler.cmd_new = qmp_marshal_get_link_status,
-+    },
-+
-+SQMP
-+get_link_status
-+--------
-+
-+Get the link status of a network adapter.
-+
-+Arguments:
-+
-+- "name": network device name (json-string)
-+
-+Example:
-+
-+-> { "execute": "get_link_status", "arguments": { "name": "e1000.0" } }
-+<- { "return": {1} }
-+
-+EQMP
-+
-+    {
-         .name       = "getfd",
-         .args_type  = "fdname:s",
-         .params     = "getfd name",
-diff --git a/scripts/qapi.py b/scripts/qapi.py
-index 21bc32f..f900659 100644
---- a/scripts/qapi.py
-+++ b/scripts/qapi.py
-@@ -39,6 +39,8 @@ builtin_types = {
- 
- # Whitelist of commands allowed to return a non-dictionary
- returns_whitelist = [
-+    'get_link_status',
-+
-     # From QMP:
-     'human-monitor-command',
-     'qom-get',
 -- 
 2.1.4
 

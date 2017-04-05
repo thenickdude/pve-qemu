@@ -1,7 +1,7 @@
-From 0d4b69786584eec1386183b259c22f7cae6df69d Mon Sep 17 00:00:00 2001
+From d63b3c58bce32b976231923f5e186ebd55259c98 Mon Sep 17 00:00:00 2001
 From: Thomas Lamprecht <t.lamprecht@proxmox.com>
 Date: Fri, 1 Jul 2016 15:47:29 +0200
-Subject: [PATCH 37/47] vma: use BlockBackend on extract
+Subject: [PATCH 37/48] vma: use BlockBackend on extract
 
 As we else rely on bdrv_close_all() do clean up, which was rewritten
 in ca9bd24cf1d53775169ba9adc17e265554d1afed and fails on "dangling"
@@ -16,18 +16,18 @@ and dump_config(), both do not have a BDS so no need to change here.
  1 file changed, 10 insertions(+), 3 deletions(-)
 
 diff --git a/vma.c b/vma.c
-index c8ad6c0..a2ddd32 100644
+index f71e5a5..ad51090 100644
 --- a/vma.c
 +++ b/vma.c
-@@ -19,6 +19,7 @@
- #include "qemu/error-report.h"
+@@ -20,6 +20,7 @@
  #include "qemu/main-loop.h"
+ #include "qapi/qmp/qstring.h"
  #include "sysemu/char.h" /* qstring_from_str */
 +#include "sysemu/block-backend.h"
  
  static void help(void)
  {
-@@ -263,6 +264,8 @@ static int extract_content(int argc, char **argv)
+@@ -264,6 +265,8 @@ static int extract_content(int argc, char **argv)
      int vmstate_fd = -1;
      guint8 vmstate_stream = 0;
  
@@ -36,7 +36,7 @@ index c8ad6c0..a2ddd32 100644
      for (i = 1; i < 255; i++) {
          VmaDeviceInfo *di = vma_reader_get_device_info(vmar, i);
          if (di && (strcmp(di->devname, "vmstate") == 0)) {
-@@ -307,8 +310,6 @@ static int extract_content(int argc, char **argv)
+@@ -308,8 +311,6 @@ static int extract_content(int argc, char **argv)
                  write_zero = false;
              }
  
@@ -45,7 +45,7 @@ index c8ad6c0..a2ddd32 100644
  	    size_t devlen = strlen(devfn);
  	    QDict *options = NULL;
              if (format) {
-@@ -326,10 +327,14 @@ static int extract_content(int argc, char **argv)
+@@ -327,10 +328,14 @@ static int extract_content(int argc, char **argv)
  		qdict_put(options, "driver", qstring_from_str("raw"));
  	    }
  
@@ -61,7 +61,7 @@ index c8ad6c0..a2ddd32 100644
              if (vma_reader_register_bs(vmar, i, bs, write_zero, &errp) < 0) {
                  g_error("%s", error_get_pretty(errp));
              }
-@@ -362,6 +367,8 @@ static int extract_content(int argc, char **argv)
+@@ -363,6 +368,8 @@ static int extract_content(int argc, char **argv)
  
      vma_reader_destroy(vmar);
  

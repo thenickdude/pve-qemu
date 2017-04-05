@@ -1,7 +1,7 @@
-From 144e613eeca6a3383b981f9ca8b82c4a354b36c2 Mon Sep 17 00:00:00 2001
+From f6a9d9269a4f07eb7b2161884dde52a65f58c9f6 Mon Sep 17 00:00:00 2001
 From: Dietmar Maurer <dietmar@proxmox.com>
 Date: Mon, 11 Mar 2013 07:07:46 +0100
-Subject: [PATCH 12/47] vma: add verify command
+Subject: [PATCH 12/48] vma: add verify command
 
 Users wants to verify the archive after backup.
 
@@ -226,10 +226,10 @@ index 51dd8fe..2aafb26 100644
 +}
 +
 diff --git a/vma.c b/vma.c
-index 8014090..d55874a 100644
+index 8732bfa..ab7b766 100644
 --- a/vma.c
 +++ b/vma.c
-@@ -28,6 +28,7 @@ static void help(void)
+@@ -29,6 +29,7 @@ static void help(void)
          "vma list <filename>\n"
          "vma create <filename> [-c config] <archive> pathname ...\n"
          "vma extract <filename> [-r <fifo>] <targetdir>\n"
@@ -237,7 +237,7 @@ index 8014090..d55874a 100644
          ;
  
      printf("%s", help_msg);
-@@ -332,6 +333,58 @@ static int extract_content(int argc, char **argv)
+@@ -333,6 +334,58 @@ static int extract_content(int argc, char **argv)
      return ret;
  }
  
@@ -296,7 +296,7 @@ index 8014090..d55874a 100644
  typedef struct BackupJob {
      BlockDriverState *bs;
      int64_t len;
-@@ -578,6 +631,8 @@ int main(int argc, char **argv)
+@@ -579,6 +632,8 @@ int main(int argc, char **argv)
          return create_archive(argc, argv);
      } else if (!strcmp(cmdname, "extract")) {
          return extract_content(argc, argv);

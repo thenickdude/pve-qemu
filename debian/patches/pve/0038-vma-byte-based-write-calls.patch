@@ -1,7 +1,7 @@
-From 1209cadf111aaf73b53e568f78104340b4ffb0bd Mon Sep 17 00:00:00 2001
+From a004ee9295029201e8fc3b8fe4acf7f85674527c Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Fri, 9 Sep 2016 14:51:28 +0200
-Subject: [PATCH 38/47] vma: byte based write calls
+Subject: [PATCH 38/48] vma: byte based write calls
 
 ---
  vma-reader.c | 42 +++++++++++++++++++++---------------------
@@ -148,10 +148,10 @@ index 78f1de9..2000889 100644
              return -1;
          }
 diff --git a/vma.c b/vma.c
-index a2ddd32..ff974bd 100644
+index ad51090..aafdc2d 100644
 --- a/vma.c
 +++ b/vma.c
-@@ -333,9 +333,7 @@ static int extract_content(int argc, char **argv)
+@@ -334,9 +334,7 @@ static int extract_content(int argc, char **argv)
                          error_get_pretty(errp));
              }
  
@@ -162,7 +162,7 @@ index a2ddd32..ff974bd 100644
                  g_error("%s", error_get_pretty(errp));
              }
  
-@@ -427,7 +425,7 @@ static int verify_content(int argc, char **argv)
+@@ -428,7 +426,7 @@ static int verify_content(int argc, char **argv)
  }
  
  typedef struct BackupJob {
@@ -171,7 +171,7 @@ index a2ddd32..ff974bd 100644
      int64_t len;
      VmaWriter *vmaw;
      uint8_t dev_id;
-@@ -456,7 +454,7 @@ static void coroutine_fn backup_run(void *opaque)
+@@ -457,7 +455,7 @@ static void coroutine_fn backup_run(void *opaque)
      int64_t start, end;
      int ret = 0;
  
@@ -180,7 +180,7 @@ index a2ddd32..ff974bd 100644
  
      start = 0;
      end = DIV_ROUND_UP(job->len / BDRV_SECTOR_SIZE,
-@@ -467,8 +465,8 @@ static void coroutine_fn backup_run(void *opaque)
+@@ -468,8 +466,8 @@ static void coroutine_fn backup_run(void *opaque)
          iov.iov_len = VMA_CLUSTER_SIZE;
          qemu_iovec_init_external(&qiov, &iov, 1);
  
@@ -191,7 +191,7 @@ index a2ddd32..ff974bd 100644
          if (ret < 0) {
              vma_writer_set_error(job->vmaw, "read error", -1);
              goto out;
-@@ -563,14 +561,14 @@ static int create_archive(int argc, char **argv)
+@@ -564,14 +562,14 @@ static int create_archive(int argc, char **argv)
          path = extract_devname(path, &devname, devcount++);
  
          Error *errp = NULL;
@@ -210,7 +210,7 @@ index a2ddd32..ff974bd 100644
          int dev_id = vma_writer_register_stream(vmaw, devname, size);
          if (dev_id <= 0) {
              unlink(archivename);
-@@ -579,7 +577,7 @@ static int create_archive(int argc, char **argv)
+@@ -580,7 +578,7 @@ static int create_archive(int argc, char **argv)
  
          BackupJob *job = g_new0(BackupJob, 1);
          job->len = size;

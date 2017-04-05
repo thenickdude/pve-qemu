@@ -2,12 +2,49 @@ Source: pve-qemu-kvm
 Section: admin
 Priority: extra
 Maintainer: Proxmox Support Team <support@proxmox.com>
-Build-Depends: debhelper (>= 5), autotools-dev, libpci-dev, quilt, texinfo, texi2html, libgnutls28-dev, libsdl1.2-dev, check, libaio-dev, uuid-dev, librbd-dev (>= 0.48), libiscsi-dev (>= 1.12.0), libspice-protocol-dev (>= 0.12.5),  pve-libspice-server-dev (>= 0.12.5-1), libusbredirparser-dev (>= 0.6-2), glusterfs-common (>= 3.5.2-1), libusb-1.0-0-dev (>= 1.0.17-1), xfslibs-dev, libnuma-dev, libjemalloc-dev, libjpeg-dev, libacl1-dev
+Build-Depends: debhelper (>= 5),
+ autotools-dev,
+ libpci-dev,
+ quilt,
+ texinfo,
+ texi2html,
+ libgnutls28-dev,
+ libsdl1.2-dev,
+ check,
+ libaio-dev,
+ uuid-dev,
+ librbd-dev (>= 0.48),
+ libiscsi-dev (>= 1.12.0),
+ libspice-protocol-dev (>= 0.12.5),
+ pve-libspice-server-dev (>= 0.12.5-1),
+ libusbredirparser-dev (>= 0.6-2),
+ glusterfs-common (>= 3.5.2-1),
+ libusb-1.0-0-dev (>= 1.0.17-1),
+ xfslibs-dev,
+ libnuma-dev,
+ libjemalloc-dev,
+ libjpeg-dev,
+ libacl1-dev,
+ libcap-dev
 Standards-Version: 3.7.2
 
 Package: pve-qemu-kvm
 Architecture: any
-Depends: iproute2, bridge-utils, python, libsdl1.2debian, libaio1, libuuid1, ceph-common (>= 0.48), libiscsi4 (>= 1.12.0) | libiscsi7, pve-libspice-server1 (>= 0.12.5-1), ${shlibs:Depends}, ${misc:Depends}, libusbredirparser1 (>= 0.6-2), glusterfs-common (>= 3.5.2-1), libusb-1.0-0 (>= 1.0.17-1), numactl, libjemalloc1, libjpeg62-turbo
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ iproute2,
+ python,
+ libsdl1.2debian,
+ libaio1,
+ libuuid1,
+ ceph-common (>= 0.48),
+ libiscsi4 (>= 1.12.0) | libiscsi7,
+ pve-libspice-server1 (>= 0.12.5-1),
+ libusbredirparser1 (>= 0.6-2),
+ glusterfs-common (>= 3.5.2-1),
+ libusb-1.0-0 (>= 1.0.17-1),
+ numactl,
+ libjemalloc1,
+ libjpeg62-turbo
 Conflicts: qemu, qemu-kvm, qemu-utils, kvm, pve-kvm, pve-qemu-kvm-2.6.18
 Provides: qemu-utils
 Replaces: pve-kvm, pve-qemu-kvm-2.6.18, qemu-utils

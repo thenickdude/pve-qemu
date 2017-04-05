@@ -1,0 +1,51 @@
+From 40846f73aea36b4ef66cce152321208f7d820222 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Thu, 30 Mar 2017 16:05:34 +0200
+Subject: [PATCH 48/48] vma: don't use O_DIRECT on pipes
+
+It puts them in packet mode which potentially discards data.
+---
+ vma-writer.c | 10 ++++------
+ 1 file changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/vma-writer.c b/vma-writer.c
+index 70dcca0..9001cbd 100644
+--- a/vma-writer.c
++++ b/vma-writer.c
+@@ -283,9 +283,8 @@ VmaWriter *vma_writer_create(const char *filename, uuid_t uuid, Error **errp)
+         }
+         vmaw->fd = fileno(vmaw->cmd);
+ 
+-        /* try to use O_NONBLOCK and O_DIRECT */
++        /* try to use O_NONBLOCK */
+         fcntl(vmaw->fd, F_SETFL, fcntl(vmaw->fd, F_GETFL)|O_NONBLOCK);
+-        fcntl(vmaw->fd, F_SETFL, fcntl(vmaw->fd, F_GETFL)|O_DIRECT);
+ 
+     } else {
+         struct stat st;
+@@ -293,19 +292,18 @@ VmaWriter *vma_writer_create(const char *filename, uuid_t uuid, Error **errp)
+         const char *tmp_id_str;
+ 
+         if ((stat(filename, &st) == 0) && S_ISFIFO(st.st_mode)) {
+-            oflags = O_NONBLOCK|O_DIRECT|O_WRONLY;
++            oflags = O_NONBLOCK|O_WRONLY;
+             vmaw->fd = qemu_open(filename, oflags, 0644);
+         } else if (strstart(filename, "/dev/fdset/", &tmp_id_str)) {
+-            oflags = O_NONBLOCK|O_DIRECT|O_WRONLY;
++            oflags = O_NONBLOCK|O_WRONLY;
+             vmaw->fd = qemu_open(filename, oflags, 0644);
+         } else if (strstart(filename, "/dev/fdname/", &tmp_id_str)) {
+             vmaw->fd = monitor_get_fd(cur_mon, tmp_id_str, errp);
+             if (vmaw->fd < 0) {
+                 goto err;
+             }
+-            /* try to use O_NONBLOCK and O_DIRECT */
++            /* try to use O_NONBLOCK */
+             fcntl(vmaw->fd, F_SETFL, fcntl(vmaw->fd, F_GETFL)|O_NONBLOCK);
+-            fcntl(vmaw->fd, F_SETFL, fcntl(vmaw->fd, F_GETFL)|O_DIRECT);
+         } else  {
+             oflags = O_NONBLOCK|O_DIRECT|O_WRONLY|O_CREAT|O_EXCL;
+             vmaw->fd = qemu_open(filename, oflags, 0644);
+-- 
+2.1.4
+

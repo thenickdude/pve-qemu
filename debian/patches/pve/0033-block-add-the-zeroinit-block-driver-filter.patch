@@ -1,32 +1,32 @@
-From 6f6f38d2ef8f22a12f72e4d60f8a1fa978ac569a Mon Sep 17 00:00:00 2001
+From 35facc3a3549baf4cccaef27afa9c35a25abe91c Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Thu, 17 Mar 2016 11:33:37 +0100
-Subject: [PATCH 33/47] block: add the zeroinit block driver filter
+Subject: [PATCH 33/48] block: add the zeroinit block driver filter
 
 ---
  block/Makefile.objs |   1 +
- block/zeroinit.c    | 220 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 221 insertions(+)
+ block/zeroinit.c    | 219 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 220 insertions(+)
  create mode 100644 block/zeroinit.c
 
 diff --git a/block/Makefile.objs b/block/Makefile.objs
-index 2593a2f..930ca33 100644
+index de96f8e..8cdac08 100644
 --- a/block/Makefile.objs
 +++ b/block/Makefile.objs
 @@ -4,6 +4,7 @@ block-obj-y += qed.o qed-gencb.o qed-l2-cache.o qed-table.o qed-cluster.o
  block-obj-y += qed-check.o
- block-obj-$(CONFIG_VHDX) += vhdx.o vhdx-endian.o vhdx-log.o
+ block-obj-y += vhdx.o vhdx-endian.o vhdx-log.o
  block-obj-y += quorum.o
 +block-obj-y += zeroinit.o
  block-obj-y += parallels.o blkdebug.o blkverify.o blkreplay.o
  block-obj-y += block-backend.o snapshot.o qapi.o
- block-obj-$(CONFIG_WIN32) += raw-win32.o win32-aio.o
+ block-obj-$(CONFIG_WIN32) += file-win32.o win32-aio.o
 diff --git a/block/zeroinit.c b/block/zeroinit.c
 new file mode 100644
-index 0000000..c56a446
+index 0000000..0a8c7f9
 --- /dev/null
 +++ b/block/zeroinit.c
-@@ -0,0 +1,220 @@
+@@ -0,0 +1,219 @@
 +/*
 + * Filter to fake a zero-initialized block device.
 + *
@@ -195,16 +195,15 @@ index 0000000..c56a446
 +    return bdrv_get_block_status(bs->file->bs, sector_num, nb_sectors, pnum, file);
 +}
 +
-+static coroutine_fn BlockAIOCB *zeroinit_aio_pdiscard(BlockDriverState *bs,
-+                                                     int64_t offset, int count,
-+                                                     BlockCompletionFunc *cb, void *opaque)
++static int coroutine_fn zeroinit_co_pdiscard(BlockDriverState *bs,
++                                             int64_t offset, int count)
 +{
-+    return bdrv_aio_pdiscard(bs->file->bs, offset, count, cb, opaque);
++    return bdrv_co_pdiscard(bs->file->bs, offset, count);
 +}
 +
 +static int zeroinit_truncate(BlockDriverState *bs, int64_t offset)
 +{
-+    return bdrv_truncate(bs->file->bs, offset);
++    return bdrv_truncate(bs->file, offset);
 +}
 +
 +static int zeroinit_get_info(BlockDriverState *bs, BlockDriverInfo *bdi)
@@ -235,7 +234,7 @@ index 0000000..c56a446
 +
 +    .bdrv_co_get_block_status = zeroinit_co_get_block_status,
 +
-+    .bdrv_aio_pdiscard = zeroinit_aio_pdiscard,
++    .bdrv_co_pdiscard = zeroinit_co_pdiscard,
 +
 +    .bdrv_truncate = zeroinit_truncate,
 +    .bdrv_get_info = zeroinit_get_info,

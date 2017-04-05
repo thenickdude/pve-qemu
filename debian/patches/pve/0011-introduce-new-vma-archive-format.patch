@@ -1,7 +1,7 @@
-From 183d526538782e8c3644db303846cf0a70595009 Mon Sep 17 00:00:00 2001
+From c1338b34ccac2c5e6d7d1aca3ca3e3457a3f744c Mon Sep 17 00:00:00 2001
 From: Dietmar Maurer <dietmar@proxmox.com>
 Date: Tue, 13 Nov 2012 11:11:38 +0100
-Subject: [PATCH 11/47] introduce new vma archive format
+Subject: [PATCH 11/48] introduce new vma archive format
 
 This is a very simple archive format, see docs/specs/vma_spec.txt
 
@@ -11,19 +11,19 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  Makefile.objs |   1 +
  vma-reader.c  | 797 +++++++++++++++++++++++++++++++++++++++++++++++++++++
  vma-writer.c  | 870 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- vma.c         | 585 +++++++++++++++++++++++++++++++++++++++
+ vma.c         | 586 +++++++++++++++++++++++++++++++++++++++
  vma.h         | 146 ++++++++++
- 6 files changed, 2401 insertions(+), 1 deletion(-)
+ 6 files changed, 2402 insertions(+), 1 deletion(-)
  create mode 100644 vma-reader.c
  create mode 100644 vma-writer.c
  create mode 100644 vma.c
  create mode 100644 vma.h
 
 diff --git a/Makefile b/Makefile
-index 50b4b3a..d92d905 100644
+index 6c359b2..edbc8b5 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -165,7 +165,7 @@ ifneq ($(wildcard config-host.mak),)
+@@ -284,7 +284,7 @@ ifneq ($(wildcard config-host.mak),)
  include $(SRC_PATH)/tests/Makefile.include
  endif
  
@@ -32,22 +32,22 @@ index 50b4b3a..d92d905 100644
  
  qemu-version.h: FORCE
  	$(call quiet-command, \
-@@ -256,6 +256,7 @@ qemu-img.o: qemu-img-cmds.h
- qemu-img$(EXESUF): qemu-img.o $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) libqemuutil.a libqemustub.a
- qemu-nbd$(EXESUF): qemu-nbd.o $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) libqemuutil.a libqemustub.a
- qemu-io$(EXESUF): qemu-io.o $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) libqemuutil.a libqemustub.a
-+vma$(EXESUF): vma.o vma-reader.o $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) libqemuutil.a libqemustub.a
+@@ -377,6 +377,7 @@ qemu-img.o: qemu-img-cmds.h
+ qemu-img$(EXESUF): qemu-img.o $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
+ qemu-nbd$(EXESUF): qemu-nbd.o $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
+ qemu-io$(EXESUF): qemu-io.o $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
++vma$(EXESUF): vma.o vma-reader.o $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
  
- qemu-bridge-helper$(EXESUF): qemu-bridge-helper.o libqemuutil.a libqemustub.a
+ qemu-bridge-helper$(EXESUF): qemu-bridge-helper.o $(COMMON_LDADDS)
  
 diff --git a/Makefile.objs b/Makefile.objs
-index 6d5ddcf..845edd0 100644
+index 6167e7b..9b12ee6 100644
 --- a/Makefile.objs
 +++ b/Makefile.objs
-@@ -15,6 +15,7 @@ block-obj-$(CONFIG_POSIX) += aio-posix.o
- block-obj-$(CONFIG_WIN32) += aio-win32.o
+@@ -14,6 +14,7 @@ block-obj-y += block.o blockjob.o
  block-obj-y += block/
  block-obj-y += qemu-io-cmds.o
+ block-obj-$(CONFIG_REPLICATION) += replication.o
 +block-obj-y += vma-writer.o
  
  block-obj-m = block/
@@ -1733,10 +1733,10 @@ index 0000000..b0cf529
 +}
 diff --git a/vma.c b/vma.c
 new file mode 100644
-index 0000000..8014090
+index 0000000..8732bfa
 --- /dev/null
 +++ b/vma.c
-@@ -0,0 +1,585 @@
+@@ -0,0 +1,586 @@
 +/*
 + * VMA: Virtual Machine Archive
 + *
@@ -1757,6 +1757,7 @@ index 0000000..8014090
 +#include "qemu-common.h"
 +#include "qemu/error-report.h"
 +#include "qemu/main-loop.h"
++#include "qapi/qmp/qstring.h"
 +#include "sysemu/char.h" /* qstring_from_str */
 +
 +static void help(void)

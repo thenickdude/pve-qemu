@@ -1,3 +1,53 @@
+pve-qemu-kvm (2.9.0-1~rc2+5) unstable; urgency=medium
+
+  * fix a crash caused by the zeroinit filter in drive-mirror
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 31 Mar 2017 09:31:38 +0200
+
+pve-qemu-kvm (2.9.0-1~rc2+4) unstable; urgency=medium
+
+  * fix data loss when sending backups through pipes on kernel >= 4.5
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 30 Mar 2017 16:07:52 +0200
+
+pve-qemu-kvm (2.9.0-1~rc2+3) unstable; urgency=medium
+
+  * fix backup jobs not starting when using multiple disks
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 30 Mar 2017 12:16:30 +0200
+
+pve-qemu-kvm (2.9.0-1~rc2+2) unstable; urgency=medium
+
+  * build with virtfs enabled
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 30 Mar 2017 10:57:46 +0200
+
+pve-qemu-kvm (2.9.0-1~rc2+1) unstable; urgency=medium
+
+  * fix backup jobs not starting and an assertion on backup job cleanup
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 30 Mar 2017 10:49:00 +0200
+
+pve-qemu-kvm (2.9.0-1~rc2) unstable; urgency=medium
+
+  * update to qemu 2.9.0-rc2
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 29 Mar 2017 13:33:48 +0200
+
+pve-qemu-kvm (2.7.1-501) unstable; urgency=medium
+
+  * drop bridge-utils dependency
+
+  * use ip from iproute2 over ifconfig from net-tools
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 15 Mar 2017 11:24:33 +0100
+
+pve-qemu-kvm (2.7.1-500) unstable; urgency=medium
+
+  * version bumped for stetch upgrade
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 10 Mar 2017 14:19:59 +0100
+
 pve-qemu-kvm (2.7.1-4) unstable; urgency=medium
 
   * fix CVE-2017-2620: display: cirrus: out-of-bounds access issue

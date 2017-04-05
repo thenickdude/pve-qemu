@@ -1,22 +1,23 @@
-From 1078c0f6acc1bfba04b7d5cdfdeb02b161b5f7c4 Mon Sep 17 00:00:00 2001
+From c46139b295f9edffd43a12e7f029fce4f9b2ea46 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:04:57 +0100
-Subject: [PATCH 14/47] backup: modify job api
+Subject: [PATCH 14/48] backup: modify job api
 
 Introduces a BackupDump function callback and a pause_count
 for backup_start. For a dump-backup the target parameter
 can now be NULL so access to target needs to be guarded now.
 ---
- block/backup.c            | 82 +++++++++++++++++++++++++++++++----------------
- blockdev.c                |  6 ++--
- include/block/block_int.h |  5 +++
- 3 files changed, 63 insertions(+), 30 deletions(-)
+ block/backup.c            | 118 +++++++++++++++++++++++++++++-----------------
+ block/replication.c       |   3 +-
+ blockdev.c                |   4 +-
+ include/block/block_int.h |   5 ++
+ 4 files changed, 83 insertions(+), 47 deletions(-)
 
 diff --git a/block/backup.c b/block/backup.c
-index 2c05323..f3c0ba3 100644
+index a4fb288..fe4ce7f 100644
 --- a/block/backup.c
 +++ b/block/backup.c
-@@ -41,6 +41,7 @@ typedef struct BackupBlockJob {
+@@ -36,6 +36,7 @@ typedef struct BackupBlockJob {
      BdrvDirtyBitmap *sync_bitmap;
      MirrorSyncMode sync_mode;
      RateLimit limit;
@@ -24,7 +25,7 @@ index 2c05323..f3c0ba3 100644
      BlockdevOnError on_source_error;
      BlockdevOnError on_target_error;
      CoRwlock flush_rwlock;
-@@ -149,12 +150,23 @@ static int coroutine_fn backup_do_cow(BackupBlockJob *job,
+@@ -145,13 +146,24 @@ static int coroutine_fn backup_do_cow(BackupBlockJob *job,
              goto out;
          }
  
@@ -41,18 +42,29 @@ index 2c05323..f3c0ba3 100644
 +            }
          } else {
 -            ret = blk_co_pwritev(job->target, start * job->cluster_size,
--                                 bounce_qiov.size, &bounce_qiov, 0);
+-                                 bounce_qiov.size, &bounce_qiov,
+-                                 job->compress ? BDRV_REQ_WRITE_COMPRESSED : 0);
 +            if (job->dump_cb) {
 +                ret = job->dump_cb(job->common.opaque, job->target, start_sec, n, bounce_buffer);
 +            }
 +            if (job->target) {
 +                ret = blk_co_pwritev(job->target, start * job->cluster_size,
-+                                     bounce_qiov.size, &bounce_qiov, 0);
++                                     bounce_qiov.size, &bounce_qiov,
++                                     job->compress ? BDRV_REQ_WRITE_COMPRESSED : 0);
 +            }
          }
          if (ret < 0) {
              trace_backup_do_cow_write_fail(job, start, ret);
-@@ -268,9 +280,11 @@ static BlockErrorAction backup_error_action(BackupBlockJob *job,
+@@ -246,6 +258,8 @@ static void backup_abort(BlockJob *job)
+ static void backup_clean(BlockJob *job)
+ {
+     BackupBlockJob *s = container_of(job, BackupBlockJob, common);
++    if (!s->target)
++        return;
+     assert(s->target);
+     blk_unref(s->target);
+     s->target = NULL;
+@@ -330,9 +344,11 @@ static BlockErrorAction backup_error_action(BackupBlockJob *job,
      if (read) {
          return block_job_error_action(&job->common, job->on_source_error,
                                        true, error);
@@ -65,7 +77,7 @@ index 2c05323..f3c0ba3 100644
      }
  }
  
-@@ -393,6 +407,7 @@ static void coroutine_fn backup_run(void *opaque)
+@@ -453,6 +469,7 @@ static void coroutine_fn backup_run(void *opaque)
  
      job->done_bitmap = bitmap_new(end);
  
@@ -73,28 +85,17 @@ index 2c05323..f3c0ba3 100644
      job->before_write.notify = backup_before_write_notify;
      bdrv_add_before_write_notifier(bs, &job->before_write);
  
-@@ -467,7 +482,9 @@ static void coroutine_fn backup_run(void *opaque)
-     qemu_co_rwlock_unlock(&job->flush_rwlock);
-     g_free(job->done_bitmap);
- 
--    bdrv_op_unblock_all(blk_bs(target), job->common.blocker);
-+    if (target) {
-+        bdrv_op_unblock_all(blk_bs(target), job->common.blocker);
-+    }
- 
-     data = g_malloc(sizeof(*data));
-     data->ret = ret;
-@@ -479,7 +496,9 @@ void backup_start(const char *job_id, BlockDriverState *bs,
-                   MirrorSyncMode sync_mode, BdrvDirtyBitmap *sync_bitmap,
+@@ -557,7 +574,9 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                    BlockdevOnError on_source_error,
                    BlockdevOnError on_target_error,
+                   int creation_flags,
 +                  BackupDumpFunc *dump_cb,
                    BlockCompletionFunc *cb, void *opaque,
 +                  int pause_count,
                    BlockJobTxn *txn, Error **errp)
  {
      int64_t len;
-@@ -488,7 +507,7 @@ void backup_start(const char *job_id, BlockDriverState *bs,
+@@ -566,7 +585,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
      int ret;
  
      assert(bs);
@@ -103,47 +104,75 @@ index 2c05323..f3c0ba3 100644
  
      if (bs == target) {
          error_setg(errp, "Source and target cannot be the same");
-@@ -501,7 +520,7 @@ void backup_start(const char *job_id, BlockDriverState *bs,
-         return;
+@@ -579,13 +598,13 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+         return NULL;
      }
  
 -    if (!bdrv_is_inserted(target)) {
 +    if (target && !bdrv_is_inserted(target)) {
          error_setg(errp, "Device is not inserted: %s",
                     bdrv_get_device_name(target));
-         return;
-@@ -511,7 +530,7 @@ void backup_start(const char *job_id, BlockDriverState *bs,
-         return;
+         return NULL;
+     }
+ 
+-    if (compress && target->drv->bdrv_co_pwritev_compressed == NULL) {
++    if (target && compress && target->drv->bdrv_co_pwritev_compressed == NULL) {
+         error_setg(errp, "Compression is not supported for this drive %s",
+                    bdrv_get_device_name(target));
+         return NULL;
+@@ -595,7 +614,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+         return NULL;
      }
  
 -    if (bdrv_op_is_blocked(target, BLOCK_OP_TYPE_BACKUP_TARGET, errp)) {
 +    if (target && bdrv_op_is_blocked(target, BLOCK_OP_TYPE_BACKUP_TARGET, errp)) {
-         return;
+         return NULL;
      }
  
-@@ -547,34 +566,43 @@ void backup_start(const char *job_id, BlockDriverState *bs,
+@@ -635,15 +654,18 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
          goto error;
      }
  
--    job->target = blk_new();
--    blk_insert_bs(job->target, target);
+-    /* The target must match the source in size, so no resize here either */
+-    job->target = blk_new(BLK_PERM_WRITE,
+-                          BLK_PERM_CONSISTENT_READ | BLK_PERM_WRITE |
+-                          BLK_PERM_WRITE_UNCHANGED | BLK_PERM_GRAPH_MOD);
+-    ret = blk_insert_bs(job->target, target, errp);
+-    if (ret < 0) {
+-        goto error;
 +    if (target) {
-+        job->target = blk_new();
-+        blk_insert_bs(job->target, target);
-+    }
++        /* The target must match the source in size, so no resize here either */
++        job->target = blk_new(BLK_PERM_WRITE,
++                              BLK_PERM_CONSISTENT_READ | BLK_PERM_WRITE |
++                              BLK_PERM_WRITE_UNCHANGED | BLK_PERM_GRAPH_MOD);
++        ret = blk_insert_bs(job->target, target, errp);
++        if (ret < 0) {
++            goto error;
++        }
+     }
  
 +    job->dump_cb = dump_cb;
      job->on_source_error = on_source_error;
      job->on_target_error = on_target_error;
      job->sync_mode = sync_mode;
-     job->sync_bitmap = sync_mode == MIRROR_SYNC_MODE_INCREMENTAL ?
+@@ -651,36 +673,44 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                         sync_bitmap : NULL;
+     job->compress = compress;
  
 -    /* If there is no backing file on the target, we cannot rely on COW if our
 -     * backup cluster size is smaller than the target cluster size. Even for
 -     * targets with a backing file, try to avoid COW if possible. */
 -    ret = bdrv_get_info(target, &bdi);
--    if (ret < 0 && !target->backing) {
+-    if (ret == -ENOTSUP && !target->backing) {
+-        /* Cluster size is not defined */
+-        error_report("WARNING: The target block device doesn't provide "
+-                     "information about the block size and it doesn't have a "
+-                     "backing file. The default block size of %u bytes is "
+-                     "used. If the actual block size of the target exceeds "
+-                     "this default, the backup may be unusable",
+-                     BACKUP_CLUSTER_SIZE_DEFAULT);
+-        job->cluster_size = BACKUP_CLUSTER_SIZE_DEFAULT;
+-    } else if (ret < 0 && !target->backing) {
 -        error_setg_errno(errp, -ret,
 -            "Couldn't determine the cluster size of the target image, "
 -            "which has no backing file");
@@ -158,7 +187,16 @@ index 2c05323..f3c0ba3 100644
 +         * backup cluster size is smaller than the target cluster size. Even for
 +         * targets with a backing file, try to avoid COW if possible. */
 +        ret = bdrv_get_info(target, &bdi);
-+        if (ret < 0 && !target->backing) {
++        if (ret == -ENOTSUP && !target->backing) {
++            /* Cluster size is not defined */
++            error_report("WARNING: The target block device doesn't provide "
++                         "information about the block size and it doesn't have a "
++                         "backing file. The default block size of %u bytes is "
++                         "used. If the actual block size of the target exceeds "
++                         "this default, the backup may be unusable",
++                         BACKUP_CLUSTER_SIZE_DEFAULT);
++            job->cluster_size = BACKUP_CLUSTER_SIZE_DEFAULT;
++        } else if (ret < 0 && !target->backing) {
 +            error_setg_errno(errp, -ret,
 +                "Couldn't determine the cluster size of the target image, "
 +                "which has no backing file");
@@ -169,46 +207,64 @@ index 2c05323..f3c0ba3 100644
 +            /* Not fatal; just trudge on ahead. */
 +            job->cluster_size = BACKUP_CLUSTER_SIZE_DEFAULT;
 +        } else {
-+            job->cluster_size = MAX(BACKUP_CLUSTER_SIZE_DEFAULT, bdi.cluster_size);
++            job->cluster_size = BACKUP_CLUSTER_SIZE_DEFAULT;
 +        }
-+
-+        bdrv_op_block_all(target, job->common.blocker);
      } else {
 -        job->cluster_size = MAX(BACKUP_CLUSTER_SIZE_DEFAULT, bdi.cluster_size);
 +        job->cluster_size = BACKUP_CLUSTER_SIZE_DEFAULT;
      }
  
--    bdrv_op_block_all(target, job->common.blocker);
-+    job->common.pause_count = pause_count;
+-    /* Required permissions are already taken with target's blk_new() */
+-    block_job_add_bdrv(&job->common, "target", target, 0, BLK_PERM_ALL,
+-                       &error_abort);
++    if (target) {
++        /* Required permissions are already taken with target's blk_new() */
++        block_job_add_bdrv(&job->common, "target", target, 0, BLK_PERM_ALL,
++                           &error_abort);
++    } else {
++        job->common.pause_count = pause_count;
++    }
      job->common.len = len;
-     job->common.co = qemu_coroutine_create(backup_run, job);
      block_job_txn_add_job(txn, &job->common);
+ 
+diff --git a/block/replication.c b/block/replication.c
+index bf3c395..60c6524 100644
+--- a/block/replication.c
++++ b/block/replication.c
+@@ -531,7 +531,8 @@ static void replication_start(ReplicationState *rs, ReplicationMode mode,
+                                 0, MIRROR_SYNC_MODE_NONE, NULL, false,
+                                 BLOCKDEV_ON_ERROR_REPORT,
+                                 BLOCKDEV_ON_ERROR_REPORT, BLOCK_JOB_INTERNAL,
+-                                backup_job_completed, bs, NULL, &local_err);
++                                NULL,
++                                backup_job_completed, bs, 0, NULL, &local_err);
+         if (local_err) {
+             error_propagate(errp, local_err);
+             backup_job_cleanup(bs);
 diff --git a/blockdev.c b/blockdev.c
-index 2161400..5e3707d 100644
+index 040c152..bb3fc5b 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3277,8 +3277,8 @@ static void do_drive_backup(const char *job_id, const char *device,
-     }
- 
-     backup_start(job_id, bs, target_bs, speed, sync, bmap,
--                 on_source_error, on_target_error,
--                 block_job_cb, bs, txn, &local_err);
-+                 on_source_error, on_target_error, NULL,
-+                 block_job_cb, bs, 0, txn, &local_err);
+@@ -3273,7 +3273,7 @@ static BlockJob *do_drive_backup(DriveBackup *backup, BlockJobTxn *txn,
+     job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
+                             backup->sync, bmap, backup->compress,
+                             backup->on_source_error, backup->on_target_error,
+-                            BLOCK_JOB_DEFAULT, NULL, NULL, txn, &local_err);
++                            BLOCK_JOB_DEFAULT, NULL, NULL, NULL, 0, txn, &local_err);
      bdrv_unref(target_bs);
      if (local_err != NULL) {
          error_propagate(errp, local_err);
-@@ -3371,7 +3371,7 @@ void do_blockdev_backup(const char *job_id, const char *device,
-         }
-     }
-     backup_start(job_id, bs, target_bs, speed, sync, NULL, on_source_error,
--                 on_target_error, block_job_cb, bs, txn, &local_err);
-+                 on_target_error, NULL, block_job_cb, bs, 0, txn, &local_err);
+@@ -3352,7 +3352,7 @@ BlockJob *do_blockdev_backup(BlockdevBackup *backup, BlockJobTxn *txn,
+     job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
+                             backup->sync, NULL, backup->compress,
+                             backup->on_source_error, backup->on_target_error,
+-                            BLOCK_JOB_DEFAULT, NULL, NULL, txn, &local_err);
++                            BLOCK_JOB_DEFAULT, NULL, NULL, NULL, 0, txn, &local_err);
      if (local_err != NULL) {
          error_propagate(errp, local_err);
      }
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 1e939de..db4650e 100644
+index 59400bd..ec65581 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -59,6 +59,9 @@
@@ -221,14 +277,14 @@ index 1e939de..db4650e 100644
  enum BdrvTrackedRequestType {
      BDRV_TRACKED_READ,
      BDRV_TRACKED_WRITE,
-@@ -767,7 +770,9 @@ void backup_start(const char *job_id, BlockDriverState *bs,
-                   MirrorSyncMode sync_mode, BdrvDirtyBitmap *sync_bitmap,
-                   BlockdevOnError on_source_error,
-                   BlockdevOnError on_target_error,
-+                  BackupDumpFunc *dump_cb,
-                   BlockCompletionFunc *cb, void *opaque,
-+                  int pause_count,
-                   BlockJobTxn *txn, Error **errp);
+@@ -877,7 +880,9 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+                             BlockdevOnError on_source_error,
+                             BlockdevOnError on_target_error,
+                             int creation_flags,
++                            BackupDumpFunc *dump_cb,
+                             BlockCompletionFunc *cb, void *opaque,
++                            int pause_count,
+                             BlockJobTxn *txn, Error **errp);
  
  void hmp_drive_add_node(Monitor *mon, const char *optstr);
 -- 

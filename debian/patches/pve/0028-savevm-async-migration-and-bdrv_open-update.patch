@@ -1,14 +1,14 @@
-From d5ef7dd4d2b53e4868289dca3770724cb9597ec5 Mon Sep 17 00:00:00 2001
+From 54847dbb3050d9ec9dd786d572d9c1dff0757d4d Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Thu, 10 Dec 2015 15:14:00 +0100
-Subject: [PATCH 28/47] savevm-async: migration and bdrv_open update
+Subject: [PATCH 28/48] savevm-async: migration and bdrv_open update
 
 ---
  savevm-async.c | 25 ++++++++++++-------------
  1 file changed, 12 insertions(+), 13 deletions(-)
 
 diff --git a/savevm-async.c b/savevm-async.c
-index ae7ea84..7979435 100644
+index 9704a41..6ac03af 100644
 --- a/savevm-async.c
 +++ b/savevm-async.c
 @@ -154,10 +154,10 @@ static int block_state_close(void *opaque)
@@ -58,7 +58,7 @@ index ae7ea84..7979435 100644
 -    BlockDriver *drv = NULL;
      Error *local_err = NULL;
  
-     int bdrv_oflags = BDRV_O_RDWR;
+     int bdrv_oflags = BDRV_O_RDWR | BDRV_O_RESIZE;
 @@ -289,7 +289,7 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
      QDict *options = NULL;
      options = qdict_new();

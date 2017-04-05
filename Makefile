@@ -1,6 +1,6 @@
 # also update debian/changelog
-KVMVER=2.7.1
-KVMPKGREL=4
+KVMVER=2.9.0
+KVMPKGREL=1~rc2+5
 
 KVMPACKAGE = pve-qemu-kvm
 KVMSRC = qemu
@@ -30,7 +30,6 @@ $(DEB): | submodule
 	rm -rf $(BUILDSRC)
 	mkdir $(BUILDSRC)
 	cp -a $(KVMSRC)/* $(BUILDSRC)/
-	tar -C $(BUILDSRC) -xJf efi-roms-1182.tar.xz
 	cp -a debian $(BUILDSRC)/debian
 	echo "git clone git://git.proxmox.com/git/pve-qemu-kvm.git\\ngit checkout $(GITVERSION)" > $(BUILDSRC)/debian/SOURCE
 	# set package version
@@ -40,7 +39,7 @@ $(DEB): | submodule
 
 .PHONY: upload
 upload: $(DEBS)
-	tar cf - $(DEBS) | ssh repoman@repo.proxmox.com upload --produce pve --dist jessie
+	tar cf - ${DEBS} | ssh repoman@repo.proxmox.com upload --product pve --dist stretch
 
 .PHONY: distclean
 distclean: clean

@@ -1,7 +1,7 @@
-From 2dc69ead56b7ecd60eb513ab5b6c9978e06070ef Mon Sep 17 00:00:00 2001
+From 0cf02f586f50e0bc1b25f0ecf76207b2510d77df Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Tue, 23 Feb 2016 15:48:41 +0100
-Subject: [PATCH 32/47] vma: better driver guessing for bdrv_open
+Subject: [PATCH 32/48] vma: better driver guessing for bdrv_open
 
 Only use 'raw' when the file actually ends with .raw and
 no protocol has been specified. With protocol pass the
@@ -12,10 +12,10 @@ into account.
  1 file changed, 14 insertions(+), 1 deletion(-)
 
 diff --git a/vma.c b/vma.c
-index 08e4725..8a27704 100644
+index c7c0538..4903568 100644
 --- a/vma.c
 +++ b/vma.c
-@@ -293,7 +293,20 @@ static int extract_content(int argc, char **argv)
+@@ -294,7 +294,20 @@ static int extract_content(int argc, char **argv)
              }
  
              BlockDriverState *bs = bdrv_new();

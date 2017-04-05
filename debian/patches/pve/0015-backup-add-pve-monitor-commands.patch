@@ -1,36 +1,68 @@
-From 798846b48b31d8231a3af5858285845d932d1d6b Mon Sep 17 00:00:00 2001
+From d48092bb9901112b3356aa8d461c45ffb4ec2b9a Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:20:56 +0100
-Subject: [PATCH 15/47] backup: add pve monitor commands
+Subject: [PATCH 15/48] backup: add pve monitor commands
 
 ---
- blockdev.c                | 439 ++++++++++++++++++++++++++++++++++++++++++++++
- blockjob.c                |   3 +-
+ blockdev.c                | 465 ++++++++++++++++++++++++++++++++++++++++++++++
+ blockjob.c                |  11 +-
  hmp-commands-info.hx      |  13 ++
  hmp-commands.hx           |  29 +++
- hmp.c                     |  61 +++++++
+ hmp.c                     |  61 ++++++
  hmp.h                     |   3 +
  include/block/block_int.h |   2 +-
- qapi-schema.json          |  89 ++++++++++
- qmp-commands.hx           |  18 ++
- 9 files changed, 655 insertions(+), 2 deletions(-)
+ qapi-schema.json          |  90 +++++++++
+ 8 files changed, 668 insertions(+), 6 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index 5e3707d..5417bb0 100644
+index bb3fc5b..3e5c9ce 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -52,6 +52,7 @@
- #include "sysemu/arch_init.h"
+@@ -35,6 +35,7 @@
+ #include "sysemu/blockdev.h"
+ #include "hw/block/block.h"
+ #include "block/blockjob.h"
++#include "block/blockjob_int.h"
+ #include "block/throttle-groups.h"
+ #include "monitor/monitor.h"
+ #include "qemu/error-report.h"
+@@ -53,6 +54,7 @@
  #include "qemu/cutils.h"
  #include "qemu/help_option.h"
+ #include "qemu/throttle-options.h"
 +#include "vma.h"
  
  static QTAILQ_HEAD(, BlockDriverState) monitor_bdrv_states =
      QTAILQ_HEAD_INITIALIZER(monitor_bdrv_states);
-@@ -2976,6 +2977,444 @@ static void block_job_cb(void *opaque, int ret)
-     }
+@@ -2956,6 +2958,469 @@ out:
+     aio_context_release(aio_context);
  }
  
++void block_job_event_cancelled(BlockJob *job);
++void block_job_event_completed(BlockJob *job, const char *msg);
++static void block_job_cb(void *opaque, int ret)
++{
++    /* Note that this function may be executed from another AioContext besides
++     * the QEMU main loop.  If you need to access anything that assumes the
++     * QEMU global mutex, use a BH or introduce a mutex.
++     */
++
++    BlockDriverState *bs = opaque;
++    const char *msg = NULL;
++
++    assert(bs->job);
++
++    if (ret < 0) {
++        msg = strerror(-ret);
++    }
++
++    if (block_job_is_cancelled(bs->job)) {
++        block_job_event_cancelled(bs->job);
++    } else {
++        block_job_event_completed(bs->job, msg);
++    }
++}
++
 +/* PVE backup related function */
 +
 +static struct PVEBackupState {
@@ -384,10 +416,10 @@ index 5e3707d..5417bb0 100644
 +        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
 +        l = g_list_next(l);
 +
-+        backup_start(NULL, di->bs, NULL, speed, MIRROR_SYNC_MODE_FULL, NULL,
-+                     BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
-+                     pvebackup_dump_cb, pvebackup_complete_cb, di,
-+                     1, NULL, &local_err);
++        backup_job_create(NULL, di->bs, NULL, speed, MIRROR_SYNC_MODE_FULL, NULL,
++                          BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
++                          pvebackup_dump_cb, pvebackup_complete_cb, di,
++                          1, NULL, &local_err);
 +        if (local_err != NULL) {
 +            error_setg(&backup_state.error, "backup_job_create failed");
 +            pvebackup_cancel(NULL);
@@ -471,13 +503,24 @@ index 5e3707d..5417bb0 100644
 +
  void qmp_block_stream(bool has_job_id, const char *job_id, const char *device,
                        bool has_base, const char *base,
-                       bool has_backing_file, const char *backing_file,
+                       bool has_base_node, const char *base_node,
 diff --git a/blockjob.c b/blockjob.c
-index a5ba3be..a550458 100644
+index 9b619f385..54bd34a 100644
 --- a/blockjob.c
 +++ b/blockjob.c
-@@ -331,7 +331,8 @@ void block_job_pause(BlockJob *job)
-     job->pause_count++;
+@@ -37,8 +37,8 @@
+ #include "qemu/timer.h"
+ #include "qapi-event.h"
+ 
+-static void block_job_event_cancelled(BlockJob *job);
+-static void block_job_event_completed(BlockJob *job, const char *msg);
++void block_job_event_cancelled(BlockJob *job);
++void block_job_event_completed(BlockJob *job, const char *msg);
+ 
+ /* Transactional group of block jobs */
+ struct BlockJobTxn {
+@@ -473,7 +473,8 @@ void block_job_user_pause(BlockJob *job)
+     block_job_pause(job);
  }
  
 -static bool block_job_should_pause(BlockJob *job)
@@ -486,11 +529,29 @@ index a5ba3be..a550458 100644
  {
      return job->pause_count > 0;
  }
+@@ -687,7 +688,7 @@ static void block_job_iostatus_set_err(BlockJob *job, int error)
+     }
+ }
+ 
+-static void block_job_event_cancelled(BlockJob *job)
++void block_job_event_cancelled(BlockJob *job)
+ {
+     if (block_job_is_internal(job)) {
+         return;
+@@ -701,7 +702,7 @@ static void block_job_event_cancelled(BlockJob *job)
+                                         &error_abort);
+ }
+ 
+-static void block_job_event_completed(BlockJob *job, const char *msg)
++void block_job_event_completed(BlockJob *job, const char *msg)
+ {
+     if (block_job_is_internal(job)) {
+         return;
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index 74446c6..7616fe2 100644
+index a53f105..1a18380 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
-@@ -502,6 +502,19 @@ STEXI
+@@ -487,6 +487,19 @@ STEXI
  Show CPU statistics.
  ETEXI
  
@@ -499,7 +560,7 @@ index 74446c6..7616fe2 100644
 +        .args_type  = "",
 +        .params     = "",
 +        .help       = "show backup status",
-+        .mhandler.cmd = hmp_info_backup,
++        .cmd = hmp_info_backup,
 +    },
 +
 +STEXI
@@ -511,7 +572,7 @@ index 74446c6..7616fe2 100644
      {
          .name       = "usernet",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 848efee..8f2f3e0 100644
+index 8819281..aea39d0 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
 @@ -87,6 +87,35 @@ STEXI
@@ -523,7 +584,7 @@ index 848efee..8f2f3e0 100644
 +        .args_type  = "backupfile:s,speed:o?,devlist:s?",
 +        .params     = "backupfile [speed [devlist]]",
 +        .help       = "create a VM Backup.",
-+        .mhandler.cmd = hmp_backup,
++        .cmd = hmp_backup,
 +    },
 +
 +STEXI
@@ -537,7 +598,7 @@ index 848efee..8f2f3e0 100644
 +        .args_type  = "",
 +        .params     = "",
 +        .help       = "cancel the current VM backup",
-+        .mhandler.cmd = hmp_backup_cancel,
++        .cmd = hmp_backup_cancel,
 +    },
 +
 +STEXI
@@ -551,10 +612,10 @@ index 848efee..8f2f3e0 100644
          .name       = "block_job_set_speed",
          .args_type  = "device:B,speed:o",
 diff --git a/hmp.c b/hmp.c
-index 3b0dd81..95da164 100644
+index 904542d..c685ba5 100644
 --- a/hmp.c
 +++ b/hmp.c
-@@ -149,6 +149,44 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
+@@ -151,6 +151,44 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
      qapi_free_MouseInfoList(mice_list);
  }
  
@@ -599,7 +660,7 @@ index 3b0dd81..95da164 100644
  void hmp_info_migrate(Monitor *mon, const QDict *qdict)
  {
      MigrationInfo *info;
-@@ -1493,6 +1531,29 @@ void hmp_block_stream(Monitor *mon, const QDict *qdict)
+@@ -1613,6 +1651,29 @@ void hmp_block_stream(Monitor *mon, const QDict *qdict)
      hmp_handle_error(mon, &error);
  }
  
@@ -630,7 +691,7 @@ index 3b0dd81..95da164 100644
  {
      Error *error = NULL;
 diff --git a/hmp.h b/hmp.h
-index 0876ec0..9a4c1f6 100644
+index 799fd37..17a65b2 100644
 --- a/hmp.h
 +++ b/hmp.h
 @@ -30,6 +30,7 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict);
@@ -641,7 +702,7 @@ index 0876ec0..9a4c1f6 100644
  void hmp_info_cpus(Monitor *mon, const QDict *qdict);
  void hmp_info_block(Monitor *mon, const QDict *qdict);
  void hmp_info_blockstats(Monitor *mon, const QDict *qdict);
-@@ -76,6 +77,8 @@ void hmp_eject(Monitor *mon, const QDict *qdict);
+@@ -79,6 +80,8 @@ void hmp_eject(Monitor *mon, const QDict *qdict);
  void hmp_change(Monitor *mon, const QDict *qdict);
  void hmp_block_set_io_throttle(Monitor *mon, const QDict *qdict);
  void hmp_block_stream(Monitor *mon, const QDict *qdict);
@@ -651,7 +712,7 @@ index 0876ec0..9a4c1f6 100644
  void hmp_block_job_cancel(Monitor *mon, const QDict *qdict);
  void hmp_block_job_pause(Monitor *mon, const QDict *qdict);
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index db4650e..0f79b51 100644
+index ec65581..278da16 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -59,7 +59,7 @@
@@ -664,36 +725,36 @@ index db4650e..0f79b51 100644
  
  enum BdrvTrackedRequestType {
 diff --git a/qapi-schema.json b/qapi-schema.json
-index 518c2ea..89d9ea6 100644
+index ca534cc..059cbfc 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
-@@ -356,6 +356,95 @@
- ##
+@@ -570,6 +570,96 @@
  { 'command': 'query-events', 'returns': ['EventInfo'] }
  
+ ##
 +# @BackupStatus:
 +#
 +# Detailed backup status.
 +#
-+# @status: #optional string describing the current backup status.
++# @status: string describing the current backup status.
 +#          This can be 'active', 'done', 'error'. If this field is not
 +#          returned, no backup process has been initiated
 +#
-+# @errmsg: #optional error message (only returned if status is 'error')
++# @errmsg: error message (only returned if status is 'error')
 +#
-+# @total: #optional total amount of bytes involved in the backup process
++# @total: total amount of bytes involved in the backup process
 +#
-+# @transferred: #optional amount of bytes already backed up.
++# @transferred: amount of bytes already backed up.
 +#
-+# @zero-bytes: #optional amount of 'zero' bytes detected.
++# @zero-bytes: amount of 'zero' bytes detected.
 +#
-+# @start-time: #optional time (epoch) when backup job started.
++# @start-time: time (epoch) when backup job started.
 +#
-+# @end-time: #optional time (epoch) when backup job finished.
++# @end-time: time (epoch) when backup job finished.
 +#
-+# @backupfile: #optional backup file name
++# @backup-file: backup file name
 +#
-+# @uuid: #optional uuid for this backup job
++# @uuid: uuid for this backup job
 +#
 +##
 +{ 'struct': 'BackupStatus',
@@ -703,7 +764,7 @@ index 518c2ea..89d9ea6 100644
 +           '*backup-file': 'str', '*uuid': 'str' } }
 +
 +##
-+# @BackupFormat
++# @BackupFormat:
 +#
 +# An enumeration of supported backup formats.
 +#
@@ -721,12 +782,12 @@ index 518c2ea..89d9ea6 100644
 +#
 +# @format: format of the backup file
 +#
-+# @config-filename: #optional name of a configuration file to include into
++# @config-file: a configuration file to include into
 +# the backup archive.
 +#
-+# @speed: #optional the maximum speed, in bytes per second
++# @speed: the maximum speed, in bytes per second
 +#
-+# @devlist: #optional list of block device names (separated by ',', ';'
++# @devlist: list of block device names (separated by ',', ';'
 +# or ':'). By default the backup includes all writable block devices.
 +#
 +# Returns: the uuid of the backup job
@@ -739,7 +800,7 @@ index 518c2ea..89d9ea6 100644
 +  'returns': 'UuidInfo' }
 +
 +##
-+# @query-backup
++# @query-backup:
 +#
 +# Returns information about current/last backup task.
 +#
@@ -749,7 +810,7 @@ index 518c2ea..89d9ea6 100644
 +{ 'command': 'query-backup', 'returns': 'BackupStatus' }
 +
 +##
-+# @backup-cancel
++# @backup-cancel:
 +#
 +# Cancel the current executing backup process.
 +#
@@ -760,38 +821,10 @@ index 518c2ea..89d9ea6 100644
 +##
 +{ 'command': 'backup-cancel' }
 +
- ##
- # @MigrationStats
++##
+ # @MigrationStats:
  #
-diff --git a/qmp-commands.hx b/qmp-commands.hx
-index 6de28d4..a8e8522 100644
---- a/qmp-commands.hx
-+++ b/qmp-commands.hx
-@@ -1314,6 +1314,24 @@ Example:
- EQMP
- 
-     {
-+        .name       = "backup",
-+        .args_type  = "backup-file:s,format:s?,config-file:F?,speed:o?,devlist:s?",
-+        .mhandler.cmd_new = qmp_marshal_backup,
-+    },
-+
-+    {
-+        .name       = "backup-cancel",
-+        .args_type  = "",
-+        .mhandler.cmd_new = qmp_marshal_backup_cancel,
-+    },
-+
-+    {
-+        .name       = "query-backup",
-+        .args_type  = "",
-+        .mhandler.cmd_new = qmp_marshal_query_backup,
-+    },
-+
-+    {
-         .name       = "block-job-set-speed",
-         .args_type  = "device:B,speed:o",
-         .mhandler.cmd_new = qmp_marshal_block_job_set_speed,
+ # Detailed migration status.
 -- 
 2.1.4
 

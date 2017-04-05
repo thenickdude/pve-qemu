@@ -1,14 +1,14 @@
-From 9ea20572325cbc6df31293b863ccb8d2ae0e1dbd Mon Sep 17 00:00:00 2001
+From d7b0ad8cf8ef0aad35b0549128003dbb49b8386d Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Fri, 9 Sep 2016 15:21:19 +0200
-Subject: [PATCH 41/47] savevm-async updates
+Subject: [PATCH 41/48] savevm-async updates
 
 ---
  savevm-async.c | 79 +++++++++++++++++++++++++++++-----------------------------
  1 file changed, 39 insertions(+), 40 deletions(-)
 
 diff --git a/savevm-async.c b/savevm-async.c
-index 76cd8fa..8c76137 100644
+index 46c1be7..2f4766c 100644
 --- a/savevm-async.c
 +++ b/savevm-async.c
 @@ -20,6 +20,8 @@
@@ -106,7 +106,7 @@ index 76cd8fa..8c76137 100644
 @@ -254,7 +257,6 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
      Error *local_err = NULL;
  
-     int bdrv_oflags = BDRV_O_RDWR | BDRV_O_NO_FLUSH;
+     int bdrv_oflags = BDRV_O_RDWR | BDRV_O_RESIZE | BDRV_O_NO_FLUSH;
 -    int ret;
  
      if (snap_state.state != SAVE_STATE_DONE) {
@@ -196,7 +196,7 @@ index 76cd8fa..8c76137 100644
          goto the_end;
      }
  
-@@ -516,10 +515,10 @@ int load_state_from_blockdev(const char *filename)
+@@ -515,10 +514,10 @@ int load_state_from_blockdev(const char *filename)
      ret = 0;
  
   the_end:

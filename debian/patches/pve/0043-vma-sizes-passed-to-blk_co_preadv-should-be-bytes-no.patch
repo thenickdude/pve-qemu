@@ -1,17 +1,17 @@
-From ed8e3b7faeb3a36e1105aac4813cd9876735bd81 Mon Sep 17 00:00:00 2001
+From 220fb93343dc6c05989c903873d8ed68943848ef Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Fri, 21 Oct 2016 09:09:26 +0200
-Subject: [PATCH 43/47] vma: sizes passed to blk_co_preadv should be bytes now
+Subject: [PATCH 43/48] vma: sizes passed to blk_co_preadv should be bytes now
 
 ---
  vma.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/vma.c b/vma.c
-index a8fa4ff..752a21b 100644
+index 4f55799..0491542 100644
 --- a/vma.c
 +++ b/vma.c
-@@ -465,8 +465,8 @@ static void coroutine_fn backup_run(void *opaque)
+@@ -466,8 +466,8 @@ static void coroutine_fn backup_run(void *opaque)
          iov.iov_len = VMA_CLUSTER_SIZE;
          qemu_iovec_init_external(&qiov, &iov, 1);
  

@@ -1,20 +1,19 @@
-From 3400a70a51015f119c12d3600943baae97aabb0f Mon Sep 17 00:00:00 2001
+From 4e55ff68ec7aef1e2ea602890495cd862dd1161c Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:51:23 +0100
-Subject: [PATCH 27/47] vma: add firewall
+Subject: [PATCH 27/48] vma: add firewall
 
 ---
  blockdev.c       | 78 ++++++++++++++++++++++++++++++++++----------------------
  hmp.c            |  2 +-
  qapi-schema.json |  1 +
- qmp-commands.hx  |  2 +-
- 4 files changed, 51 insertions(+), 32 deletions(-)
+ 3 files changed, 50 insertions(+), 31 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index 2371cf3..bbb1502 100644
+index 36b4083..3b82339 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3157,6 +3157,44 @@ void qmp_backup_cancel(Error **errp)
+@@ -3163,6 +3163,44 @@ void qmp_backup_cancel(Error **errp)
      }
  }
  
@@ -59,7 +58,7 @@ index 2371cf3..bbb1502 100644
  bool block_job_should_pause(BlockJob *job);
  static void pvebackup_run_next_job(void)
  {
-@@ -3184,6 +3222,7 @@ static void pvebackup_run_next_job(void)
+@@ -3190,6 +3228,7 @@ static void pvebackup_run_next_job(void)
  UuidInfo *qmp_backup(const char *backup_file, bool has_format,
                      BackupFormat format,
                      bool has_config_file, const char *config_file,
@@ -67,7 +66,7 @@ index 2371cf3..bbb1502 100644
                      bool has_devlist, const char *devlist,
                      bool has_speed, int64_t speed, Error **errp)
  {
-@@ -3335,38 +3374,17 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3342,38 +3381,17 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
  
      /* add configuration file to archive */
      if (has_config_file) {
@@ -116,10 +115,10 @@ index 2371cf3..bbb1502 100644
  
      backup_state.cancel = false;
 diff --git a/hmp.c b/hmp.c
-index 030fd97..5c5e8ed 100644
+index aaf0de1..12f1f46 100644
 --- a/hmp.c
 +++ b/hmp.c
-@@ -1550,7 +1550,7 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
+@@ -1670,7 +1670,7 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
      int64_t speed = qdict_get_try_int(qdict, "speed", 0);
  
      qmp_backup(backup_file, true, dir ? BACKUP_FORMAT_DIR : BACKUP_FORMAT_VMA,
@@ -129,29 +128,16 @@ index 030fd97..5c5e8ed 100644
  
      hmp_handle_error(mon, &error);
 diff --git a/qapi-schema.json b/qapi-schema.json
-index d75e932..7bb0ee0 100644
+index 79bfd97..6334018 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
-@@ -420,6 +420,7 @@
+@@ -635,6 +635,7 @@
  { 'command': 'backup', 'data': { 'backup-file': 'str',
                                      '*format': 'BackupFormat',
                                      '*config-file': 'str',
 +                                    '*firewall-file': 'str',
                                      '*devlist': 'str', '*speed': 'int' },
    'returns': 'UuidInfo' }
- 
-diff --git a/qmp-commands.hx b/qmp-commands.hx
-index a84932a..94cfac2 100644
---- a/qmp-commands.hx
-+++ b/qmp-commands.hx
-@@ -1315,7 +1315,7 @@ EQMP
- 
-     {
-         .name       = "backup",
--        .args_type  = "backup-file:s,format:s?,config-file:F?,speed:o?,devlist:s?",
-+        .args_type  = "backup-file:s,format:s?,config-file:F?,firewall-file:F?,speed:o?,devlist:s?",
-         .mhandler.cmd_new = qmp_marshal_backup,
-     },
  
 -- 
 2.1.4

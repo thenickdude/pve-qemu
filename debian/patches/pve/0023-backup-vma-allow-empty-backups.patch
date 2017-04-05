@@ -1,7 +1,7 @@
-From e9b9fd9156a6631998ec4b4254fe2e91859b340a Mon Sep 17 00:00:00 2001
+From b5ac1badd1810f87aae5091f44bee54e3c45e979 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:31:51 +0100
-Subject: [PATCH 23/47] backup: vma: allow empty backups
+Subject: [PATCH 23/48] backup: vma: allow empty backups
 
 ---
  vma-reader.c | 29 ++++++++++++-------------
@@ -58,7 +58,7 @@ index 2aafb26..78f1de9 100644
      }
      return ret;
 diff --git a/vma-writer.c b/vma-writer.c
-index 79b7fd4..0d26fc6 100644
+index 216577a..0dd668b 100644
 --- a/vma-writer.c
 +++ b/vma-writer.c
 @@ -252,7 +252,7 @@ vma_queue_write(VmaWriter *vmaw, const void *buf, size_t bytes)
@@ -120,10 +120,10 @@ index 79b7fd4..0d26fc6 100644
  
      return open_drives;
 diff --git a/vma.c b/vma.c
-index c88a4358..08e4725 100644
+index 1ffaced..c7c0538 100644
 --- a/vma.c
 +++ b/vma.c
-@@ -27,7 +27,7 @@ static void help(void)
+@@ -28,7 +28,7 @@ static void help(void)
          "\n"
          "vma list <filename>\n"
          "vma config <filename> [-c config]\n"
@@ -132,7 +132,7 @@ index c88a4358..08e4725 100644
          "vma extract <filename> [-r <fifo>] <targetdir>\n"
          "vma verify <filename> [-v]\n"
          ;
-@@ -395,6 +395,18 @@ typedef struct BackupJob {
+@@ -396,6 +396,18 @@ typedef struct BackupJob {
  
  #define BACKUP_SECTORS_PER_CLUSTER (VMA_CLUSTER_SIZE / BDRV_SECTOR_SIZE)
  
@@ -151,7 +151,7 @@ index c88a4358..08e4725 100644
  static void coroutine_fn backup_run(void *opaque)
  {
      BackupJob *job = (BackupJob *)opaque;
-@@ -468,8 +480,8 @@ static int create_archive(int argc, char **argv)
+@@ -469,8 +481,8 @@ static int create_archive(int argc, char **argv)
      }
  
  
@@ -162,7 +162,7 @@ index c88a4358..08e4725 100644
          help();
      }
  
-@@ -504,11 +516,11 @@ static int create_archive(int argc, char **argv)
+@@ -505,11 +517,11 @@ static int create_archive(int argc, char **argv)
          l = g_list_next(l);
      }
  
@@ -176,7 +176,7 @@ index c88a4358..08e4725 100644
  
          Error *errp = NULL;
          BlockDriverState *bs;
-@@ -539,37 +551,39 @@ static int create_archive(int argc, char **argv)
+@@ -540,37 +552,39 @@ static int create_archive(int argc, char **argv)
      int percent = 0;
      int last_percent = -1;
  
