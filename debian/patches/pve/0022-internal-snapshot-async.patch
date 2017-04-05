@@ -1,7 +1,7 @@
-From ab6904d8e0f3a976ade19e8b5f99270738ed6518 Mon Sep 17 00:00:00 2001
+From dbd7eef96fe140c5ce332cee8173fe5b6ac44676 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:04:32 +0100
-Subject: [PATCH 22/48] internal snapshot async
+Subject: [PATCH 22/49] internal snapshot async
 
 ---
  Makefile.objs           |   1 +
@@ -21,7 +21,7 @@ Subject: [PATCH 22/48] internal snapshot async
  create mode 100644 savevm-async.c
 
 diff --git a/Makefile.objs b/Makefile.objs
-index 9b12ee6..f5f8dba 100644
+index 9b12ee6afa..f5f8dbab3b 100644
 --- a/Makefile.objs
 +++ b/Makefile.objs
 @@ -51,6 +51,7 @@ common-obj-$(CONFIG_LINUX) += fsdev/
@@ -33,10 +33,10 @@ index 9b12ee6..f5f8dba 100644
  common-obj-$(CONFIG_SPICE) += spice-qemu-char.o
  
 diff --git a/block.c b/block.c
-index 6e906ec..5563a4f 100644
+index 927ba89eb7..884cbf83f2 100644
 --- a/block.c
 +++ b/block.c
-@@ -3045,7 +3045,7 @@ out:
+@@ -3087,7 +3087,7 @@ out:
      bdrv_unref(bs_new);
  }
  
@@ -46,7 +46,7 @@ index 6e906ec..5563a4f 100644
      assert(!bs->job);
      assert(bdrv_op_blocker_is_empty(bs));
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index 1a18380..3b5a0f9 100644
+index 1a1838099f..3b5a0f95e4 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
 @@ -573,6 +573,19 @@ Show current migration xbzrle cache size.
@@ -70,7 +70,7 @@ index 1a18380..3b5a0f9 100644
          .args_type  = "",
          .params     = "",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 7288203..a2867b5 100644
+index 72882039ee..a2867b56f2 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
 @@ -1808,3 +1808,35 @@ ETEXI
@@ -110,7 +110,7 @@ index 7288203..a2867b5 100644
 +        .cmd = hmp_savevm_end,
 +    },
 diff --git a/hmp.c b/hmp.c
-index 465d7fa..aaf0de1 100644
+index 465d7faad0..aaf0de1642 100644
 --- a/hmp.c
 +++ b/hmp.c
 @@ -2270,6 +2270,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
@@ -178,7 +178,7 @@ index 465d7fa..aaf0de1 100644
  {
      IOThreadInfoList *info_list = qmp_query_iothreads(NULL);
 diff --git a/hmp.h b/hmp.h
-index 17a65b2..8c1b484 100644
+index 17a65b2313..8c1b4846b3 100644
 --- a/hmp.h
 +++ b/hmp.h
 @@ -26,6 +26,7 @@ void hmp_info_status(Monitor *mon, const QDict *qdict);
@@ -201,7 +201,7 @@ index 17a65b2..8c1b484 100644
  void hmp_screendump(Monitor *mon, const QDict *qdict);
  void hmp_nbd_server_start(Monitor *mon, const QDict *qdict);
 diff --git a/include/block/block.h b/include/block/block.h
-index 5149260..b29c69d 100644
+index 5149260827..b29c69d633 100644
 --- a/include/block/block.h
 +++ b/include/block/block.h
 @@ -295,6 +295,7 @@ BlockDriverState *bdrv_find_backing_image(BlockDriverState *bs,
@@ -213,7 +213,7 @@ index 5149260..b29c69d 100644
  int64_t bdrv_getlength(BlockDriverState *bs);
  int64_t bdrv_get_allocated_file_size(BlockDriverState *bs);
 diff --git a/include/sysemu/sysemu.h b/include/sysemu/sysemu.h
-index 576c7ce..74623de 100644
+index 576c7ce640..74623de16c 100644
 --- a/include/sysemu/sysemu.h
 +++ b/include/sysemu/sysemu.h
 @@ -78,6 +78,7 @@ void qemu_remove_machine_init_done_notifier(Notifier *notify);
@@ -241,7 +241,7 @@ index 576c7ce..74623de 100644
                                 uint64_t *res_non_postcopiable,
                                 uint64_t *res_postcopiable);
 diff --git a/migration/savevm.c b/migration/savevm.c
-index 3b19a4a..feb0dc6 100644
+index 3b19a4a274..feb0dc6834 100644
 --- a/migration/savevm.c
 +++ b/migration/savevm.c
 @@ -970,11 +970,11 @@ void qemu_savevm_state_header(QEMUFile *f)
@@ -299,7 +299,7 @@ index 3b19a4a..feb0dc6 100644
  
  /* Give an estimate of the amount left to be transferred,
 diff --git a/qapi-schema.json b/qapi-schema.json
-index 1127f2c..c33ebb3 100644
+index edb7c32ac9..a25074183c 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
 @@ -813,6 +813,40 @@
@@ -343,7 +343,7 @@ index 1127f2c..c33ebb3 100644
  # @query-migrate:
  #
  # Returns information about current migration process. If migration
-@@ -4828,9 +4862,43 @@
+@@ -4825,9 +4859,43 @@
  #
  # Since: 1.2.0
  ##
@@ -388,7 +388,7 @@ index 1127f2c..c33ebb3 100644
  #
  # An enumeration of key name.
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 99af8ed..10f0e81 100644
+index 99af8edf5f..10f0e81f9b 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
 @@ -3396,6 +3396,19 @@ STEXI
@@ -413,7 +413,7 @@ index 99af8ed..10f0e81 100644
      "-daemonize      daemonize QEMU after initializing\n", QEMU_ARCH_ALL)
 diff --git a/savevm-async.c b/savevm-async.c
 new file mode 100644
-index 0000000..9704a41
+index 0000000000..9704a412d9
 --- /dev/null
 +++ b/savevm-async.c
 @@ -0,0 +1,525 @@
@@ -943,7 +943,7 @@ index 0000000..9704a41
 +    return ret;
 +}
 diff --git a/vl.c b/vl.c
-index 868c489..19afd47 100644
+index 868c4893df..19afd47871 100644
 --- a/vl.c
 +++ b/vl.c
 @@ -2960,6 +2960,7 @@ int main(int argc, char **argv, char **envp)
@@ -976,5 +976,5 @@ index 868c489..19afd47 100644
  
      qdev_prop_check_globals();
 -- 
-2.1.4
+2.11.0
 

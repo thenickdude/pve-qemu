@@ -1,14 +1,14 @@
-From 190e9321e1657ec0b956ecece21d6a037487cd14 Mon Sep 17 00:00:00 2001
+From abc1172df5ed472111a8bed0336441449ba03d0c Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Tue, 8 Nov 2016 11:13:06 +0100
-Subject: [PATCH 46/48] convert savevm-async to threads
+Subject: [PATCH 46/49] convert savevm-async to threads
 
 ---
  savevm-async.c | 144 +++++++++++++++++++++++++++++++++++----------------------
  1 file changed, 88 insertions(+), 56 deletions(-)
 
 diff --git a/savevm-async.c b/savevm-async.c
-index 3adf89f..9f839fa 100644
+index 3adf89fdb2..9f839faab5 100644
 --- a/savevm-async.c
 +++ b/savevm-async.c
 @@ -48,6 +48,8 @@ static struct SnapshotState {
@@ -230,5 +230,5 @@ index 3adf89f..9f839fa 100644
      return;
  
 -- 
-2.1.4
+2.11.0
 

@@ -1,7 +1,7 @@
-From c51f39a5741210b7df2ac212a8ced14ef950d415 Mon Sep 17 00:00:00 2001
+From 275d91b95acd8518560087dbdc641df5679519e2 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:32:11 +0100
-Subject: [PATCH 09/48] qapi: modify spice query
+Subject: [PATCH 09/49] qapi: modify spice query
 
 Provide the last ticket in the SpiceInfo struct optionally.
 ---
@@ -10,7 +10,7 @@ Provide the last ticket in the SpiceInfo struct optionally.
  2 files changed, 8 insertions(+)
 
 diff --git a/qapi-schema.json b/qapi-schema.json
-index 2c40928..ca534cc 100644
+index 51e150c6c1..1b14ff2476 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
 @@ -1841,11 +1841,14 @@
@@ -29,7 +29,7 @@ index 2c40928..ca534cc 100644
  
  ##
 diff --git a/ui/spice-core.c b/ui/spice-core.c
-index 804abc5..4a41731 100644
+index 804abc5c0f..4a417310d3 100644
 --- a/ui/spice-core.c
 +++ b/ui/spice-core.c
 @@ -552,6 +552,11 @@ SpiceInfo *qmp_query_spice(Error **errp)
@@ -45,5 +45,5 @@ index 804abc5..4a41731 100644
          info->has_port = true;
          info->port = port;
 -- 
-2.1.4
+2.11.0
 

@@ -1,7 +1,7 @@
-From 5a587bc1cfc30faa8506b5c2925b767b4c3d7b56 Mon Sep 17 00:00:00 2001
+From 575f41c5a7a69d66479c709a8a30b6c2d2592dec Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Mon, 1 Aug 2016 10:52:46 +0200
-Subject: [PATCH 40/48] enable cache=unsafe for vma extract_content and
+Subject: [PATCH 40/49] enable cache=unsafe for vma extract_content and
  qmp_savevm_start
 
 We don't send any flush here, so we need to open with cache=unsafe.
@@ -13,7 +13,7 @@ Signed-off-by: Alexandre Derumier <aderumier@odiso.com>
  2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/savevm-async.c b/savevm-async.c
-index 6ac03af..46c1be7 100644
+index 6ac03af9c8..46c1be7887 100644
 --- a/savevm-async.c
 +++ b/savevm-async.c
 @@ -253,7 +253,7 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
@@ -26,7 +26,7 @@ index 6ac03af..46c1be7 100644
  
      if (snap_state.state != SAVE_STATE_DONE) {
 diff --git a/vma.c b/vma.c
-index aafdc2d..4f55799 100644
+index aafdc2d7f5..4f55799533 100644
 --- a/vma.c
 +++ b/vma.c
 @@ -281,7 +281,7 @@ static int extract_content(int argc, char **argv)
@@ -39,5 +39,5 @@ index aafdc2d..4f55799 100644
  
              if (readmap) {
 -- 
-2.1.4
+2.11.0
 

@@ -1,7 +1,7 @@
-From 5921bc0360f6964a5bb5355c2707c806425f4734 Mon Sep 17 00:00:00 2001
+From 7f13e74387d932b773fd6bcd33c1a5be99a3d89c Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:27:49 +0100
-Subject: [PATCH 06/48] virtio-balloon: fix query
+Subject: [PATCH 06/49] virtio-balloon: fix query
 
 Actually provide memory information via the query-balloon
 command.
@@ -12,7 +12,7 @@ command.
  3 files changed, 81 insertions(+), 5 deletions(-)
 
 diff --git a/hmp.c b/hmp.c
-index edb8970..904542d 100644
+index edb8970461..904542d026 100644
 --- a/hmp.c
 +++ b/hmp.c
 @@ -723,7 +723,35 @@ void hmp_info_balloon(Monitor *mon, const QDict *qdict)
@@ -53,7 +53,7 @@ index edb8970..904542d 100644
      qapi_free_BalloonInfo(info);
  }
 diff --git a/hw/virtio/virtio-balloon.c b/hw/virtio/virtio-balloon.c
-index a705e0e..158e13e 100644
+index a705e0ec55..158e13e795 100644
 --- a/hw/virtio/virtio-balloon.c
 +++ b/hw/virtio/virtio-balloon.c
 @@ -379,8 +379,37 @@ static uint64_t virtio_balloon_get_features(VirtIODevice *vdev, uint64_t f,
@@ -97,7 +97,7 @@ index a705e0e..158e13e 100644
  
  static void virtio_balloon_to_target(void *opaque, ram_addr_t target)
 diff --git a/qapi-schema.json b/qapi-schema.json
-index b921994..e7a8117 100644
+index 250e4dc49b..f38b85bf6a 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
 @@ -1900,10 +1900,29 @@
@@ -133,5 +133,5 @@ index b921994..e7a8117 100644
  ##
  # @query-balloon:
 -- 
-2.1.4
+2.11.0
 

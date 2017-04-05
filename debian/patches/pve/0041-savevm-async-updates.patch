@@ -1,14 +1,14 @@
-From d7b0ad8cf8ef0aad35b0549128003dbb49b8386d Mon Sep 17 00:00:00 2001
+From 0bf0f6e121a93883fc5b575e6cdbdcc95e26db7e Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Fri, 9 Sep 2016 15:21:19 +0200
-Subject: [PATCH 41/48] savevm-async updates
+Subject: [PATCH 41/49] savevm-async updates
 
 ---
  savevm-async.c | 79 +++++++++++++++++++++++++++++-----------------------------
  1 file changed, 39 insertions(+), 40 deletions(-)
 
 diff --git a/savevm-async.c b/savevm-async.c
-index 46c1be7..2f4766c 100644
+index 46c1be7887..2f4766cf6c 100644
 --- a/savevm-async.c
 +++ b/savevm-async.c
 @@ -20,6 +20,8 @@
@@ -211,5 +211,5 @@ index 46c1be7..2f4766c 100644
      return ret;
  }
 -- 
-2.1.4
+2.11.0
 

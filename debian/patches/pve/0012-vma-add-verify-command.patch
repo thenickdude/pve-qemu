@@ -1,7 +1,7 @@
-From f6a9d9269a4f07eb7b2161884dde52a65f58c9f6 Mon Sep 17 00:00:00 2001
+From 93dc98fc5744c6f61ba74d0196d525190eee997b Mon Sep 17 00:00:00 2001
 From: Dietmar Maurer <dietmar@proxmox.com>
 Date: Mon, 11 Mar 2013 07:07:46 +0100
-Subject: [PATCH 12/48] vma: add verify command
+Subject: [PATCH 12/49] vma: add verify command
 
 Users wants to verify the archive after backup.
 
@@ -19,7 +19,7 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  3 files changed, 147 insertions(+), 30 deletions(-)
 
 diff --git a/vma-reader.c b/vma-reader.c
-index 51dd8fe..2aafb26 100644
+index 51dd8fee0e..2aafb26b2a 100644
 --- a/vma-reader.c
 +++ b/vma-reader.c
 @@ -45,6 +45,8 @@ struct VmaReader {
@@ -226,7 +226,7 @@ index 51dd8fe..2aafb26 100644
 +}
 +
 diff --git a/vma.c b/vma.c
-index 8732bfa..ab7b766 100644
+index 8732bfa85e..ab7b766014 100644
 --- a/vma.c
 +++ b/vma.c
 @@ -29,6 +29,7 @@ static void help(void)
@@ -306,7 +306,7 @@ index 8732bfa..ab7b766 100644
  
      help();
 diff --git a/vma.h b/vma.h
-index 6625eb9..9bb6ea4 100644
+index 6625eb95c6..9bb6ea4f69 100644
 --- a/vma.h
 +++ b/vma.h
 @@ -142,5 +142,6 @@ int vma_reader_register_bs(VmaReader *vmar, guint8 dev_id,
@@ -317,5 +317,5 @@ index 6625eb9..9bb6ea4 100644
  
  #endif /* BACKUP_VMA_H */
 -- 
-2.1.4
+2.11.0
 

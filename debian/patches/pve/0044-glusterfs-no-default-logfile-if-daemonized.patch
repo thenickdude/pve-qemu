@@ -1,14 +1,14 @@
-From cb89d816594f141bad45536886900cbf33ba09bd Mon Sep 17 00:00:00 2001
+From 74c0a7a984dde09ca789b6906418ec8ed98ece05 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Mon, 24 Oct 2016 09:32:36 +0200
-Subject: [PATCH 44/48] glusterfs: no default logfile if daemonized
+Subject: [PATCH 44/49] glusterfs: no default logfile if daemonized
 
 ---
  block/gluster.c | 15 +++++++++++----
  1 file changed, 11 insertions(+), 4 deletions(-)
 
 diff --git a/block/gluster.c b/block/gluster.c
-index a577dae..e712dc7 100644
+index cf29b5f9a4..bc44c50db0 100644
 --- a/block/gluster.c
 +++ b/block/gluster.c
 @@ -33,7 +33,7 @@
@@ -28,7 +28,7 @@ index a577dae..e712dc7 100644
  
      glfs = glfs_find_preopened(gconf->volume);
      if (glfs) {
-@@ -433,9 +434,15 @@ static struct glfs *qemu_gluster_glfs_init(BlockdevOptionsGluster *gconf,
+@@ -440,9 +441,15 @@ static struct glfs *qemu_gluster_glfs_init(BlockdevOptionsGluster *gconf,
          }
      }
  
@@ -48,5 +48,5 @@ index a577dae..e712dc7 100644
  
      ret = glfs_init(glfs);
 -- 
-2.1.4
+2.11.0
 

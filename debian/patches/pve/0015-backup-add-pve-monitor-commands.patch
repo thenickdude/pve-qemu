@@ -1,7 +1,7 @@
-From d48092bb9901112b3356aa8d461c45ffb4ec2b9a Mon Sep 17 00:00:00 2001
+From 678834d6358b6d784f7ae7b6df3476c4befa2073 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:20:56 +0100
-Subject: [PATCH 15/48] backup: add pve monitor commands
+Subject: [PATCH 15/49] backup: add pve monitor commands
 
 ---
  blockdev.c                | 465 ++++++++++++++++++++++++++++++++++++++++++++++
@@ -15,7 +15,7 @@ Subject: [PATCH 15/48] backup: add pve monitor commands
  8 files changed, 668 insertions(+), 6 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index bb3fc5b..3e5c9ce 100644
+index bb3fc5bd43..3e5c9ce593 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -35,6 +35,7 @@
@@ -505,7 +505,7 @@ index bb3fc5b..3e5c9ce 100644
                        bool has_base, const char *base,
                        bool has_base_node, const char *base_node,
 diff --git a/blockjob.c b/blockjob.c
-index 9b619f385..54bd34a 100644
+index 9b619f385a..54bd34a7db 100644
 --- a/blockjob.c
 +++ b/blockjob.c
 @@ -37,8 +37,8 @@
@@ -548,7 +548,7 @@ index 9b619f385..54bd34a 100644
      if (block_job_is_internal(job)) {
          return;
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index a53f105..1a18380 100644
+index a53f105c52..1a1838099f 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
 @@ -487,6 +487,19 @@ STEXI
@@ -572,7 +572,7 @@ index a53f105..1a18380 100644
      {
          .name       = "usernet",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 8819281..aea39d0 100644
+index 88192817b2..aea39d0f45 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
 @@ -87,6 +87,35 @@ STEXI
@@ -612,7 +612,7 @@ index 8819281..aea39d0 100644
          .name       = "block_job_set_speed",
          .args_type  = "device:B,speed:o",
 diff --git a/hmp.c b/hmp.c
-index 904542d..c685ba5 100644
+index 904542d026..c685ba507f 100644
 --- a/hmp.c
 +++ b/hmp.c
 @@ -151,6 +151,44 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
@@ -691,7 +691,7 @@ index 904542d..c685ba5 100644
  {
      Error *error = NULL;
 diff --git a/hmp.h b/hmp.h
-index 799fd37..17a65b2 100644
+index 799fd371fa..17a65b2313 100644
 --- a/hmp.h
 +++ b/hmp.h
 @@ -30,6 +30,7 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict);
@@ -712,7 +712,7 @@ index 799fd37..17a65b2 100644
  void hmp_block_job_cancel(Monitor *mon, const QDict *qdict);
  void hmp_block_job_pause(Monitor *mon, const QDict *qdict);
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index ec65581..278da16 100644
+index ec655815ca..278da161fb 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -59,7 +59,7 @@
@@ -725,7 +725,7 @@ index ec65581..278da16 100644
  
  enum BdrvTrackedRequestType {
 diff --git a/qapi-schema.json b/qapi-schema.json
-index ca534cc..059cbfc 100644
+index 1b14ff2476..12d4d20705 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
 @@ -570,6 +570,96 @@
@@ -826,5 +826,5 @@ index ca534cc..059cbfc 100644
  #
  # Detailed migration status.
 -- 
-2.1.4
+2.11.0
 

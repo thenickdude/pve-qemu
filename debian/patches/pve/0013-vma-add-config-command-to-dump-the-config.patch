@@ -1,14 +1,14 @@
-From cfc9d20b832a3db40b4e61fa6af0fbcda911ec2e Mon Sep 17 00:00:00 2001
+From abbfe2dd5318356fd422ec84c3088a94ea528943 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:46:49 +0100
-Subject: [PATCH 13/48] vma: add 'config' command to dump the config
+Subject: [PATCH 13/49] vma: add 'config' command to dump the config
 
 ---
  vma.c | 64 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 64 insertions(+)
 
 diff --git a/vma.c b/vma.c
-index ab7b766..8925407 100644
+index ab7b766014..89254070c4 100644
 --- a/vma.c
 +++ b/vma.c
 @@ -27,6 +27,7 @@ static void help(void)
@@ -97,5 +97,5 @@ index ab7b766..8925407 100644
  
      help();
 -- 
-2.1.4
+2.11.0
 

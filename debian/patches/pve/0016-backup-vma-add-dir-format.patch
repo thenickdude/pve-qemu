@@ -1,7 +1,7 @@
-From 99a526d92531d64ff0c31a83d0d55f38651a32a5 Mon Sep 17 00:00:00 2001
+From 670436d594b195b66d707c7554ca18ce46ecbca7 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:21:54 +0100
-Subject: [PATCH 16/48] backup: vma: add dir format
+Subject: [PATCH 16/49] backup: vma: add dir format
 
 ---
  blockdev.c       | 137 ++++++++++++++++++++++++++++++++++++++++---------------
@@ -12,7 +12,7 @@ Subject: [PATCH 16/48] backup: vma: add dir format
  5 files changed, 111 insertions(+), 42 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index 3e5c9ce..af1b9d4 100644
+index 3e5c9ce593..af1b9d4817 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -3007,6 +3007,8 @@ typedef struct PVEBackupDevInfo {
@@ -247,7 +247,7 @@ index 3e5c9ce..af1b9d4 100644
  }
  
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index aea39d0..7288203 100644
+index aea39d0f45..72882039ee 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
 @@ -89,9 +89,11 @@ ETEXI
@@ -266,7 +266,7 @@ index aea39d0..7288203 100644
      },
  
 diff --git a/hmp.c b/hmp.c
-index c685ba5..465d7fa 100644
+index c685ba507f..465d7faad0 100644
 --- a/hmp.c
 +++ b/hmp.c
 @@ -1664,11 +1664,13 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
@@ -285,7 +285,7 @@ index c685ba5..465d7fa 100644
  
      hmp_handle_error(mon, &error);
 diff --git a/qapi-schema.json b/qapi-schema.json
-index 059cbfc..1127f2c 100644
+index 12d4d20705..edb7c32ac9 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
 @@ -609,7 +609,7 @@
@@ -298,7 +298,7 @@ index 059cbfc..1127f2c 100644
  ##
  # @backup:
 diff --git a/vma.c b/vma.c
-index 8925407..1ffaced 100644
+index 89254070c4..1ffaced897 100644
 --- a/vma.c
 +++ b/vma.c
 @@ -264,7 +264,7 @@ static int extract_content(int argc, char **argv)
@@ -311,5 +311,5 @@ index 8925407..1ffaced 100644
  
              if (readmap) {
 -- 
-2.1.4
+2.11.0
 

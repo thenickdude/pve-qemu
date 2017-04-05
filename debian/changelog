@@ -1,3 +1,12 @@
+pve-qemu-kvm (2.9.0-1~rc3) unstable; urgency=medium
+
+  * update to 2.9.0-rc3
+
+  * merge: block: Ignore guest dev  permissions during incoming migration
+    to fix live migration with local disks
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 05 Apr 2017 11:50:46 +0200
+
 pve-qemu-kvm (2.9.0-1~rc2+5) unstable; urgency=medium
 
   * fix a crash caused by the zeroinit filter in drive-mirror

@@ -1,14 +1,14 @@
-From 220fb93343dc6c05989c903873d8ed68943848ef Mon Sep 17 00:00:00 2001
+From d35049d4852cde2197c74185ccb1c1d0869ebf82 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Fri, 21 Oct 2016 09:09:26 +0200
-Subject: [PATCH 43/48] vma: sizes passed to blk_co_preadv should be bytes now
+Subject: [PATCH 43/49] vma: sizes passed to blk_co_preadv should be bytes now
 
 ---
  vma.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/vma.c b/vma.c
-index 4f55799..0491542 100644
+index 4f55799533..04915427c8 100644
 --- a/vma.c
 +++ b/vma.c
 @@ -466,8 +466,8 @@ static void coroutine_fn backup_run(void *opaque)
@@ -23,5 +23,5 @@ index 4f55799..0491542 100644
              vma_writer_set_error(job->vmaw, "read error", -1);
              goto out;
 -- 
-2.1.4
+2.11.0
 

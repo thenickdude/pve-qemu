@@ -1,7 +1,7 @@
-From 17b2fc7ed399325558b891e13e104214568fd154 Mon Sep 17 00:00:00 2001
+From 0dad6b49846e109e3acdb1fa7e69081af20e5bcd Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:39:36 +0100
-Subject: [PATCH 18/48] backup: vma: correctly propagate error
+Subject: [PATCH 18/49] backup: vma: correctly propagate error
 
 ---
  blockdev.c   | 2 +-
@@ -10,7 +10,7 @@ Subject: [PATCH 18/48] backup: vma: correctly propagate error
  3 files changed, 9 insertions(+), 1 deletion(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index 4b073d4..6253ef1 100644
+index 4b073d4d9f..6253ef1c5e 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -3043,7 +3043,7 @@ static int pvebackup_dump_cb(void *opaque, BlockBackend *target,
@@ -23,7 +23,7 @@ index 4b073d4..6253ef1 100644
              if (di->bs && di->bs->job) {
                  block_job_cancel(di->bs->job);
 diff --git a/vma-writer.c b/vma-writer.c
-index b0cf529..689e988 100644
+index b0cf529125..689e988423 100644
 --- a/vma-writer.c
 +++ b/vma-writer.c
 @@ -792,6 +792,13 @@ vma_writer_write(VmaWriter *vmaw, uint8_t dev_id, int64_t cluster_num,
@@ -41,7 +41,7 @@ index b0cf529..689e988 100644
  {
      g_assert(vmaw != NULL);
 diff --git a/vma.h b/vma.h
-index 9bb6ea4..98377e4 100644
+index 9bb6ea4f69..98377e473e 100644
 --- a/vma.h
 +++ b/vma.h
 @@ -116,6 +116,7 @@ typedef struct VmaDeviceInfo {
@@ -53,5 +53,5 @@ index 9bb6ea4..98377e4 100644
  int vma_writer_add_config(VmaWriter *vmaw, const char *name, gpointer data,
                            size_t len);
 -- 
-2.1.4
+2.11.0
 

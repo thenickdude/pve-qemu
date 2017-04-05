@@ -1,14 +1,14 @@
-From bd3aa97864804b5b37421f199b9fe64e3b16b52c Mon Sep 17 00:00:00 2001
+From 72c5264d057a0605448bc9e1b20ee2f94022e7fc Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:27:05 +0100
-Subject: [PATCH 05/48] use kvm by default
+Subject: [PATCH 05/49] use kvm by default
 
 ---
  accel.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/accel.c b/accel.c
-index 664bb88..ddb23a3 100644
+index 664bb88422..ddb23a3f1d 100644
 --- a/accel.c
 +++ b/accel.c
 @@ -87,8 +87,8 @@ void configure_accelerator(MachineState *ms)
@@ -23,5 +23,5 @@ index 664bb88..ddb23a3 100644
  
      while (!accel_initialised && *p != '\0') {
 -- 
-2.1.4
+2.11.0
 

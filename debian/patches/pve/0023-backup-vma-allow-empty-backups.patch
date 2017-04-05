@@ -1,7 +1,7 @@
-From b5ac1badd1810f87aae5091f44bee54e3c45e979 Mon Sep 17 00:00:00 2001
+From 443de3d7bdffb7ddee0a048c4c3f370eaf0b45f2 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:31:51 +0100
-Subject: [PATCH 23/48] backup: vma: allow empty backups
+Subject: [PATCH 23/49] backup: vma: allow empty backups
 
 ---
  vma-reader.c | 29 ++++++++++++-------------
@@ -11,7 +11,7 @@ Subject: [PATCH 23/48] backup: vma: allow empty backups
  4 files changed, 76 insertions(+), 54 deletions(-)
 
 diff --git a/vma-reader.c b/vma-reader.c
-index 2aafb26..78f1de9 100644
+index 2aafb26b2a..78f1de9499 100644
 --- a/vma-reader.c
 +++ b/vma-reader.c
 @@ -326,11 +326,6 @@ static int vma_reader_read_head(VmaReader *vmar, Error **errp)
@@ -58,7 +58,7 @@ index 2aafb26..78f1de9 100644
      }
      return ret;
 diff --git a/vma-writer.c b/vma-writer.c
-index 216577a..0dd668b 100644
+index 216577a4f7..0dd668b257 100644
 --- a/vma-writer.c
 +++ b/vma-writer.c
 @@ -252,7 +252,7 @@ vma_queue_write(VmaWriter *vmaw, const void *buf, size_t bytes)
@@ -120,7 +120,7 @@ index 216577a..0dd668b 100644
  
      return open_drives;
 diff --git a/vma.c b/vma.c
-index 1ffaced..c7c0538 100644
+index 1ffaced897..c7c05385f6 100644
 --- a/vma.c
 +++ b/vma.c
 @@ -28,7 +28,7 @@ static void help(void)
@@ -240,7 +240,7 @@ index 1ffaced..c7c0538 100644
          Coroutine *co = qemu_coroutine_create(backup_run_empty, vmaw);
          qemu_coroutine_enter(co);
 diff --git a/vma.h b/vma.h
-index 98377e4..365ceb2 100644
+index 98377e473e..365ceb2bcb 100644
 --- a/vma.h
 +++ b/vma.h
 @@ -128,6 +128,7 @@ int64_t coroutine_fn vma_writer_write(VmaWriter *vmaw, uint8_t dev_id,
@@ -252,5 +252,5 @@ index 98377e4..365ceb2 100644
  int vma_writer_get_status(VmaWriter *vmaw, VmaStatus *status);
  void vma_writer_set_error(VmaWriter *vmaw, const char *fmt, ...);
 -- 
-2.1.4
+2.11.0
 

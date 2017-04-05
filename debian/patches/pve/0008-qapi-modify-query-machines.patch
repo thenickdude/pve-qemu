@@ -1,7 +1,7 @@
-From e453e9a98f7f0c2a213fe5bee04ece37ce10e625 Mon Sep 17 00:00:00 2001
+From c9a0fe8f730979dccf506fd3563896b84ec54299 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:31:18 +0100
-Subject: [PATCH 08/48] qapi: modify query machines
+Subject: [PATCH 08/49] qapi: modify query machines
 
 provide '*is-current' in MachineInfo struct
 ---
@@ -10,10 +10,10 @@ provide '*is-current' in MachineInfo struct
  2 files changed, 8 insertions(+), 1 deletion(-)
 
 diff --git a/qapi-schema.json b/qapi-schema.json
-index e7a8117..2c40928 100644
+index f38b85bf6a..51e150c6c1 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
-@@ -4245,6 +4245,8 @@
+@@ -4242,6 +4242,8 @@
  #
  # @is-default: whether the machine is default
  #
@@ -22,7 +22,7 @@ index e7a8117..2c40928 100644
  # @cpu-max: maximum number of CPUs supported by the machine type
  #           (since 1.5.0)
  #
-@@ -4254,7 +4256,7 @@
+@@ -4251,7 +4253,7 @@
  ##
  { 'struct': 'MachineInfo',
    'data': { 'name': 'str', '*alias': 'str',
@@ -32,7 +32,7 @@ index e7a8117..2c40928 100644
  
  ##
 diff --git a/vl.c b/vl.c
-index 0b4ed52..868c489 100644
+index 0b4ed5241c..868c4893df 100644
 --- a/vl.c
 +++ b/vl.c
 @@ -1518,6 +1518,11 @@ MachineInfoList *qmp_query_machines(Error **errp)
@@ -48,5 +48,5 @@ index 0b4ed52..868c489 100644
          entry->value = info;
          entry->next = mach_list;
 -- 
-2.1.4
+2.11.0
 

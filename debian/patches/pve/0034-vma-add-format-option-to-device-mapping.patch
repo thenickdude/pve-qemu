@@ -1,7 +1,7 @@
-From a61194439318c95dfcb7df973ac961c12937dbcd Mon Sep 17 00:00:00 2001
+From 541834a4018302bea4e164ee7b09d080adcecb86 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Tue, 12 Apr 2016 13:49:44 +0200
-Subject: [PATCH 34/48] vma: add format option to device mapping
+Subject: [PATCH 34/49] vma: add format option to device mapping
 
 The BDRV_O_PROTOCOL option breaks non-raw protocol devices,
 so we instead now allow the format to be explicitly
@@ -15,7 +15,7 @@ silence the warnings by passing the drive mapping.
  1 file changed, 27 insertions(+), 7 deletions(-)
 
 diff --git a/vma.c b/vma.c
-index 4903568..f71e5a5 100644
+index 4903568fb4..f71e5a5933 100644
 --- a/vma.c
 +++ b/vma.c
 @@ -131,6 +131,7 @@ static int list_content(int argc, char **argv)
@@ -104,5 +104,5 @@ index 4903568..f71e5a5 100644
  
  	    if (errp || bdrv_open(&bs, devfn, NULL, options, flags, &errp)) {
 -- 
-2.1.4
+2.11.0
 

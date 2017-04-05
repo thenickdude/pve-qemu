@@ -1,7 +1,7 @@
-From c1338b34ccac2c5e6d7d1aca3ca3e3457a3f744c Mon Sep 17 00:00:00 2001
+From 5a684e9eb57192f1b772a6d7dae67857d72fae41 Mon Sep 17 00:00:00 2001
 From: Dietmar Maurer <dietmar@proxmox.com>
 Date: Tue, 13 Nov 2012 11:11:38 +0100
-Subject: [PATCH 11/48] introduce new vma archive format
+Subject: [PATCH 11/49] introduce new vma archive format
 
 This is a very simple archive format, see docs/specs/vma_spec.txt
 
@@ -20,7 +20,7 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  create mode 100644 vma.h
 
 diff --git a/Makefile b/Makefile
-index 6c359b2..edbc8b5 100644
+index 6c359b2f86..edbc8b50f0 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -284,7 +284,7 @@ ifneq ($(wildcard config-host.mak),)
@@ -41,7 +41,7 @@ index 6c359b2..edbc8b5 100644
  qemu-bridge-helper$(EXESUF): qemu-bridge-helper.o $(COMMON_LDADDS)
  
 diff --git a/Makefile.objs b/Makefile.objs
-index 6167e7b..9b12ee6 100644
+index 6167e7b17d..9b12ee6afa 100644
 --- a/Makefile.objs
 +++ b/Makefile.objs
 @@ -14,6 +14,7 @@ block-obj-y += block.o blockjob.o
@@ -54,7 +54,7 @@ index 6167e7b..9b12ee6 100644
  
 diff --git a/vma-reader.c b/vma-reader.c
 new file mode 100644
-index 0000000..51dd8fe
+index 0000000000..51dd8fee0e
 --- /dev/null
 +++ b/vma-reader.c
 @@ -0,0 +1,797 @@
@@ -857,7 +857,7 @@ index 0000000..51dd8fe
 +
 diff --git a/vma-writer.c b/vma-writer.c
 new file mode 100644
-index 0000000..b0cf529
+index 0000000000..b0cf529125
 --- /dev/null
 +++ b/vma-writer.c
 @@ -0,0 +1,870 @@
@@ -1733,7 +1733,7 @@ index 0000000..b0cf529
 +}
 diff --git a/vma.c b/vma.c
 new file mode 100644
-index 0000000..8732bfa
+index 0000000000..8732bfa85e
 --- /dev/null
 +++ b/vma.c
 @@ -0,0 +1,586 @@
@@ -2325,7 +2325,7 @@ index 0000000..8732bfa
 +}
 diff --git a/vma.h b/vma.h
 new file mode 100644
-index 0000000..6625eb9
+index 0000000000..6625eb95c6
 --- /dev/null
 +++ b/vma.h
 @@ -0,0 +1,146 @@
@@ -2476,5 +2476,5 @@ index 0000000..6625eb9
 +
 +#endif /* BACKUP_VMA_H */
 -- 
-2.1.4
+2.11.0
 

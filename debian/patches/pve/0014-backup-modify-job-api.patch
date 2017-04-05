@@ -1,7 +1,7 @@
-From c46139b295f9edffd43a12e7f029fce4f9b2ea46 Mon Sep 17 00:00:00 2001
+From 4291b03feee4f973686d67dc6e45ecd1ff374379 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:04:57 +0100
-Subject: [PATCH 14/48] backup: modify job api
+Subject: [PATCH 14/49] backup: modify job api
 
 Introduces a BackupDump function callback and a pause_count
 for backup_start. For a dump-backup the target parameter
@@ -14,7 +14,7 @@ can now be NULL so access to target needs to be guarded now.
  4 files changed, 83 insertions(+), 47 deletions(-)
 
 diff --git a/block/backup.c b/block/backup.c
-index a4fb288..fe4ce7f 100644
+index a4fb2884f9..fe4ce7f504 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -36,6 +36,7 @@ typedef struct BackupBlockJob {
@@ -228,7 +228,7 @@ index a4fb288..fe4ce7f 100644
      block_job_txn_add_job(txn, &job->common);
  
 diff --git a/block/replication.c b/block/replication.c
-index bf3c395..60c6524 100644
+index bf3c395eb4..60c6524417 100644
 --- a/block/replication.c
 +++ b/block/replication.c
 @@ -531,7 +531,8 @@ static void replication_start(ReplicationState *rs, ReplicationMode mode,
@@ -242,7 +242,7 @@ index bf3c395..60c6524 100644
              error_propagate(errp, local_err);
              backup_job_cleanup(bs);
 diff --git a/blockdev.c b/blockdev.c
-index 040c152..bb3fc5b 100644
+index 040c152512..bb3fc5bd43 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -3273,7 +3273,7 @@ static BlockJob *do_drive_backup(DriveBackup *backup, BlockJobTxn *txn,
@@ -264,7 +264,7 @@ index 040c152..bb3fc5b 100644
          error_propagate(errp, local_err);
      }
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 59400bd..ec65581 100644
+index 59400bd848..ec655815ca 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -59,6 +59,9 @@
@@ -288,5 +288,5 @@ index 59400bd..ec65581 100644
  
  void hmp_drive_add_node(Monitor *mon, const char *optstr);
 -- 
-2.1.4
+2.11.0
 

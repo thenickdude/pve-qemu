@@ -1,14 +1,14 @@
-From 6db418de8e775dd2f3699033699777498f4e2afd Mon Sep 17 00:00:00 2001
+From 2c724d4f2cc5da6664da260f437b76b7111f680f Mon Sep 17 00:00:00 2001
 From: Thomas Lamprecht <t.lamprecht@proxmox.com>
 Date: Wed, 6 Apr 2016 16:45:15 +0200
-Subject: [PATCH 35/48] fix possible unitialised return value
+Subject: [PATCH 35/49] fix possible unitialised return value
 
 ---
  migration/savevm.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/migration/savevm.c b/migration/savevm.c
-index feb0dc6..d2615f4 100644
+index feb0dc6834..d2615f4620 100644
 --- a/migration/savevm.c
 +++ b/migration/savevm.c
 @@ -1111,7 +1111,7 @@ int qemu_savevm_state_complete_precopy(QEMUFile *f, bool iterable_only)
@@ -21,5 +21,5 @@ index feb0dc6..d2615f4 100644
  
      trace_savevm_state_complete_precopy();
 -- 
-2.1.4
+2.11.0
 

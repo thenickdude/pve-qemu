@@ -1,14 +1,14 @@
-From 54847dbb3050d9ec9dd786d572d9c1dff0757d4d Mon Sep 17 00:00:00 2001
+From 69958cb77bf634951bde45a234871ca591e62dcc Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Thu, 10 Dec 2015 15:14:00 +0100
-Subject: [PATCH 28/48] savevm-async: migration and bdrv_open update
+Subject: [PATCH 28/49] savevm-async: migration and bdrv_open update
 
 ---
  savevm-async.c | 25 ++++++++++++-------------
  1 file changed, 12 insertions(+), 13 deletions(-)
 
 diff --git a/savevm-async.c b/savevm-async.c
-index 9704a41..6ac03af 100644
+index 9704a412d9..6ac03af9c8 100644
 --- a/savevm-async.c
 +++ b/savevm-async.c
 @@ -154,10 +154,10 @@ static int block_state_close(void *opaque)
@@ -97,5 +97,5 @@ index 9704a41..6ac03af 100644
      bdrv_op_block_all(bs, blocker);
  
 -- 
-2.1.4
+2.11.0
 

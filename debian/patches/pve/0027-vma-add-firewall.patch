@@ -1,7 +1,7 @@
-From 4e55ff68ec7aef1e2ea602890495cd862dd1161c Mon Sep 17 00:00:00 2001
+From bba85b2c9ffcc2e83e276f632c774126623a08b1 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:51:23 +0100
-Subject: [PATCH 27/48] vma: add firewall
+Subject: [PATCH 27/49] vma: add firewall
 
 ---
  blockdev.c       | 78 ++++++++++++++++++++++++++++++++++----------------------
@@ -10,7 +10,7 @@ Subject: [PATCH 27/48] vma: add firewall
  3 files changed, 50 insertions(+), 31 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index 36b4083..3b82339 100644
+index 36b4083ae9..3b823393bb 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -3163,6 +3163,44 @@ void qmp_backup_cancel(Error **errp)
@@ -115,7 +115,7 @@ index 36b4083..3b82339 100644
  
      backup_state.cancel = false;
 diff --git a/hmp.c b/hmp.c
-index aaf0de1..12f1f46 100644
+index aaf0de1642..12f1f46125 100644
 --- a/hmp.c
 +++ b/hmp.c
 @@ -1670,7 +1670,7 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
@@ -128,7 +128,7 @@ index aaf0de1..12f1f46 100644
  
      hmp_handle_error(mon, &error);
 diff --git a/qapi-schema.json b/qapi-schema.json
-index 79bfd97..6334018 100644
+index 21f822aada..b20020a054 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
 @@ -635,6 +635,7 @@
@@ -140,5 +140,5 @@ index 79bfd97..6334018 100644
    'returns': 'UuidInfo' }
  
 -- 
-2.1.4
+2.11.0
 

@@ -1,7 +1,7 @@
-From d55b3d4bca482ded41c0c1489626e426007e786c Mon Sep 17 00:00:00 2001
+From aeb28b3ef956941778dcfb395da885d53abb5a8d Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Mon, 11 Jan 2016 10:40:31 +0100
-Subject: [PATCH 30/48] PVE VNC authentication
+Subject: [PATCH 30/49] PVE VNC authentication
 
 ---
  crypto/tlscreds.c         |  47 +++++++++++
@@ -18,7 +18,7 @@ Subject: [PATCH 30/48] PVE VNC authentication
  11 files changed, 376 insertions(+), 41 deletions(-)
 
 diff --git a/crypto/tlscreds.c b/crypto/tlscreds.c
-index a896553..e9ae13c 100644
+index a8965531b6..e9ae13ce47 100644
 --- a/crypto/tlscreds.c
 +++ b/crypto/tlscreds.c
 @@ -158,6 +158,33 @@ qcrypto_tls_creds_prop_get_verify(Object *obj,
@@ -83,7 +83,7 @@ index a896553..e9ae13c 100644
  
  
 diff --git a/crypto/tlscredspriv.h b/crypto/tlscredspriv.h
-index 13e9b6c..0356acc 100644
+index 13e9b6c0b2..0356acc2c9 100644
 --- a/crypto/tlscredspriv.h
 +++ b/crypto/tlscredspriv.h
 @@ -36,6 +36,8 @@ int qcrypto_tls_creds_get_dh_params_file(QCryptoTLSCreds *creds,
@@ -96,7 +96,7 @@ index 13e9b6c..0356acc 100644
  
  #endif /* QCRYPTO_TLSCREDSPRIV_H */
 diff --git a/crypto/tlscredsx509.c b/crypto/tlscredsx509.c
-index 50eb54f..09f7364 100644
+index 50eb54f6bb..09f7364001 100644
 --- a/crypto/tlscredsx509.c
 +++ b/crypto/tlscredsx509.c
 @@ -555,22 +555,23 @@ qcrypto_tls_creds_x509_load(QCryptoTLSCredsX509 *creds,
@@ -144,7 +144,7 @@ index 50eb54f..09f7364 100644
              goto cleanup;
          }
 diff --git a/crypto/tlssession.c b/crypto/tlssession.c
-index 96a02de..c453e29 100644
+index 96a02deb69..c453e29cad 100644
 --- a/crypto/tlssession.c
 +++ b/crypto/tlssession.c
 @@ -23,6 +23,7 @@
@@ -156,7 +156,7 @@ index 96a02de..c453e29 100644
  #include "trace.h"
  
 diff --git a/include/crypto/tlscreds.h b/include/crypto/tlscreds.h
-index ad47d88..f86d379 100644
+index ad47d88be7..f86d379f26 100644
 --- a/include/crypto/tlscreds.h
 +++ b/include/crypto/tlscreds.h
 @@ -55,6 +55,7 @@ struct QCryptoTLSCreds {
@@ -168,7 +168,7 @@ index ad47d88..f86d379 100644
  
  
 diff --git a/include/ui/console.h b/include/ui/console.h
-index d759338..69f010e 100644
+index d759338816..69f010e1db 100644
 --- a/include/ui/console.h
 +++ b/include/ui/console.h
 @@ -462,6 +462,7 @@ static inline void cocoa_display_init(DisplayState *ds, int full_screen)
@@ -180,7 +180,7 @@ index d759338..69f010e 100644
  void vnc_display_open(const char *id, Error **errp);
  void vnc_display_add_client(const char *id, int csock, bool skipauth);
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 10f0e81..fbd1a1c 100644
+index 10f0e81f9b..fbd1a1cecf 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
 @@ -513,6 +513,9 @@ STEXI
@@ -194,7 +194,7 @@ index 10f0e81..fbd1a1c 100644
      "-fda/-fdb file  use 'file' as floppy disk 0/1 image\n", QEMU_ARCH_ALL)
  DEF("fdb", HAS_ARG, QEMU_OPTION_fdb, "", QEMU_ARCH_ALL)
 diff --git a/ui/vnc-auth-vencrypt.c b/ui/vnc-auth-vencrypt.c
-index ffaab57..de1c194 100644
+index ffaab57550..de1c1949ba 100644
 --- a/ui/vnc-auth-vencrypt.c
 +++ b/ui/vnc-auth-vencrypt.c
 @@ -28,6 +28,107 @@
@@ -433,7 +433,7 @@ index ffaab57..de1c194 100644
          vnc_read_when(vs, protocol_client_vencrypt_auth, 4);
      }
 diff --git a/ui/vnc.c b/ui/vnc.c
-index 039b3ed..a34ba08 100644
+index eb9420e830..2710614a72 100644
 --- a/ui/vnc.c
 +++ b/ui/vnc.c
 @@ -56,6 +56,125 @@ static const struct timeval VNC_REFRESH_LOSSY = { 2, 0 };
@@ -562,7 +562,7 @@ index 039b3ed..a34ba08 100644
  static QTAILQ_HEAD(, VncDisplay) vnc_displays =
      QTAILQ_HEAD_INITIALIZER(vnc_displays);
  
-@@ -3350,10 +3469,16 @@ vnc_display_setup_auth(int *auth,
+@@ -3356,10 +3475,16 @@ vnc_display_setup_auth(int *auth,
          if (password) {
              if (is_x509) {
                  VNC_DEBUG("Initializing VNC server with x509 password auth\n");
@@ -581,7 +581,7 @@ index 039b3ed..a34ba08 100644
              }
  
          } else if (sasl) {
-@@ -3387,6 +3512,7 @@ vnc_display_create_creds(bool x509,
+@@ -3393,6 +3518,7 @@ vnc_display_create_creds(bool x509,
                           bool x509verify,
                           const char *dir,
                           const char *id,
@@ -589,7 +589,7 @@ index 039b3ed..a34ba08 100644
                           Error **errp)
  {
      gchar *credsid = g_strdup_printf("tlsvnc%s", id);
-@@ -3402,6 +3528,7 @@ vnc_display_create_creds(bool x509,
+@@ -3408,6 +3534,7 @@ vnc_display_create_creds(bool x509,
                                        "endpoint", "server",
                                        "dir", dir,
                                        "verify-peer", x509verify ? "yes" : "no",
@@ -597,7 +597,7 @@ index 039b3ed..a34ba08 100644
                                        NULL);
      } else {
          creds = object_new_with_props(TYPE_QCRYPTO_TLS_CREDS_ANON,
-@@ -3409,6 +3536,7 @@ vnc_display_create_creds(bool x509,
+@@ -3415,6 +3542,7 @@ vnc_display_create_creds(bool x509,
                                        credsid,
                                        &err,
                                        "endpoint", "server",
@@ -605,7 +605,7 @@ index 039b3ed..a34ba08 100644
                                        NULL);
      }
  
-@@ -3876,12 +4004,17 @@ void vnc_display_open(const char *id, Error **errp)
+@@ -3879,12 +4007,17 @@ void vnc_display_open(const char *id, Error **errp)
          }
      } else {
          const char *path;
@@ -624,7 +624,7 @@ index 039b3ed..a34ba08 100644
              } else {
                  path = qemu_opt_get(opts, "x509verify");
                  if (path) {
-@@ -3893,6 +4026,7 @@ void vnc_display_open(const char *id, Error **errp)
+@@ -3896,6 +4029,7 @@ void vnc_display_open(const char *id, Error **errp)
                                                      x509verify,
                                                      path,
                                                      vd->id,
@@ -633,7 +633,7 @@ index 039b3ed..a34ba08 100644
              if (!vd->tlscreds) {
                  goto fail;
 diff --git a/ui/vnc.h b/ui/vnc.h
-index 694cf32..78d622a 100644
+index 694cf32ca9..78d622ab84 100644
 --- a/ui/vnc.h
 +++ b/ui/vnc.h
 @@ -284,6 +284,8 @@ struct VncState
@@ -653,7 +653,7 @@ index 694cf32..78d622a 100644
 +
  #endif /* QEMU_VNC_H */
 diff --git a/vl.c b/vl.c
-index d0780a4..2496b06 100644
+index d0780a41b4..2496b066b7 100644
 --- a/vl.c
 +++ b/vl.c
 @@ -2947,6 +2947,7 @@ static int qemu_read_default_config_file(void)
@@ -680,5 +680,5 @@ index d0780a4..2496b06 100644
                  vnc_parse(optarg, &error_fatal);
                  break;
 -- 
-2.1.4
+2.11.0
 

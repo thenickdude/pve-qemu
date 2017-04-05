@@ -1,7 +1,7 @@
-From 759fdd7b7ea2f90a463d4bc766f9c53053498c58 Mon Sep 17 00:00:00 2001
+From 8459f3c5a32357477435b7f094b3007928ec6d9e Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:34:41 +0100
-Subject: [PATCH 24/48] qmp: add get_link_status
+Subject: [PATCH 24/49] qmp: add get_link_status
 
 ---
  net/net.c        | 27 +++++++++++++++++++++++++++
@@ -9,7 +9,7 @@ Subject: [PATCH 24/48] qmp: add get_link_status
  2 files changed, 43 insertions(+)
 
 diff --git a/net/net.c b/net/net.c
-index 0ac3b9e..7410c1e 100644
+index 0ac3b9e80c..7410c1e5f3 100644
 --- a/net/net.c
 +++ b/net/net.c
 @@ -1373,6 +1373,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
@@ -47,7 +47,7 @@ index 0ac3b9e..7410c1e 100644
  {
      NetClientState *ncs[MAX_QUEUE_NUM];
 diff --git a/qapi-schema.json b/qapi-schema.json
-index c33ebb3..79bfd97 100644
+index a25074183c..21f822aada 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
 @@ -56,6 +56,7 @@
@@ -81,5 +81,5 @@ index c33ebb3..79bfd97 100644
  #
  # Request the balloon driver to change its balloon size.
 -- 
-2.1.4
+2.11.0
 

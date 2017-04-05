@@ -1,14 +1,14 @@
-From bc04d6e5e09d517a9c8833fd407a655be3cf21fe Mon Sep 17 00:00:00 2001
+From 4e5f2bdc825f1201c8b701d5c20939f9743db0ea Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:30:21 +0100
-Subject: [PATCH 07/48] set the CPU model to kvm64/32 instead of qemu64/32
+Subject: [PATCH 07/49] set the CPU model to kvm64/32 instead of qemu64/32
 
 ---
  hw/i386/pc.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/hw/i386/pc.c b/hw/i386/pc.c
-index d24388e..81e91a4 100644
+index d24388e05f..81e91a4897 100644
 --- a/hw/i386/pc.c
 +++ b/hw/i386/pc.c
 @@ -1151,9 +1151,9 @@ void pc_cpus_init(PCMachineState *pcms)
@@ -24,5 +24,5 @@ index d24388e..81e91a4 100644
      }
  
 -- 
-2.1.4
+2.11.0
 

@@ -1,4 +1,4 @@
-From 5445b96892a6350894ea3785f174157c4e7bbbaa Mon Sep 17 00:00:00 2001
+From e042ab947e3256e3a33f9fa5a21d8c01a667ff16 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Fri, 31 Mar 2017 09:27:58 +0200
 Subject: [PATCH 49/49] block: zeroinit: request child permissions
@@ -9,7 +9,7 @@ See d7010dfb685
  1 file changed, 1 insertion(+)
 
 diff --git a/block/zeroinit.c b/block/zeroinit.c
-index 0a8c7f9..a857ec3 100644
+index 0a8c7f9622..a857ec3c62 100644
 --- a/block/zeroinit.c
 +++ b/block/zeroinit.c
 @@ -191,6 +191,7 @@ static BlockDriver bdrv_zeroinit = {
@@ -21,5 +21,5 @@ index 0a8c7f9..a857ec3 100644
  
      .bdrv_co_pwrite_zeroes            = zeroinit_co_pwrite_zeroes,
 -- 
-2.1.4
+2.11.0
 

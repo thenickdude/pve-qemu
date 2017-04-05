@@ -1,7 +1,7 @@
-From a004ee9295029201e8fc3b8fe4acf7f85674527c Mon Sep 17 00:00:00 2001
+From e1e6c67464a39d9fe9e2133f4deaf4113df2b300 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Fri, 9 Sep 2016 14:51:28 +0200
-Subject: [PATCH 38/48] vma: byte based write calls
+Subject: [PATCH 38/49] vma: byte based write calls
 
 ---
  vma-reader.c | 42 +++++++++++++++++++++---------------------
@@ -10,7 +10,7 @@ Subject: [PATCH 38/48] vma: byte based write calls
  3 files changed, 32 insertions(+), 34 deletions(-)
 
 diff --git a/vma-reader.c b/vma-reader.c
-index 78f1de9..2000889 100644
+index 78f1de9499..2000889bd3 100644
 --- a/vma-reader.c
 +++ b/vma-reader.c
 @@ -25,7 +25,7 @@
@@ -148,7 +148,7 @@ index 78f1de9..2000889 100644
              return -1;
          }
 diff --git a/vma.c b/vma.c
-index ad51090..aafdc2d 100644
+index ad51090651..aafdc2d7f5 100644
 --- a/vma.c
 +++ b/vma.c
 @@ -334,9 +334,7 @@ static int extract_content(int argc, char **argv)
@@ -220,7 +220,7 @@ index ad51090..aafdc2d 100644
          job->dev_id = dev_id;
  
 diff --git a/vma.h b/vma.h
-index 365ceb2..fa6f4df 100644
+index 365ceb2bcb..fa6f4df7e7 100644
 --- a/vma.h
 +++ b/vma.h
 @@ -140,7 +140,7 @@ VmaHeader *vma_reader_get_header(VmaReader *vmar);
@@ -233,5 +233,5 @@ index 365ceb2..fa6f4df 100644
  int vma_reader_restore(VmaReader *vmar, int vmstate_fd, bool verbose,
                         Error **errp);
 -- 
-2.1.4
+2.11.0
 

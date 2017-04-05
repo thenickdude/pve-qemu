@@ -1,14 +1,14 @@
-From 45b6688a45611bb5818e1b6aa7313c91797aa003 Mon Sep 17 00:00:00 2001
+From 31ccb49bbea094f80dfbcbc664dfcf2b8060231d Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:15:49 +0100
-Subject: [PATCH 01/48] fr-ca keymap corrections
+Subject: [PATCH 01/49] fr-ca keymap corrections
 
 ---
  pc-bios/keymaps/fr-ca | 9 +++++++++
  1 file changed, 9 insertions(+)
 
 diff --git a/pc-bios/keymaps/fr-ca b/pc-bios/keymaps/fr-ca
-index b645208..9291240 100644
+index b645208e42..92912409e1 100644
 --- a/pc-bios/keymaps/fr-ca
 +++ b/pc-bios/keymaps/fr-ca
 @@ -14,22 +14,31 @@ bar 0x29 shift
@@ -44,5 +44,5 @@ index b645208..9291240 100644
  dead_grave 0x28
  dead_circumflex 0x1a
 -- 
-2.1.4
+2.11.0
 

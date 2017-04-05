@@ -1,7 +1,7 @@
-From 35facc3a3549baf4cccaef27afa9c35a25abe91c Mon Sep 17 00:00:00 2001
+From 06a152c85ba52b0af3081ab678e860b05e316aea Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Thu, 17 Mar 2016 11:33:37 +0100
-Subject: [PATCH 33/48] block: add the zeroinit block driver filter
+Subject: [PATCH 33/49] block: add the zeroinit block driver filter
 
 ---
  block/Makefile.objs |   1 +
@@ -10,7 +10,7 @@ Subject: [PATCH 33/48] block: add the zeroinit block driver filter
  create mode 100644 block/zeroinit.c
 
 diff --git a/block/Makefile.objs b/block/Makefile.objs
-index de96f8e..8cdac08 100644
+index de96f8ee80..8cdac08db5 100644
 --- a/block/Makefile.objs
 +++ b/block/Makefile.objs
 @@ -4,6 +4,7 @@ block-obj-y += qed.o qed-gencb.o qed-l2-cache.o qed-table.o qed-cluster.o
@@ -23,7 +23,7 @@ index de96f8e..8cdac08 100644
  block-obj-$(CONFIG_WIN32) += file-win32.o win32-aio.o
 diff --git a/block/zeroinit.c b/block/zeroinit.c
 new file mode 100644
-index 0000000..0a8c7f9
+index 0000000000..0a8c7f9622
 --- /dev/null
 +++ b/block/zeroinit.c
 @@ -0,0 +1,219 @@
@@ -247,5 +247,5 @@ index 0000000..0a8c7f9
 +
 +block_init(bdrv_zeroinit_init);
 -- 
-2.1.4
+2.11.0
 
