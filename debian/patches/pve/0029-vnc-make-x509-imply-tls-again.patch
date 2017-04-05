@@ -1,0 +1,28 @@
+From d42052d75321a1af75b039f8e31127b98485ec93 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Tue, 12 Jan 2016 09:09:49 +0100
+Subject: [PATCH 29/47] vnc: make x509 imply tls again
+
+---
+ ui/vnc.c | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/ui/vnc.c b/ui/vnc.c
+index b9f36b5..acbe3bd 100644
+--- a/ui/vnc.c
++++ b/ui/vnc.c
+@@ -3729,9 +3729,8 @@ void vnc_display_open(const char *id, Error **errp)
+         const char *path;
+         bool tls = false, x509 = false, x509verify = false;
+         tls  = qemu_opt_get_bool(opts, "tls", false);
+-        if (tls) {
+-            path = qemu_opt_get(opts, "x509");
+-
++        path = qemu_opt_get(opts, "x509");
++        if (tls || path) {
+             if (path) {
+                 x509 = true;
+             } else {
+-- 
+2.1.4
+

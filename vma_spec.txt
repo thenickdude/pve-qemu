@@ -1,0 +1,132 @@
+= Virtual Machine Archive format (VMA) =
+
+This format contains a header which includes the VM configuration as
+binary blobs, and a list of devices (dev_id, name).
+
+The actual VM image data is stored inside extents. An extent contains
+up to 64 clusters, and start with a 512 byte header containing
+additional information for those clusters.
+
+We use a cluster size of 65536, and use 8 bytes for each
+cluster in the header to store the following information:
+
+* 1 byte dev_id (to identity the drive)
+* 1 byte not used (reserved)
+* 2 bytes zero indicator (mark zero regions (16x4096))
+* 4 bytes cluster number
+
+We only store non-zero blocks (such block is 4096 bytes).
+
+Each archive is marked with a uuid. The archive header and all
+extent headers includes that uuid and a MD5 checksum (over header
+data).
+
+All numbers in VMA archive are stored in Big Endian byte order.
+
+== VMA Header ==
+
+    Byte  0 -  3:   magic
+                    VMA magic string ("VMA\x00")
+
+	  4 -  7:   version
+                    Version number (valid value is 1)
+
+          8 - 23:   uuid
+		    Unique ID, Same uuid is used to mark extents.
+
+         24 - 31:   ctime
+	      	    Backup time stamp (seconds since epoch)
+
+         32 - 47:   md5sum
+	      	    Header checksum (from byte 0 to header_size). This field
+		    is filled with zero to generate the checksum.
+
+         48 - 51:   blob_buffer_offset
+	      	    Start of blob buffer (multiple of 512)
+
+         52 - 55:   blob_buffer_size
+	      	    Size of blob buffer (multiple of 512)
+
+         56 - 59:   header_size
+	      	    Overall size of this header (multiple of 512)
+
+	 60 - 2043: reserved
+
+       2044 - 3067: uint32_t config_names[256]
+       	      	    Offsets into blob_buffer table
+
+       3068 - 4091: uint32_t config_data[256]
+       	      	    Offsets into blob_buffer table
+
+       4092 - 4095: reserved
+
+      4096 - 12287: VmaDeviceInfoHeader dev_info[256]
+                    The offset in this table is used as 'dev_id' inside
+		    the data streams.
+
+      12288 - header_size: Blob buffer
+
+
+=== Devive Info Header (VmaDeviceInfoHeader) ===
+
+This is use to store details about the contained disk images.
+
+    Byte  0 -  3:   devive name (offsets into blob_buffer table)
+
+    	  4 -  7:   reserved
+
+	  8 - 15:   device size in bytes
+
+	 16 - 31:   reserved
+
+Note: Devive name 'vmstate' is reserved to store VM RAM state.
+
+=== Blob buffer ===
+
+The blob buffer is used to store both configuration file names and
+configuration data.
+
+This region contain a list of binary data blobs. Each blob starts with
+a 2 byte size field, followed by the actual data.
+
+== Image Data Streams ==
+
+The VMA header is followed by the image data stream. Image data is grouped
+with extents, which contains up to 59 clusters from different images.
+
+=== VMA Extent Header ===
+
+    Byte  0 -  3:   magic
+                    VMA extent magic string ("VMAE")
+
+   	  4 -  5:   reserved
+
+   	  6 -  7:   block_count
+	      	    Overall number of contained 4K block
+
+          8 - 23:   uuid
+		    Unique ID, Same uuid as used in the VMA header.
+
+         24 - 39:   md5sum
+	      	    Header checksum (from byte 0 to header_size). This field
+		    is filled with zero to generate the checksum.
+
+        40 - 511:   blockinfo[59]
+
+
+Each 'blockinfo' (8 bytes) give further details about contained clusters:
+
+    Byte  0 - 1:   mask
+   	      	   Bitmap used to indicate non-zero 4K blocks inside the
+		   cluster.
+
+              2:   reserved
+
+              3:   dev_id
+	           Device ID (offset into dev_info table)
+
+          4 - 7:   cluster_num
+
+The extend header if followed by the actual cluster data, where we only
+store non-zero 4K blocks.
+

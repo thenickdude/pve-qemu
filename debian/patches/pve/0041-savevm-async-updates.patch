@@ -1,0 +1,215 @@
+From 9ea20572325cbc6df31293b863ccb8d2ae0e1dbd Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Fri, 9 Sep 2016 15:21:19 +0200
+Subject: [PATCH 41/47] savevm-async updates
+
+---
+ savevm-async.c | 79 +++++++++++++++++++++++++++++-----------------------------
+ 1 file changed, 39 insertions(+), 40 deletions(-)
+
+diff --git a/savevm-async.c b/savevm-async.c
+index 76cd8fa..8c76137 100644
+--- a/savevm-async.c
++++ b/savevm-async.c
+@@ -20,6 +20,8 @@
+ 
+ /* #define DEBUG_SAVEVM_STATE */
+ 
++#define NOT_DONE 0x7fffffff /* used while emulated sync operation in progress */
++
+ #ifdef DEBUG_SAVEVM_STATE
+ #define DPRINTF(fmt, ...) \
+     do { printf("savevm-async: " fmt, ## __VA_ARGS__); } while (0)
+@@ -38,7 +40,7 @@ enum {
+ 
+ 
+ static struct SnapshotState {
+-    BlockDriverState *bs;
++    BlockBackend *target;
+     size_t bs_pos;
+     int state;
+     Error *error;
+@@ -99,17 +101,17 @@ static int save_snapshot_cleanup(void)
+         ret = qemu_fclose(snap_state.file);
+     }
+ 
+-    if (snap_state.bs) {
++    if (snap_state.target) {
+         /* try to truncate, but ignore errors (will fail on block devices).
+          * note: bdrv_read() need whole blocks, so we round up
+          */
+         size_t size = (snap_state.bs_pos + BDRV_SECTOR_SIZE) & BDRV_SECTOR_MASK;
+-        bdrv_truncate(snap_state.bs, size);
+-        bdrv_op_unblock_all(snap_state.bs, snap_state.blocker);
++        blk_truncate(snap_state.target, size);
++        blk_op_unblock_all(snap_state.target, snap_state.blocker);
+         error_free(snap_state.blocker);
+         snap_state.blocker = NULL;
+-        bdrv_unref(snap_state.bs);
+-        snap_state.bs = NULL;
++        blk_unref(snap_state.target);
++        snap_state.target = NULL;
+     }
+ 
+     return ret;
+@@ -151,21 +153,22 @@ static void save_snapshot_completed(void)
+ static int block_state_close(void *opaque)
+ {
+     snap_state.file = NULL;
+-    return bdrv_flush(snap_state.bs);
++    return blk_flush(snap_state.target);
+ }
+ 
+-static ssize_t block_state_put_buffer(void *opaque, const uint8_t *buf,
+-                                      int64_t pos, size_t size)
++static ssize_t block_state_writev_buffer(void *opaque, struct iovec *iov,
++                                         int iovcnt, int64_t pos)
+ {
+-    ssize_t ret;
+-
+-    assert(pos == snap_state.bs_pos);
++    int ret;
++    QEMUIOVector qiov;
+ 
+-    if ((ret = bdrv_pwrite(snap_state.bs, snap_state.bs_pos, buf, size)) > 0) {
+-        snap_state.bs_pos += ret;
++    qemu_iovec_init_external(&qiov, iov, iovcnt);
++    ret = blk_co_pwritev(snap_state.target, pos, qiov.size, &qiov, 0);
++    if (ret < 0) {
++        return ret;
+     }
+-
+-    return ret;
++    snap_state.bs_pos += qiov.size;
++    return qiov.size;
+ }
+ 
+ static int store_and_stop(void) {
+@@ -227,7 +230,7 @@ static void process_savevm_co(void *opaque)
+         /* stop the VM if we get to the end of available space,
+          * or if pending_size is just a few MB
+          */
+-        maxlen = bdrv_getlength(snap_state.bs) - 30*1024*1024;
++        maxlen = blk_getlength(snap_state.target) - 30*1024*1024;
+         if ((pending_size < 100000) ||
+             ((snap_state.bs_pos + pending_size) >= maxlen)) {
+             if (store_and_stop())
+@@ -244,7 +247,7 @@ static void process_savevm_co(void *opaque)
+ }
+ 
+ static const QEMUFileOps block_file_ops = {
+-    .put_buffer =     block_state_put_buffer,
++    .writev_buffer =  block_state_writev_buffer,
+     .close =          block_state_close,
+ };
+ 
+@@ -254,7 +257,6 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
+     Error *local_err = NULL;
+ 
+     int bdrv_oflags = BDRV_O_RDWR | BDRV_O_NO_FLUSH;
+-    int ret;
+ 
+     if (snap_state.state != SAVE_STATE_DONE) {
+         error_set(errp, ERROR_CLASS_GENERIC_ERROR,
+@@ -284,13 +286,11 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
+     }
+ 
+     /* Open the image */
+-    snap_state.bs = bdrv_new();
+- 
+     QDict *options = NULL;
+     options = qdict_new();
+     qdict_put(options, "driver", qstring_from_str("raw"));
+-    ret = bdrv_open(&snap_state.bs, statefile, NULL, options, bdrv_oflags, &local_err);
+-    if (ret < 0) {
++    snap_state.target = blk_new_open(statefile, NULL, options, bdrv_oflags, &local_err);
++    if (!snap_state.target) {
+         error_set(errp, ERROR_CLASS_GENERIC_ERROR, "failed to open '%s'", statefile);
+         goto restart;
+     }
+@@ -304,9 +304,9 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
+ 
+ 
+     error_setg(&snap_state.blocker, "block device is in use by savevm");
+-    bdrv_op_block_all(snap_state.bs, snap_state.blocker);
++    blk_op_block_all(snap_state.target, snap_state.blocker);
+ 
+-    Coroutine *co = qemu_coroutine_create(process_savevm_co);
++    Coroutine *co = qemu_coroutine_create(process_savevm_co, NULL);
+     qemu_coroutine_enter(co);
+ 
+     return;
+@@ -457,8 +457,8 @@ void qmp_delete_drive_snapshot(const char *device, const char *name,
+ static ssize_t loadstate_get_buffer(void *opaque, uint8_t *buf, int64_t pos,
+                                     size_t size)
+ {
+-    BlockDriverState *bs = (BlockDriverState *)opaque;
+-    int64_t maxlen = bdrv_getlength(bs);
++    BlockBackend *be = opaque;
++    int64_t maxlen = blk_getlength(be);
+     if (pos > maxlen) {
+         return -EIO;
+     }
+@@ -468,7 +468,7 @@ static ssize_t loadstate_get_buffer(void *opaque, uint8_t *buf, int64_t pos,
+     if (size == 0) {
+         return 0;
+     }
+-    return bdrv_pread(bs, pos, buf, size);
++    return blk_pread(be, pos, buf, size);
+ }
+ 
+ static const QEMUFileOps loadstate_file_ops = {
+@@ -477,28 +477,27 @@ static const QEMUFileOps loadstate_file_ops = {
+ 
+ int load_state_from_blockdev(const char *filename)
+ {
+-    BlockDriverState *bs = NULL;
++    BlockBackend *be;
+     Error *local_err = NULL;
+     Error *blocker = NULL;
+ 
+     QEMUFile *f;
+-    int ret;
++    int ret = -EINVAL;
+ 
+-    bs = bdrv_new();
+-    ret = bdrv_open(&bs, filename, NULL, NULL, 0, &local_err);
+-    error_setg(&blocker, "block device is in use by load state");
+-    bdrv_op_block_all(bs, blocker);
++    be = blk_new_open(filename, NULL, NULL, 0, &local_err);
+ 
+-    if (ret < 0) {
++    if (!be) {
+         error_report("Could not open VM state file");
+         goto the_end;
+     }
+ 
++    error_setg(&blocker, "block device is in use by load state");
++    blk_op_block_all(be, blocker);
++
+     /* restore the VM state */
+-    f = qemu_fopen_ops(bs, &loadstate_file_ops);
++    f = qemu_fopen_ops(be, &loadstate_file_ops);
+     if (!f) {
+         error_report("Could not open VM state file");
+-        ret = -EINVAL;
+         goto the_end;
+     }
+ 
+@@ -516,10 +515,10 @@ int load_state_from_blockdev(const char *filename)
+     ret = 0;
+ 
+  the_end:
+-    if (bs) {
+-        bdrv_op_unblock_all(bs, blocker);
++    if (be) {
++        blk_op_unblock_all(be, blocker);
+         error_free(blocker);
+-        bdrv_unref(bs);
++        blk_unref(be);
+     }
+     return ret;
+ }
+-- 
+2.1.4
+

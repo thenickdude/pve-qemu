@@ -1,0 +1,237 @@
+From 1209cadf111aaf73b53e568f78104340b4ffb0bd Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Fri, 9 Sep 2016 14:51:28 +0200
+Subject: [PATCH 38/47] vma: byte based write calls
+
+---
+ vma-reader.c | 42 +++++++++++++++++++++---------------------
+ vma.c        | 22 ++++++++++------------
+ vma.h        |  2 +-
+ 3 files changed, 32 insertions(+), 34 deletions(-)
+
+diff --git a/vma-reader.c b/vma-reader.c
+index 78f1de9..2000889 100644
+--- a/vma-reader.c
++++ b/vma-reader.c
+@@ -25,7 +25,7 @@
+ static unsigned char zero_vma_block[VMA_BLOCK_SIZE];
+ 
+ typedef struct VmaRestoreState {
+-    BlockDriverState *bs;
++    BlockBackend *target;
+     bool write_zeroes;
+     unsigned long *bitmap;
+     int bitmap_size;
+@@ -423,12 +423,12 @@ VmaDeviceInfo *vma_reader_get_device_info(VmaReader *vmar, guint8 dev_id)
+ }
+ 
+ static void allocate_rstate(VmaReader *vmar,  guint8 dev_id,
+-                            BlockDriverState *bs, bool write_zeroes)
++                            BlockBackend *target, bool write_zeroes)
+ {
+     assert(vmar);
+     assert(dev_id);
+ 
+-    vmar->rstate[dev_id].bs = bs;
++    vmar->rstate[dev_id].target = target;
+     vmar->rstate[dev_id].write_zeroes = write_zeroes;
+ 
+     int64_t size = vmar->devinfo[dev_id].size;
+@@ -443,15 +443,15 @@ static void allocate_rstate(VmaReader *vmar,  guint8 dev_id,
+     vmar->cluster_count += size/VMA_CLUSTER_SIZE;
+ }
+ 
+-int vma_reader_register_bs(VmaReader *vmar, guint8 dev_id, BlockDriverState *bs,
++int vma_reader_register_bs(VmaReader *vmar, guint8 dev_id, BlockBackend *target,
+                            bool write_zeroes, Error **errp)
+ {
+     assert(vmar);
+-    assert(bs != NULL);
++    assert(target != NULL);
+     assert(dev_id);
+-    assert(vmar->rstate[dev_id].bs == NULL);
++    assert(vmar->rstate[dev_id].target == NULL);
+ 
+-    int64_t size = bdrv_getlength(bs);
++    int64_t size = blk_getlength(target);
+     int64_t size_diff = size - vmar->devinfo[dev_id].size;
+ 
+     /* storage types can have different size restrictions, so it
+@@ -465,7 +465,7 @@ int vma_reader_register_bs(VmaReader *vmar, guint8 dev_id, BlockDriverState *bs,
+         return -1;
+     }
+ 
+-    allocate_rstate(vmar, dev_id, bs, write_zeroes);
++    allocate_rstate(vmar, dev_id, target, write_zeroes);
+ 
+     return 0;
+ }
+@@ -507,7 +507,7 @@ static size_t full_write(int fd, void *buf, size_t len)
+ }
+ 
+ static int restore_write_data(VmaReader *vmar, guint8 dev_id,
+-                              BlockDriverState *bs, int vmstate_fd,
++                              BlockBackend *target, int vmstate_fd,
+                               unsigned char *buf, int64_t sector_num,
+                               int nb_sectors, Error **errp)
+ {
+@@ -523,10 +523,10 @@ static int restore_write_data(VmaReader *vmar, guint8 dev_id,
+             }
+         }
+     } else {
+-        int res = bdrv_write(bs, sector_num, buf, nb_sectors);
++        int res = blk_pwrite(target, sector_num * BDRV_SECTOR_SIZE, buf, nb_sectors * BDRV_SECTOR_SIZE, 0);
+         if (res < 0) {
+-            error_setg(errp, "bdrv_write to %s failed (%d)",
+-                       bdrv_get_device_name(bs), res);
++            error_setg(errp, "blk_pwrite to %s failed (%d)",
++                       bdrv_get_device_name(blk_bs(target)), res);
+             return -1;
+         }
+     }
+@@ -556,11 +556,11 @@ static int restore_extent(VmaReader *vmar, unsigned char *buf,
+         }
+ 
+         VmaRestoreState *rstate = &vmar->rstate[dev_id];
+-        BlockDriverState *bs = NULL;
++        BlockBackend *target = NULL;
+ 
+         if (dev_id != vmar->vmstate_stream) {
+-            bs = rstate->bs;
+-            if (!verify && !bs) {
++            target = rstate->target;
++            if (!verify && !target) {
+                 error_setg(errp, "got wrong dev id %d", dev_id);
+                 return -1;
+             }
+@@ -618,7 +618,7 @@ static int restore_extent(VmaReader *vmar, unsigned char *buf,
+ 
+             if (!verify) {
+                 int nb_sectors = end_sector - sector_num;
+-                if (restore_write_data(vmar, dev_id, bs, vmstate_fd,
++                if (restore_write_data(vmar, dev_id, target, vmstate_fd,
+                                        buf + start, sector_num, nb_sectors,
+                                        errp) < 0) {
+                     return -1;
+@@ -654,7 +654,7 @@ static int restore_extent(VmaReader *vmar, unsigned char *buf,
+ 
+                     if (!verify) {
+                         int nb_sectors = end_sector - sector_num;
+-                        if (restore_write_data(vmar, dev_id, bs, vmstate_fd,
++                        if (restore_write_data(vmar, dev_id, target, vmstate_fd,
+                                                buf + start, sector_num,
+                                                nb_sectors, errp) < 0) {
+                             return -1;
+@@ -678,7 +678,7 @@ static int restore_extent(VmaReader *vmar, unsigned char *buf,
+                         }
+ 
+                         if (rstate->write_zeroes && !verify) {
+-                            if (restore_write_data(vmar, dev_id, bs, vmstate_fd,
++                            if (restore_write_data(vmar, dev_id, target, vmstate_fd,
+                                                    zero_vma_block, sector_num,
+                                                    nb_sectors, errp) < 0) {
+                                 return -1;
+@@ -786,12 +786,12 @@ static int vma_reader_restore_full(VmaReader *vmar, int vmstate_fd,
+     int i;
+     for (i = 1; i < 256; i++) {
+         VmaRestoreState *rstate = &vmar->rstate[i];
+-        if (!rstate->bs) {
++        if (!rstate->target) {
+             continue;
+         }
+ 
+-        if (bdrv_flush(rstate->bs) < 0) {
+-            error_setg(errp, "vma bdrv_flush %s failed",
++        if (blk_flush(rstate->target) < 0) {
++            error_setg(errp, "vma blk_flush %s failed",
+                        vmar->devinfo[i].devname);
+             return -1;
+         }
+diff --git a/vma.c b/vma.c
+index a2ddd32..ff974bd 100644
+--- a/vma.c
++++ b/vma.c
+@@ -333,9 +333,7 @@ static int extract_content(int argc, char **argv)
+                         error_get_pretty(errp));
+             }
+ 
+-	    BlockDriverState *bs = blk_bs(blk);
+-
+-            if (vma_reader_register_bs(vmar, i, bs, write_zero, &errp) < 0) {
++            if (vma_reader_register_bs(vmar, i, blk, write_zero, &errp) < 0) {
+                 g_error("%s", error_get_pretty(errp));
+             }
+ 
+@@ -427,7 +425,7 @@ static int verify_content(int argc, char **argv)
+ }
+ 
+ typedef struct BackupJob {
+-    BlockDriverState *bs;
++    BlockBackend *target;
+     int64_t len;
+     VmaWriter *vmaw;
+     uint8_t dev_id;
+@@ -456,7 +454,7 @@ static void coroutine_fn backup_run(void *opaque)
+     int64_t start, end;
+     int ret = 0;
+ 
+-    unsigned char *buf = qemu_blockalign(job->bs, VMA_CLUSTER_SIZE);
++    unsigned char *buf = blk_blockalign(job->target, VMA_CLUSTER_SIZE);
+ 
+     start = 0;
+     end = DIV_ROUND_UP(job->len / BDRV_SECTOR_SIZE,
+@@ -467,8 +465,8 @@ static void coroutine_fn backup_run(void *opaque)
+         iov.iov_len = VMA_CLUSTER_SIZE;
+         qemu_iovec_init_external(&qiov, &iov, 1);
+ 
+-        ret = bdrv_co_readv(job->bs, start * BACKUP_SECTORS_PER_CLUSTER,
+-                            BACKUP_SECTORS_PER_CLUSTER, &qiov);
++        ret = blk_co_preadv(job->target, start * BACKUP_SECTORS_PER_CLUSTER,
++                            BACKUP_SECTORS_PER_CLUSTER, &qiov, 0);
+         if (ret < 0) {
+             vma_writer_set_error(job->vmaw, "read error", -1);
+             goto out;
+@@ -563,14 +561,14 @@ static int create_archive(int argc, char **argv)
+         path = extract_devname(path, &devname, devcount++);
+ 
+         Error *errp = NULL;
+-        BlockDriverState *bs;
++        BlockBackend *target;
+ 
+-        bs = bdrv_open(path, NULL, NULL, 0, &errp);
+-        if (!bs) {
++        target = blk_new_open(path, NULL, NULL, 0, &errp);
++        if (!target) {
+             unlink(archivename);
+             g_error("bdrv_open '%s' failed - %s", path, error_get_pretty(errp));
+         }
+-        int64_t size = bdrv_getlength(bs);
++        int64_t size = blk_getlength(target);
+         int dev_id = vma_writer_register_stream(vmaw, devname, size);
+         if (dev_id <= 0) {
+             unlink(archivename);
+@@ -579,7 +577,7 @@ static int create_archive(int argc, char **argv)
+ 
+         BackupJob *job = g_new0(BackupJob, 1);
+         job->len = size;
+-        job->bs = bs;
++        job->target = target;
+         job->vmaw = vmaw;
+         job->dev_id = dev_id;
+ 
+diff --git a/vma.h b/vma.h
+index 365ceb2..fa6f4df 100644
+--- a/vma.h
++++ b/vma.h
+@@ -140,7 +140,7 @@ VmaHeader *vma_reader_get_header(VmaReader *vmar);
+ GList *vma_reader_get_config_data(VmaReader *vmar);
+ VmaDeviceInfo *vma_reader_get_device_info(VmaReader *vmar, guint8 dev_id);
+ int vma_reader_register_bs(VmaReader *vmar, guint8 dev_id,
+-                           BlockDriverState *bs, bool write_zeroes,
++                           BlockBackend *target, bool write_zeroes,
+                            Error **errp);
+ int vma_reader_restore(VmaReader *vmar, int vmstate_fd, bool verbose,
+                        Error **errp);
+-- 
+2.1.4
+

@@ -1,0 +1,28 @@
+From 1dfa1a8df7b065e15639d078c0f137f2dec7c3fa Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 9 Dec 2015 14:16:49 +0100
+Subject: [PATCH 02/47] Adjust network script path to /etc/kvm/
+
+---
+ include/net/net.h | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/include/net/net.h b/include/net/net.h
+index e8d9e9e..375e81d 100644
+--- a/include/net/net.h
++++ b/include/net/net.h
+@@ -216,8 +216,9 @@ void qmp_netdev_add(QDict *qdict, QObject **ret, Error **errp);
+ int net_hub_id_for_client(NetClientState *nc, int *id);
+ NetClientState *net_hub_port_find(int hub_id);
+ 
+-#define DEFAULT_NETWORK_SCRIPT "/etc/qemu-ifup"
+-#define DEFAULT_NETWORK_DOWN_SCRIPT "/etc/qemu-ifdown"
++#define DEFAULT_NETWORK_SCRIPT "/etc/kvm/kvm-ifup"
++#define DEFAULT_NETWORK_DOWN_SCRIPT "/etc/kvm/kvm-ifdown"
++
+ #define DEFAULT_BRIDGE_HELPER CONFIG_QEMU_HELPERDIR "/qemu-bridge-helper"
+ #define DEFAULT_BRIDGE_INTERFACE "br0"
+ 
+-- 
+2.1.4
+

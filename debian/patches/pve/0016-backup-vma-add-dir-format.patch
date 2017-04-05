@@ -1,0 +1,286 @@
+From 210be0fc498989e7b029de90b9d2599fdcc343d3 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 9 Dec 2015 15:21:54 +0100
+Subject: [PATCH 16/47] backup: vma: add dir format
+
+---
+ blockdev.c       | 124 +++++++++++++++++++++++++++++++++++++++++--------------
+ hmp-commands.hx  |   8 ++--
+ hmp.c            |   4 +-
+ qapi-schema.json |   2 +-
+ vma.c            |   2 +-
+ 5 files changed, 103 insertions(+), 37 deletions(-)
+
+diff --git a/blockdev.c b/blockdev.c
+index 5417bb0..d8b1db8 100644
+--- a/blockdev.c
++++ b/blockdev.c
+@@ -3001,6 +3001,8 @@ typedef struct PVEBackupDevInfo {
+     uint8_t dev_id;
+     //bool started;
+     bool completed;
++    char targetfile[PATH_MAX];
++    BlockDriverState *target;
+ } PVEBackupDevInfo;
+ 
+ static void pvebackup_run_next_job(void);
+@@ -3069,8 +3071,6 @@ static void pvebackup_complete_cb(void *opaque, int ret)
+ {
+     PVEBackupDevInfo *di = opaque;
+ 
+-    assert(backup_state.vmaw);
+-
+     di->completed = true;
+ 
+     if (ret < 0 && !backup_state.error) {
+@@ -3081,8 +3081,11 @@ static void pvebackup_complete_cb(void *opaque, int ret)
+     BlockDriverState *bs = di->bs;
+ 
+     di->bs = NULL;
++    di->target = NULL;
+ 
+-    vma_writer_close_stream(backup_state.vmaw, di->dev_id);
++    if (backup_state.vmaw) {
++        vma_writer_close_stream(backup_state.vmaw, di->dev_id);
++    }
+ 
+     block_job_cb(bs, ret);
+ 
+@@ -3162,6 +3165,7 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+ {
+     BlockBackend *blk;
+     BlockDriverState *bs = NULL;
++    const char *backup_dir = NULL;
+     Error *local_err = NULL;
+     uuid_t uuid;
+     VmaWriter *vmaw = NULL;
+@@ -3179,11 +3183,6 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+     /* Todo: try to auto-detect format based on file name */
+     format = has_format ? format : BACKUP_FORMAT_VMA;
+ 
+-    if (format != BACKUP_FORMAT_VMA) {
+-        error_set(errp, ERROR_CLASS_GENERIC_ERROR, "unknown backup format");
+-        return NULL;
+-    }
+-
+     if (has_devlist) {
+         devs = g_strsplit_set(devlist, ",;:", -1);
+ 
+@@ -3252,27 +3251,62 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+ 
+     uuid_generate(uuid);
+ 
+-    vmaw = vma_writer_create(backup_file, uuid, &local_err);
+-    if (!vmaw) {
+-        if (local_err) {
+-            error_propagate(errp, local_err);
++    if (format == BACKUP_FORMAT_VMA) {
++        vmaw = vma_writer_create(backup_file, uuid, &local_err);
++        if (!vmaw) {
++            if (local_err) {
++                error_propagate(errp, local_err);
++            }
++            goto err;
+         }
+-        goto err;
+-    }
+ 
+-    /* register all devices for vma writer */
+-    l = di_list;
+-    while (l) {
+-        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
+-        l = g_list_next(l);
++        /* register all devices for vma writer */
++        l = di_list;
++        while (l) {
++            PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++            l = g_list_next(l);
+ 
+-        const char *devname = bdrv_get_device_name(di->bs);
+-        di->dev_id = vma_writer_register_stream(vmaw, devname, di->size);
+-        if (di->dev_id <= 0) {
+-            error_set(errp, ERROR_CLASS_GENERIC_ERROR,
+-                      "register_stream failed");
++            const char *devname = bdrv_get_device_name(di->bs);
++            di->dev_id = vma_writer_register_stream(vmaw, devname, di->size);
++            if (di->dev_id <= 0) {
++                error_set(errp, ERROR_CLASS_GENERIC_ERROR,
++                          "register_stream failed");
++                goto err;
++            }
++        }
++    } else if (format == BACKUP_FORMAT_DIR) {
++        if (mkdir(backup_file, 0640) != 0) {
++            error_setg_errno(errp, errno, "can't create directory '%s'\n",
++                             backup_file);
+             goto err;
+         }
++        backup_dir = backup_file;
++
++        l = di_list;
++        while (l) {
++            PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++            l = g_list_next(l);
++
++            const char *devname = bdrv_get_device_name(di->bs);
++            snprintf(di->targetfile, PATH_MAX, "%s/%s.raw", backup_dir, devname);
++
++            int flags = BDRV_O_RDWR;
++            bdrv_img_create(di->targetfile, "raw", NULL, NULL, NULL,
++                            di->size, flags, &local_err, false);
++            if (local_err) {
++                error_propagate(errp, local_err);
++                goto err;
++            }
++
++            di->target = bdrv_open(di->targetfile, NULL, NULL, flags, &local_err);
++            if (!di->target) {
++                error_propagate(errp, local_err);
++                goto err;
++            }
++        }
++    } else {
++       error_set(errp, ERROR_CLASS_GENERIC_ERROR, "unknown backup format");
++       goto err;
+     }
+ 
+     /* add configuration file to archive */
+@@ -3285,12 +3319,27 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+             goto err;
+         }
+ 
+-        const char *basename = g_path_get_basename(config_file);
+-        if (vma_writer_add_config(vmaw, basename, cdata, clen) != 0) {
+-            error_setg(errp, "unable to add config data to vma archive");
+-            g_free(cdata);
+-            goto err;
++        char *basename = g_path_get_basename(config_file);
++
++        if (format == BACKUP_FORMAT_VMA) {
++            if (vma_writer_add_config(vmaw, basename, cdata, clen) != 0) {
++                error_setg(errp, "unable to add config data to vma archive");
++                g_free(cdata);
++                g_free(basename);
++                goto err;
++            }
++        } else if (format == BACKUP_FORMAT_DIR) {
++            char config_path[PATH_MAX];
++            snprintf(config_path, PATH_MAX, "%s/%s", backup_dir, basename);
++            if (!g_file_set_contents(config_path, cdata, clen, &err)) {
++                error_setg(errp, "unable to write config file '%s'", config_path);
++                g_free(cdata);
++                g_free(basename);
++                goto err;
++            }
+         }
++
++        g_free(basename);
+         g_free(cdata);
+     }
+ 
+@@ -3330,7 +3379,7 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+         PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
+         l = g_list_next(l);
+ 
+-        backup_start(NULL, di->bs, NULL, speed, MIRROR_SYNC_MODE_FULL, NULL,
++        backup_start(NULL, di->bs, di->target, speed, MIRROR_SYNC_MODE_FULL, NULL,
+                      BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
+                      pvebackup_dump_cb, pvebackup_complete_cb, di,
+                      1, NULL, &local_err);
+@@ -3352,8 +3401,17 @@ err:
+ 
+     l = di_list;
+     while (l) {
+-        g_free(l->data);
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
+         l = g_list_next(l);
++
++        if (di->target) {
++            bdrv_unref(di->target);
++        }
++
++        if (di->targetfile[0]) {
++            unlink(di->targetfile);
++        }
++        g_free(di);
+     }
+     g_list_free(di_list);
+ 
+@@ -3367,6 +3425,10 @@ err:
+         unlink(backup_file);
+     }
+ 
++    if (backup_dir) {
++        rmdir(backup_dir);
++    }
++
+     return NULL;
+ }
+ 
+diff --git a/hmp-commands.hx b/hmp-commands.hx
+index 8f2f3e0..0e20ef9 100644
+--- a/hmp-commands.hx
++++ b/hmp-commands.hx
+@@ -89,9 +89,11 @@ ETEXI
+ 
+    {
+         .name       = "backup",
+-        .args_type  = "backupfile:s,speed:o?,devlist:s?",
+-        .params     = "backupfile [speed [devlist]]",
+-        .help       = "create a VM Backup.",
++        .args_type  = "directory:-d,backupfile:s,speed:o?,devlist:s?",
++        .params     = "[-d] backupfile [speed [devlist]]",
++        .help       = "create a VM Backup."
++		    "\n\t\t\t Use -d to dump data into a directory instead"
++		    "\n\t\t\t of using VMA format.",
+         .mhandler.cmd = hmp_backup,
+     },
+ 
+diff --git a/hmp.c b/hmp.c
+index 95da164..c23cf2f 100644
+--- a/hmp.c
++++ b/hmp.c
+@@ -1544,11 +1544,13 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
+ {
+     Error *error = NULL;
+ 
++    int dir = qdict_get_try_bool(qdict, "directory", 0);
+     const char *backup_file = qdict_get_str(qdict, "backupfile");
+     const char *devlist = qdict_get_try_str(qdict, "devlist");
+     int64_t speed = qdict_get_try_int(qdict, "speed", 0);
+ 
+-    qmp_backup(backup_file, true, BACKUP_FORMAT_VMA, false, NULL, !!devlist,
++    qmp_backup(backup_file, true, dir ? BACKUP_FORMAT_DIR : BACKUP_FORMAT_VMA,
++               false, NULL, !!devlist,
+                devlist, qdict_haskey(qdict, "speed"), speed, &error);
+ 
+     hmp_handle_error(mon, &error);
+diff --git a/qapi-schema.json b/qapi-schema.json
+index 89d9ea6..147137d 100644
+--- a/qapi-schema.json
++++ b/qapi-schema.json
+@@ -395,7 +395,7 @@
+ # @vma: Proxmox vma backup format
+ ##
+ { 'enum': 'BackupFormat',
+-  'data': [ 'vma' ] }
++  'data': [ 'vma', 'dir' ] }
+ 
+ ##
+ # @backup:
+diff --git a/vma.c b/vma.c
+index 79bdd00..c88a4358 100644
+--- a/vma.c
++++ b/vma.c
+@@ -263,7 +263,7 @@ static int extract_content(int argc, char **argv)
+             g_free(statefn);
+         } else if (di) {
+             char *devfn = NULL;
+-            int flags = BDRV_O_RDWR|BDRV_O_CACHE_WB;
++            int flags = BDRV_O_RDWR;
+             bool write_zero = true;
+ 
+             if (readmap) {
+-- 
+2.1.4
+

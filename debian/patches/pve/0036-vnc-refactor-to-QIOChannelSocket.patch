@@ -1,0 +1,87 @@
+From e6af4497017e37cb31f7cbd80137f41ce297d702 Mon Sep 17 00:00:00 2001
+From: Thomas Lamprecht <t.lamprecht@proxmox.com>
+Date: Wed, 6 Apr 2016 16:47:54 +0200
+Subject: [PATCH 36/47] vnc: refactor to QIOChannelSocket
+
+---
+ ui/vnc-auth-vencrypt.c | 31 ++++++++++++++++---------------
+ 1 file changed, 16 insertions(+), 15 deletions(-)
+
+diff --git a/ui/vnc-auth-vencrypt.c b/ui/vnc-auth-vencrypt.c
+index d11f1df..a529520 100644
+--- a/ui/vnc-auth-vencrypt.c
++++ b/ui/vnc-auth-vencrypt.c
+@@ -28,27 +28,23 @@
+ #include "vnc.h"
+ #include "qapi/error.h"
+ #include "qemu/main-loop.h"
+-#include "qemu/sockets.h"
++#include "io/channel-socket.h"
+ 
+ static int protocol_client_auth_plain(VncState *vs, uint8_t *data, size_t len)
+ {
+-	const char *err = NULL;
++	Error *err = NULL;
+ 	char username[256];
+ 	char passwd[512];
+ 
+-	char clientip[256];
+-	clientip[0] = 0;
+-	struct sockaddr_in client;
+-	socklen_t addrlen = sizeof(client);
+-	if (getpeername(vs->csock, &client, &addrlen) == 0) {
+-		inet_ntop(client.sin_family, &client.sin_addr,
+-			  clientip, sizeof(clientip));
++	SocketAddress *clientip = qio_channel_socket_get_remote_address(vs->sioc, &err);
++	if (err) {
++	    goto err;
+ 	}
+ 
+ 	if ((len != (vs->username_len + vs->password_len)) ||
+ 	    (vs->username_len >= (sizeof(username)-1)) ||
+ 	    (vs->password_len >= (sizeof(passwd)-1))	) {
+-		err = "Got unexpected data length";
++		error_setg(&err, "Got unexpected data length");
+ 		goto err;
+ 	}
+ 
+@@ -59,26 +55,31 @@ static int protocol_client_auth_plain(VncState *vs, uint8_t *data, size_t len)
+ 
+ 	VNC_DEBUG("AUTH PLAIN username: %s pw: %s\n", username, passwd);
+ 
+-	if (pve_auth_verify(clientip, username, passwd) == 0) {
++	if (pve_auth_verify(clientip->u.inet.data->host, username, passwd) == 0) {
+ 		vnc_write_u32(vs, 0); /* Accept auth completion */
+ 		start_client_init(vs);
++		qapi_free_SocketAddress(clientip);
+ 		return 0;
+ 	}
+ 
+-	err =  "Authentication failed";
++	error_setg(&err, "Authentication failed");
+ err:
+        if (err) {
+-	       VNC_DEBUG("AUTH PLAIN ERROR: %s\n", err);
++	       const char *err_msg = error_get_pretty(err);
++	       VNC_DEBUG("AUTH PLAIN ERROR: %s\n", err_msg);
+ 	       vnc_write_u32(vs, 1); /* Reject auth */
+ 	       if (vs->minor >= 8) {
+-		       int elen = strlen(err);
++		       int elen = strlen(err_msg);
+ 		       vnc_write_u32(vs, elen);
+-		       vnc_write(vs, err, elen);
++		       vnc_write(vs, err_msg, elen);
+ 	       }
++	       error_free(err);
+        }
+        vnc_flush(vs);
+        vnc_client_error(vs);
+ 
++       qapi_free_SocketAddress(clientip);
++
+        return 0;
+ 
+ }
+-- 
+2.1.4
+

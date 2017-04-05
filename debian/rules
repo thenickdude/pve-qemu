@@ -1,0 +1,145 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+
+# These are used for cross-compiling and for saving the configure script
+# from having to guess our platform (since we know it already)
+DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+
+PACKAGE=pve-qemu-kvm
+destdir := $(CURDIR)/debian/$(PACKAGE)
+
+ifneq "$(wildcard /usr/share/quilt/quilt.make)" ""
+include /usr/share/quilt/quilt.make
+endif
+
+CFLAGS = -Wall
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -O0
+else
+	CFLAGS += -O2
+endif
+
+config.status: configure
+	dh_testdir
+	# Add here commands to configure the package.
+	./configure --with-confsuffix="/kvm" --target-list=x86_64-softmmu --prefix=/usr --datadir=/usr/share --docdir=/usr/share/doc/pve-qemu-kvm --sysconfdir=/etc --localstatedir=/var --disable-xen --enable-gnutls --enable-sdl --enable-uuid --enable-linux-aio --enable-rbd --enable-libiscsi --disable-smartcard --audio-drv-list="alsa" --enable-spice --enable-usb-redir --enable-glusterfs --enable-libusb --disable-gtk --enable-xfsctl --enable-numa --disable-strip --enable-jemalloc --disable-libnfs --disable-fdt
+
+build: patch build-stamp
+
+build-stamp:  config.status
+	dh_testdir
+
+	# Add here commands to compile the package.
+	$(MAKE)
+
+	#docbook-to-man debian/kvm.sgml > kvm.1
+
+	touch $@
+
+clean: unpatch
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+
+	# Add here commands to clean up after the build process.
+	-$(MAKE) distclean
+ifneq "$(wildcard /usr/share/misc/config.sub)" ""
+	cp -f /usr/share/misc/config.sub config.sub
+endif
+ifneq "$(wildcard /usr/share/misc/config.guess)" ""
+	cp -f /usr/share/misc/config.guess config.guess
+endif
+
+
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+
+	# Add here commands to install the package into debian/pve-kvm.
+	$(MAKE) DESTDIR=$(destdir) install
+
+	mv $(destdir)/usr/bin/qemu-system-x86_64 $(destdir)/usr/bin/kvm
+	mv $(destdir)/usr/share/man/man1/qemu.1 $(destdir)/usr/share/man/man1/kvm.1
+
+	# Install the userspace utilities
+	install -s -m 0755 vma $(destdir)/usr/bin/
+
+	install -D -m 0755 $(CURDIR)/debian/kvm-ifup $(destdir)/etc/kvm/kvm-ifup
+	install -D -m 0755 $(CURDIR)/debian/kvm-ifdown $(destdir)/etc/kvm/kvm-ifdown
+
+	#install ovmf uefi rom
+	install -D -m 0644 $(CURDIR)/debian/OVMF_CODE-pure-efi.fd $(destdir)/usr/share/kvm/OVMF_CODE-pure-efi.fd
+	install -D -m 0644 $(CURDIR)/debian/OVMF_VARS-pure-efi.fd $(destdir)/usr/share/kvm/OVMF_VARS-pure-efi.fd
+
+	# we do not need openbios files (sparc/ppc)
+	rm -rf $(destdir)/usr/share/kvm/openbios-*
+	# remove ppc files
+	rm $(destdir)/usr/share/kvm/*.dtb
+	rm $(destdir)/usr/share/kvm/ppc_rom.bin
+	rm $(destdir)/usr/share/kvm/s390-ccw.img
+	rm $(destdir)/usr/share/kvm/slof.bin
+	rm $(destdir)/usr/share/kvm/spapr-rtas.bin
+	rm $(destdir)/usr/share/kvm/u-boot.e500
+	# remove Aplha files
+	rm $(destdir)/usr/share/kvm/palcode-clipper
+
+        # remove guest agent (that is only required for a guest)
+	rm $(destdir)/usr/bin/qemu-ga
+
+	# Remove things we don't package at all, would be a "kvm-dev" package
+	rm -Rf $(destdir)/usr/include/linux/
+	rm -Rf $(destdir)/usr/include
+	rm -Rf $(destdir)/usr/lib*
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs
+	dh_installdocs
+	dh_installexamples
+#	dh_install
+#	dh_installmenu
+#	dh_installdebconf
+#	dh_installlogrotate
+#	dh_installemacsen
+#	dh_installpam
+#	dh_installmime
+#	dh_python
+#	dh_installinit
+#	dh_installcron
+#	dh_installinfo
+	dh_installman
+	dh_link
+	dh_strip --dbg-package=pve-qemu-kvm-dbg
+	dh_compress
+	dh_fixperms
+#	dh_perl
+#	dh_makeshlibs
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

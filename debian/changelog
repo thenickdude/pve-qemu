@@ -1,0 +1,1328 @@
+pve-qemu-kvm (2.7.1-4) unstable; urgency=medium
+
+  * fix CVE-2017-2620: display: cirrus: out-of-bounds access issue
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 22 Feb 2017 14:19:57 +0100
+
+pve-qemu-kvm (2.7.1-3) unstable; urgency=medium
+
+  * more fixes for cirrus pattern fill operations
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 10 Feb 2017 12:11:10 +0100
+
+pve-qemu-kvm (2.7.1-2) unstable; urgency=medium
+
+  * fix #1237: cirrus: fix pattern fill regressions
+
+  * fix CVE-2017-2615: cirrus: out of bounds access on backward blits
+
+  * fix CVE-2016-10028: virtio-gpu-3d: check virgl capabilities
+
+  * fix CVE-2016-10155: memory leak on unplugging an Intel 6300ESB watchdog
+
+  * remove debug output from LAPIC patch
+
+  * added 'qemu-utils' to replaces & provides
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 02 Feb 2017 10:01:53 +0100
+
+pve-qemu-kvm (2.7.1-1) unstable; urgency=medium
+
+  * update to qemu 2.7.1
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 03 Jan 2017 07:57:17 +0100
+
+pve-qemu-kvm (2.7.0-10) unstable; urgency=medium
+
+  * fix CVE-2016-9776: net: mcf: check receive buffer size register value
+
+  * fix CVE-2016-9845: virtio-gpu: fix information leak in getting capset info dispatch
+
+  * fix CVE-2016-9846: virtio-gpu: fix memory leak in update_cursor_data_virgl
+
+  * fix CVE-2016-9907: usbredir: free vm_change_state_handler in usbredir destroy dispatch
+
+  * fix CVE-2016-9908: virtio-gpu: fix information leak in capset get dispatch
+
+  * fix CVE-2016-9911: usb: ehci: fix memory leak in ehci_init_transfer
+
+  * fix CVE-2016-9912: virtio-gpu: call cleanup mapping function in resource destroy
+
+  * fix CVE-2016-9913: 9pfs: adjust the order of resource cleanup in device unrealize
+
+  * fix CVE-2016-9914: 9pfs: add cleanup operation in FileOperations
+
+  * fix CVE-2016-9915: 9pfs: add cleanup operation for handle backend driver
+
+  * fix CVE-2016-9916: 9pfs: add cleanup operation for proxy backend driver
+
+  * fix CVE-2016-9921 and CVE-2016-9922:
+     display: cirrus: check vga bits per pixel(bpp) value
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 12 Dec 2016 14:36:58 +0100
+
+pve-qemu-kvm (2.7.0-9) unstable; urgency=medium
+
+  * gluster: fix an issue with linked clones refusing to start
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 01 Dec 2016 11:59:55 +0100
+
+pve-qemu-kvm (2.7.0-8) unstable; urgency=medium
+
+  * correctly report live snapshots as active
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 15 Nov 2016 15:28:44 +0100
+
+pve-qemu-kvm (2.7.0-7) unstable; urgency=medium
+
+  * fix #1182: update EFI roms to include PXE fixes
+
+  * fix snapshot-with-RAM stability with some file systems
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 11 Nov 2016 15:02:28 +0100
+
+pve-qemu-kvm (2.7.0-6) unstable; urgency=medium
+
+  * fix deletion of snapshots on qcow2 while running with iothreads
+
+  * fix #796: live snapshot never finishes with some guests
+
+  * fix live snapshot while running with iothreads
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 08 Nov 2016 11:45:02 +0100
+
+pve-qemu-kvm (2.7.0-5) unstable; urgency=medium
+
+  * fix a missing gluster dependency
+
+  * fix #1193: RAM state of snapshots with RAM getting truncated at creation
+
+  * fix CVE-2016-8909: audio: intel-hda: check stream entry count during transfer
+
+  * fix CVE-2016-8910: net: rtl8139: limit processing of ring descriptors
+
+  * fix CVE-2016-9101: net: eepro100: fix memory leak in device uninit
+
+  * fix CVE-2016-9102: 9pfs: fix memory leak in v9fs_xattrcreate
+
+  * fix CVE-2016-9103: 9pfs: fix information leak in xattr read
+
+  * fix CVE-2016-9104: 9pfs: fix integer overflow issue in xattr read/write
+
+  * fix CVE-2016-9105: 9pfs: fix memory leak in v9fs_link
+
+  * fix CVE-2016-9106: 9pfs: fix memory leak in v9fs_write
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 07 Nov 2016 11:14:31 +0100
+
+pve-qemu-kvm (2.7.0-4) unstable; urgency=medium
+
+  * fix #1178: glusterfs daemonization problem
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 24 Oct 2016 09:35:49 +0200
+
+pve-qemu-kvm (2.7.0-3) unstable; urgency=medium
+
+  * fix a crash when doing an offline backup via vma
+
+  * fix CVE-2016-8668: net: rocker: set limit to DMA buffer size
+
+  * fix CVE-2016-8669: char: serial: check divider value against baud base
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 21 Oct 2016 09:22:36 +0200
+
+pve-qemu-kvm (2.7.0-2) unstable; urgency=medium
+
+  * fix a crash when adding iothreads
+
+  * fix CVE-2016-8576: xhci: limit the number of link trbs we are willing to process
+
+  * fix CVE-2016-8577: 9pfs: fix potential host memory leak in v9fs_read
+
+  * fix CVE-2016-8578: 9pfs: allocate space for guest originated empty strings
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 13 Oct 2016 15:20:52 +0200
+
+pve-qemu-kvm (2.7.0-1) unstable; urgency=medium
+
+  * update to qemu 2.7.0
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 09 Sep 2016 15:55:35 +0200
+
+pve-qemu-kvm (2.6.2-2) unstable; urgency=medium
+
+  * fix CVE-2016-7466: memory leak in usb_xhci_exit
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 07 Oct 2016 11:00:13 +0200
+
+pve-qemu-kvm (2.6.2-1) unstable; urgency=medium
+
+  * update to qemu 2.6.2
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 06 Oct 2016 14:12:07 +0200
+
+pve-qemu-kvm (2.6.1-7) unstable; urgency=medium
+
+  * fix CVE-2016-7161: hw/net: Fix a heap overflow in xlnx.xps-ethernetlite
+
+  * fix CVE-2016-7422: virtio: add check for descriptor's mapped address
+
+  * fix CVE-2016-7907: net: imx: limit buffer descriptor count
+
+  * fix CVE-2016-7908: net: mcf: limit buffer descriptor count
+
+  * fix CVE-2016-7909: net: pcnet: check rx/tx descriptor ring length
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 06 Oct 2016 08:11:52 +0200
+
+pve-qemu-kvm (2.6.1-6) unstable; urgency=medium
+
+  * fix #615: Windows guests suddenly hangs after couple times of migration
+
+  * fix CVE-2016-7170: vmsvga: correct bitmap and pixmap size checks
+
+  * fix CVE-2016-7421: scsi: pvscsi: limit process IO loop to ring size
+
+  * fix CVE-2016-7423: scsi: mptsas: use g_new0 to allocate MPTSASRequest
+    object
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 20 Sep 2016 09:42:12 +0200
+
+pve-qemu-kvm (2.6.1-5) unstable; urgency=medium
+
+  * qmp_snapshot_drive : add aiocontext
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 15 Sep 2016 13:27:14 +0200
+
+pve-qemu-kvm (2.6.1-4) unstable; urgency=medium
+
+  * add new and correct ovmf images
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 08 Sep 2016 12:25:29 +0200
+
+pve-qemu-kvm (2.6.1-3) unstable; urgency=medium
+
+  * fix CVE-2016-7116: various 9pfs fixe
+
+  * fix CVE-2016-7155: scsi: check page count while initialising
+    descriptor rings
+
+  * fix CVE-2016-7156: scsi: pvscsi: avoid infinite loop while building SG list
+
+  * fix CVE-2016-7157: scsi: mptconfig: fix an assert expression
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 07 Sep 2016 12:14:02 +0200
+
+pve-qemu-kvm (2.6.1-2) unstable; urgency=medium
+
+  * virtio related live migration fixes
+
+  * vnc server surface refresh fix
+
+  * iscsi and network fixes
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 25 Aug 2016 10:35:52 +0200
+
+pve-qemu-kvm (2.6.1-1) unstable; urgency=medium
+
+  * update to qemu 2.6.1
+
+  * Fix CVE-2016-6490: virtio: check vring descriptor buffer length
+
+  * Fix CVE-2016-6833: net: vmxnet3: check for device_active before write
+
+  * Fix CVE-2016-6834: net: check fragment length during fragmentation
+
+  * Fix CVE-2016-6835: net: vmxnet: check IP header length
+
+  * Fix CVE-2016-6836: net: vmxnet: initialise local tx descriptor
+
+  * Fix CVE-2016-6888: net: vmxnet: use g_new for pkt initialisation
+
+  * enable cache=unsafe for vma extract_content and qmp_savevm_start
+
+  * rbd : disable cache_writethtrough_until_flush with cache=unsafe
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 22 Aug 2016 11:55:38 +0200
+
+pve-qemu-kvm (2.6-1) unstable; urgency=medium
+
+  * update to qemu 2.6.0
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 01 Jul 2016 10:00:31 +0200
+
+pve-qemu-kvm (2.5-19) unstable; urgency=medium
+
+  * fix CVE-2016-5105: scsi: megasas: initialise local configuration data
+    buffer
+
+  * fix CVE-2016-5106: scsi: megasas: use appropriate property buffer size
+
+  * fix fix CVE-2016-5107: scsi: megasas: check 'read_queue_head' index value
+
+  * fix fix CVE-2016-5126: block/iscsi: avoid potential overflow of
+    acb->task->cdb
+
+  * fix CVE-2016-4454: vmsvga: move fifo sanity checks to vmsvga_fifo_length
+ 
+  * fix CVE-2016-4453: vmsvga: don't process more than 1024 fifo commands at
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 31 May 2016 18:04:31 +0200
+
+pve-qemu-kvm (2.5-18) unstable; urgency=medium
+
+  * Fix CVE-2016-4952
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 24 May 2016 17:15:00 +0200
+
+pve-qemu-kvm (2.5-17) unstable; urgency=medium
+
+  * add fix for freezing win7 with VGA #991
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 17 May 2016 12:51:10 +0200
+
+pve-qemu-kvm (2.5-16) unstable; urgency=medium
+
+  * update to qemu 2.5.1.1
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 10 May 2016 09:53:30 +0200
+
+pve-qemu-kvm (2.5-15) unstable; urgency=medium
+
+  * Fix #932: passing BDRV_O_PROTOCOL breaks qcow2 on gluster
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 29 Apr 2016 08:55:53 +0200
+
+pve-qemu-kvm (2.5-14) unstable; urgency=medium
+
+  * Fix CVE-2016-4037
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 26 Apr 2016 15:43:48 +0200
+
+pve-qemu-kvm (2.5-13) unstable; urgency=medium
+
+  * fix 'i386: leakage of stack memory to guest in kvmvapic.c'
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 14 Apr 2016 17:06:52 +0200
+
+pve-qemu-kvm (2.5-12) unstable; urgency=medium
+
+  * Fix #934: assume raw for /dev paths in vma extract
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 13 Apr 2016 08:47:13 +0200
+
+pve-qemu-kvm (2.5-11) unstable; urgency=medium
+
+  * update to qemu 2.5.1
+
+  * target-i386: do not read/write MSR_TSC_AUX from KVM if CPUID
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 01 Apr 2016 10:09:54 +0200
+
+pve-qemu-kvm (2.5-10) unstable; urgency=medium
+
+  * add the zeroinit block driver filter
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 21 Mar 2016 09:47:53 +0100
+
+pve-qemu-kvm (2.5-9) unstable; urgency=medium
+
+  * Fix CVE-2016-2841, CVE-2016-2857, CVE-2016-2858
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 07 Mar 2016 17:08:23 +0100
+
+pve-qemu-kvm (2.5-8) unstable; urgency=medium
+
+  * Fix CVE-2016-2538
+
+  * vma: better driver guessing for bdrv_open
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 24 Feb 2016 16:28:37 +0100
+
+pve-qemu-kvm (2.5-7) unstable; urgency=medium
+
+  * add fw_cfg-unbreak-migration-compatibility-for-2.4 patch
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 19 Feb 2016 09:22:16 +0100
+
+pve-qemu-kvm (2.5-6) unstable; urgency=medium
+
+  * Fix CVE-2016-2392 and CVE-2016-2391
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 18 Feb 2016 09:44:37 +0100
+
+pve-qemu-kvm (2.5-5) unstable; urgency=medium
+
+  * Fix #885: vma-writer: don't bail out on zero length files
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 08 Feb 2016 11:37:52 +0100
+
+pve-qemu-kvm (2.5-4) unstable; urgency=medium
+
+  * Fix CVE-2016-2197 and CVE-2016-2198
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 01 Feb 2016 17:16:09 +0100
+
+pve-qemu-kvm (2.5-3) unstable; urgency=medium
+
+  * Fix CVE-2016-1981
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 22 Jan 2016 09:09:27 +0100
+
+pve-qemu-kvm (2.5-2) unstable; urgency=medium
+
+  * recompile for test environment
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 20 Jan 2016 08:37:49 +0100
+
+pve-qemu-kvm (2.5-1) unstable; urgency=medium
+
+  * update qemu to 2.5.0
+
+  * removed upstream CVE fixes
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 08 Jan 2016 12:43:24 +0100
+
+pve-qemu-kvm (2.4-21) unstable; urgency=medium
+
+  * add correct fix for  CVE-2015-8619
+
+  * close #849: iproute is a transitional package for iproute2
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 11 Jan 2016 15:23:23 +0100
+
+pve-qemu-kvm (2.4-20) unstable; urgency=medium
+
+  * Removing wrong CVE-2015-8619
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 08 Jan 2016 12:43:24 +0100
+
+pve-qemu-kvm (2.4-19) unstable; urgency=medium
+
+  * fix CVE-2015-8613 scsi: initialise info object with appropriate size
+
+  * fix CVE-2015-8619 hmp: avoid redundant null termination of buffer
+
+  * fix CVE-2015-8666 acpi: fix buffer overrun on migration
+
+  * fix CVE-2015-8701 net: rocker: fix an incorrect array bounds check
+
+  * fix CVE-2015-8743 net: ne2000: fix bounds check in ioport operations
+
+  * fix CVE-2015-8744 net/vmxnet3: Refine l2 header validation
+
+  * fix CVE-2015-8745 vmxnet3: Support reading IMR registers on bar0
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 07 Jan 2016 11:12:13 +0100
+
+pve-qemu-kvm (2.4-18) unstable; urgency=medium
+
+  * fixes for CVEs 2015-7549, 2015-8858 and for vmxnet3
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 18 Dec 2015 09:12:43 +0100
+
+pve-qemu-kvm (2.4-17) unstable; urgency=medium
+
+  * fix CVE-2015-8504
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 09 Dec 2015 12:09:03 +0100
+
+pve-qemu-kvm (2.4-16) unstable; urgency=medium
+
+  * added fixes for CVE-2015-7504 and CVE-2015-7512
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 01 Dec 2015 09:51:44 +0100
+
+pve-qemu-kvm (2.4-15) unstable; urgency=medium
+
+  * add ovmf uefi roms
+
+  * add firewall config to qmp_backup
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 26 Nov 2015 07:56:51 +0100
+
+pve-qemu-kvm (2.4-14) unstable; urgency=medium
+
+  * savevm async : setup raw format by default fo vmstate file
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 09 Nov 2015 06:26:53 +0100
+
+pve-qemu-kvm (2.4-13) unstable; urgency=medium
+
+  * update qemu to 2.4.1
+
+  * remove patch mirror-fix-coroutine-reentrance.patch (now upstream)
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 06 Nov 2015 09:47:21 +0100
+
+pve-qemu-kvm (2.4-12) unstable; urgency=medium
+
+  * define QEMU_PKGVERSION
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 23 Oct 2015 09:40:37 +0200
+
+pve-qemu-kvm (2.4-11) unstable; urgency=medium
+
+  * update ipxe binaries, re-enable efi pxe ROMs
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 22 Oct 2015 08:47:07 +0200
+
+pve-qemu-kvm (2.4-10) unstable; urgency=medium
+
+  * pve-qemu-kvm : block: mirror - fix full sync mode when target
+    does not support zeroes init
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 13 Oct 2015 17:06:22 +0200
+
+pve-qemu-kvm (2.4-9) unstable; urgency=medium
+
+  * qemu :disable smm support
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 30 Sep 2015 09:34:06 +0200
+
+pve-qemu-kvm (2.4-8) unstable; urgency=medium
+
+  * update qemu to 2.4.0.1 
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 23 Sep 2015 06:40:27 +0200
+
+pve-qemu-kvm (2.4-7) unstable; urgency=medium
+
+  * savevm-async: move global_state_store to the end
+
+ -- Proxmox Support Team <support@proxmox.com>  Sun, 20 Sep 2015 10:08:02 +0200
+
+pve-qemu-kvm (2.4-6) unstable; urgency=medium
+
+  * fix snapshot/rollback of running vm
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 15 Sep 2015 09:07:32 +0200
+
+pve-qemu-kvm (2.4-5) unstable; urgency=medium
+
+  * vma create: correctly create empty (config only) archives 
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 09 Sep 2015 11:27:06 +0200
+
+pve-qemu-kvm (2.4-4) unstable; urgency=medium
+
+  * fix q35 pci passthrough (revert commit b8eb5512)
+
+  * add depend on libjpeg62-turbo to avoid problems when
+    updating from wheezy.
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 05 Sep 2015 10:15:08 +0200
+
+pve-qemu-kvm (2.4-3) unstable; urgency=medium
+
+  * update to v2.4.0 final
+
+  * add mirror-fix-coroutine-reentrance.patch
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 13 Aug 2015 17:00:49 +0200
+
+pve-qemu-kvm (2.4-2) unstable; urgency=medium
+
+  *  update to latest upstream (v2.4.0-rc4)
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 08 Aug 2015 15:14:25 +0200
+
+pve-qemu-kvm (2.4-1) unstable; urgency=medium
+
+  * update to latest upstream (v2.4.0-rc3)
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 30 Jul 2015 09:38:14 +0200
+
+pve-qemu-kvm (2.3-8) unstable; urgency=medium
+
+  * update to latest upstream (v2.4.0-rc2 + a few more patches)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 29 Jul 2015 10:07:20 +0200
+
+pve-qemu-kvm (2.3-7) unstable; urgency=medium
+
+  * update to latest upstream (v2.4.0-rc2 + a few patches)
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 27 Jul 2015 09:59:07 +0200
+
+pve-qemu-kvm (2.3-6) unstable; urgency=medium
+
+  * qemu : add drive-mirror sleep patches
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 01 Jul 2015 06:16:47 +0200
+
+pve-qemu-kvm (2.3-5) unstable; urgency=medium
+
+  * use jemalloc as default memory allocator
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 19 Jun 2015 17:08:37 +0200
+
+pve-qemu-kvm (2.3-4) unstable; urgency=medium
+
+  * remove tcmalloc
+
+  * Added patch for vvfat's file.label option
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 18 Jun 2015 14:06:28 +0200
+
+pve-qemu-kvm (2.3-3) unstable; urgency=medium
+
+  * vma extract: add BlockDevice type to prevent warning
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 10 Jun 2015 17:33:22 +0200
+
+pve-qemu-kvm (2.3-2) unstable; urgency=medium
+
+  * enable tcmalloc, depend on libgoogle-perftools4
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 10 Jun 2015 10:44:24 +0200
+
+pve-qemu-kvm (2.3-1) unstable; urgency=medium
+
+  *  update to v2.3.0
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 05 Jun 2015 06:05:00 +0200
+
+pve-qemu-kvm (2.2-8) unstable; urgency=medium
+
+  * fix package dependencies for Debian Jessie
+
+  * update to v2.2.1
+
+  * remove fix-mc146818rtc-wrong-subsection-name.patch (now upstream)
+  
+  * fix ballooning with memory hotplug
+    
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 11 Mar 2015 07:12:43 +0100
+
+pve-qemu-kvm (2.2-7) unstable; urgency=low
+
+  * fix mc146818rtc wrong subsection name to avoid
+    vmstate_subsection_load() fail.
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 24 Feb 2015 17:38:31 +0100
+
+pve-qemu-kvm (2.2-6) unstable; urgency=low
+
+  * qmp: fix backup-cancel
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 29 Dec 2014 07:21:24 +0100
+
+pve-qemu-kvm (2.2-5) unstable; urgency=low
+
+  * add new qmp command: get_link_status
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 11 Dec 2014 10:42:20 +0100
+
+pve-qemu-kvm (2.2-4) unstable; urgency=low
+
+  * update to qemu v2.2.0
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 10 Dec 2014 06:18:34 +0100
+
+pve-qemu-kvm (2.2-3) unstable; urgency=low
+
+  * update to qemu v2.2.0-rc5
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 05 Dec 2014 13:27:35 +0100
+
+pve-qemu-kvm (2.2-2) unstable; urgency=low
+
+  * update to qemu v2.2.0-rc3+ (commit 4cae4d5acaea23f3def84c8dc67ef5106323e5cb)
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 28 Nov 2014 11:50:25 +0100
+
+pve-qemu-kvm (2.2-1) unstable; urgency=low
+
+  * update to qemu v2.2.0-rc2
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 20 Nov 2014 07:56:27 +0100
+
+pve-qemu-kvm (2.1-10) unstable; urgency=low
+
+  * enable support for write_zeroes and discard for images on xfs filesystem
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 13 Oct 2014 10:19:44 +0200
+
+pve-qemu-kvm (2.1-9) unstable; urgency=low
+
+  * update to v2.1.2
+  
+  * remove temporary patches (now upstream)
+    - virtio-net_drop_assert_on_vm_stop.patch
+    - revert_virtio_dont_call_device_on_not_vm_running.patch
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 26 Sep 2014 11:25:57 +0200
+
+pve-qemu-kvm (2.1-8) unstable; urgency=low
+
+  * apply patches/hotfix for virtio-net migration problem in 2.1.1
+    - virtio-net_drop_assert_on_vm_stop.patch
+    - revert_virtio_dont_call_device_on_not_vm_running.patch
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 16 Sep 2014 12:54:48 +0200
+
+pve-qemu-kvm (2.1-7) unstable; urgency=low
+
+  * update to v2.1.1
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 11 Sep 2014 09:27:38 +0200
+
+pve-qemu-kvm (2.1-6) unstable; urgency=low
+
+  *  gluster: allow to specify a backup server
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 26 Aug 2014 12:55:23 +0200
+
+pve-qemu-kvm (2.1-5) unstable; urgency=low
+
+  * glusterfs: do not log to stdout when daemonized
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 22 Aug 2014 13:28:24 +0200
+
+pve-qemu-kvm (2.1-4) unstable; urgency=low
+
+  * depend on new libiscsi 1.12.0
+  
+  * depend on new glusterfs 3.5.2
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 21 Aug 2014 08:18:43 +0200
+
+pve-qemu-kvm (2.1-3) unstable; urgency=low
+
+  * snapshot: fix reference counting bug
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 07 Aug 2014 13:31:30 +0200
+
+pve-qemu-kvm (2.1-2) unstable; urgency=low
+
+  * update to v2.1.0
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 02 Aug 2014 15:00:58 +0200
+
+pve-qemu-kvm (2.1-1) unstable; urgency=low
+
+  * update to v2.1.0-rc2
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 16 Jul 2014 11:55:13 +0200
+
+pve-qemu-kvm (2.0-2) unstable; urgency=low
+
+  * update to latest qemu (commit 2a2c4830c0068d70443f3dddc4cc668f0c601b5c)
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 12 Jun 2014 10:20:10 +0200
+
+pve-qemu-kvm (2.0-1) unstable; urgency=low
+
+  * update to qemu 2.0
+  
+  * remove virtio-net-fix-guest-triggerable-buffer-overrun-CVE-2014-0150.patch 
+    This is now included in upstream.
+
+  * depend on libiscsi2 (>= 1.11.0)
+  
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 05 May 2014 06:57:34 +0200
+
+pve-qemu-kvm (1.7-8) unstable; urgency=low
+
+  * fix guest-triggerable buffer overrun in virtio-net (CVE-2014-0150)
+  
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 22 Apr 2014 06:47:02 +0200
+
+pve-qemu-kvm (1.7-7) unstable; urgency=low
+
+  * vma: allows the creation of vma files without data streams
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 14 Apr 2014 11:13:36 +0200
+
+pve-qemu-kvm (1.7-6) unstable; urgency=low
+
+  * backup: remove async queue (avoid segmentation fault)
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 27 Mar 2014 13:06:55 +0100
+
+pve-qemu-kvm (1.7-5) unstable; urgency=low
+
+  * update to 1.7.1
+  
+  * backup: do not report errors to the VM when backup fails.
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 26 Mar 2014 06:37:55 +0100
+
+pve-qemu-kvm (1.7-4) unstable; urgency=low
+
+  * disable efi enabled pxe boot roms (they do not work)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 29 Jan 2014 12:58:46 +0100
+
+pve-qemu-kvm (1.7-3) unstable; urgency=low
+
+  * vma: add 'vma config' command to easily extract VM configuration
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 04 Dec 2013 10:39:36 +0100
+
+pve-qemu-kvm (1.7-2) unstable; urgency=low
+
+  * depend on latest spice server libs
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 03 Dec 2013 13:40:56 +0100
+
+pve-qemu-kvm (1.7-1) unstable; urgency=low
+
+  * remove qemu-img-convert-skipcreate-option.patch (now upstream)
+  
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 27 Nov 2013 10:55:35 +0100
+
+pve-qemu-kvm (1.4-17) unstable; urgency=low
+
+  * enable glusterfs backend
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 13 Aug 2013 06:48:32 +0200
+
+pve-qemu-kvm (1.4-16) unstable; urgency=low
+
+  * add patch to use pce certs for spice by default
+  
+  * disable spice-socket.patch
+  
+  * Allow to query spice ticket
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 23 Jul 2013 10:02:14 +0200
+
+pve-qemu-kvm (1.4-15) unstable; urgency=low
+
+  * add usbredir support to spice
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 19 Jul 2013 07:41:20 +0200
+
+pve-qemu-kvm (1.4-14) unstable; urgency=low
+
+  * add experimental code to support spice 
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 25 Jun 2013 06:41:52 +0200
+
+pve-qemu-kvm (1.4-13) unstable; urgency=low
+
+  * update to qemu 1.4.2
+  
+  * remove rbd-add-an-asynchronous-flush.patch (upstream now)
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 03 Jun 2013 06:28:32 +0200
+
+pve-qemu-kvm (1.4-12) unstable; urgency=low
+
+  * vma create: only store basename of config file.
+  patch: 0009-vma-only-store-the-basename-of-a-configuration-file.patch
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 08 May 2013 10:07:50 +0200
+
+pve-qemu-kvm (1.4-11) unstable; urgency=low
+
+  * rbd: add an asynchronous flush
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 07 May 2013 12:14:57 +0200
+
+pve-qemu-kvm (1.4-10) unstable; urgency=low
+
+  * bump version to 1.4-10
+
+  * this is based on qemu 1.4.1
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 16 Apr 2013 10:39:58 +0200
+
+pve-qemu-kvm (1.4-9) unstable; urgency=low
+
+  * vma restore: tolerate a size difference up to 4M
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 26 Mar 2013 06:33:43 +0100
+
+pve-qemu-kvm (1.4-8) unstable; urgency=low
+
+  * vma: add 'vma verify' command to verify vma archives
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 11 Mar 2013 11:10:34 +0100
+
+pve-qemu-kvm (1.4-7) unstable; urgency=low
+
+  * update seabios to 1.7.2.1 (fix freebsd boot)
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 09 Mar 2013 09:02:48 +0100
+
+pve-qemu-kvm (1.4-6) unstable; urgency=low
+
+  * set default cpu model to kvm64 (to avoid problems with windows activation)
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 25 Feb 2013 06:55:23 +0100
+
+pve-qemu-kvm (1.4-5) unstable; urgency=low
+
+  * update backup patches to v5
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 21 Feb 2013 12:30:57 +0100
+
+pve-qemu-kvm (1.4-4) unstable; urgency=low
+
+  * update backup patches
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 20 Feb 2013 10:43:04 +0100
+
+pve-qemu-kvm (1.4-3) unstable; urgency=low
+
+  * update to qemu 1.4.0 final
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 16 Feb 2013 09:24:06 +0100
+
+pve-qemu-kvm (1.4-2) unstable; urgency=low
+
+  * update to latest 1.4.0rc2
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 15 Feb 2013 15:57:56 +0100
+
+pve-qemu-kvm (1.4-1) unstable; urgency=low
+
+  * update to latest 1.4.0 (03ec2f83087de34924489eeae0ea6fe7785cc050)
+
+  * remove ahci-add_migration-support.patch
+  
+  * remove balloon stat patches
+  
+  * remove always-update-expected-downtime.patch: seems latest qemu does 
+  not set that value anymore?
+  
+  * configure with --disable-smartcard-nss (else we need to install
+    vscclient and dynamic libraries)
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 12 Feb 2013 12:04:09 +0100
+
+pve-qemu-kvm (1.3-18) unstable; urgency=low
+
+  * update qemu to v1.3.1
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 29 Jan 2013 15:12:49 +0100
+
+pve-qemu-kvm (1.3-17) unstable; urgency=low
+
+  * update backup patches - removed threaded code - we use qemu-aio
+    instead to avoid problems in bdrv_drain_all().
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 22 Jan 2013 10:37:59 +0100
+
+pve-qemu-kvm (1.3-14) unstable; urgency=low
+
+  * update backup patches
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 18 Jan 2013 10:53:21 +0100
+
+pve-qemu-kvm (1.3-13) unstable; urgency=low
+
+  * fix DSA-2608-1 qemu -- buffer overflow (see 
+  http://www.debian.org/security/2013/dsa-2608)
+  
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 17 Jan 2013 06:58:47 +0100
+
+pve-qemu-kvm (1.3-12) unstable; urgency=low
+
+  * update vma patches
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 04 Jan 2013 07:32:17 +0100
+
+pve-qemu-kvm (1.3-10) unstable; urgency=low
+
+  * include fixes for query-balloon
+  
+  * Update seabios to a810e4e72a0d42c7bc04eda57382f8e019add901
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 18 Dec 2012 12:38:36 +0100
+
+pve-qemu-kvm (1.3-9) unstable; urgency=low
+
+  * fixes for vma-reader
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 13 Dec 2012 12:08:12 +0100
+
+pve-qemu-kvm (1.3-8) unstable; urgency=low
+
+  * re-enable balloon stats
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 11 Dec 2012 12:48:26 +0100
+
+pve-qemu-kvm (1.3-7) unstable; urgency=low
+
+  * update seabios to e8a76b0f225bba5ba9d63ab227e0a37b3beb1059
+  
+  * update vma patches
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 11 Dec 2012 11:06:43 +0100
+
+pve-qemu-kvm (1.3-6) unstable; urgency=low
+
+  * include vma utility
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 04 Dec 2012 10:49:54 +0100
+
+pve-qemu-kvm (1.3-5) unstable; urgency=low
+
+  * update to qemu 1.3 final
+  
+  * include fix-off-by-1-error-in-RAM-migration-code.patch
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 04 Dec 2012 06:18:16 +0100
+
+pve-qemu-kvm (1.3-4) unstable; urgency=low
+
+  * update to qemu 1.3 rc2 (bios update, fix lsi bug)
+  
+  * rm stream-fix-ratelimit_set_speed.patch (upstream)
+  
+  * update qemu backup patches
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 03 Dec 2012 06:32:00 +0100
+
+pve-qemu-kvm (1.3-3) unstable; urgency=low
+
+  * include qemu backup patches
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 30 Nov 2012 12:23:37 +0100
+
+pve-qemu-kvm (1.3-2) unstable; urgency=low
+
+  * update to qemu 1.3 rc1 (fix usb tablet)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 28 Nov 2012 08:48:12 +0100
+
+pve-qemu-kvm (1.3-1) unstable; urgency=low
+
+  * update to qemu 1.3 rc0
+  
+  * we now use qemu sources directly
+  
+  * remove update-cpus-x86_64.conf-to-rhel6.2-version.patch
+  
+  * remove ahci-properly-reset-pxcmd.patch (upstream)
+  
+  * remove sheepdog-fix-savevm-loadvm.patch (upstream)
+  
+  * remove set-max-nics.patch (no longer needed with -device syntax)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 21 Nov 2012 12:48:56 +0100
+
+pve-qemu-kvm (1.2-7) unstable; urgency=low
+
+  * cleanup snapshot support patches
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 23 Oct 2012 09:45:48 +0200
+
+pve-qemu-kvm (1.2-6) unstable; urgency=low
+
+  * qemu-img: return success for non-existing snapshots on snapshot removal
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 14 Sep 2012 11:09:09 +0200
+
+pve-qemu-kvm (1.2-5) unstable; urgency=low
+
+  * update to 1.2.0
+  
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 07 Sep 2012 07:40:06 +0200
+
+pve-qemu-kvm (1.2-4) unstable; urgency=low
+
+  * update to 1.2.0-rc2
+  
+  * add patch for experimental snapshot support
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 04 Sep 2012 07:26:31 +0200
+
+pve-qemu-kvm (1.2-3) unstable; urgency=low
+
+  * fix ahci for win7
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 03 Sep 2012 14:22:17 +0200
+
+pve-qemu-kvm (1.2-2) unstable; urgency=low
+
+  * add ahci migration support
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 31 Aug 2012 10:52:20 +0200
+
+pve-qemu-kvm (1.2-1) unstable; urgency=low
+
+  * update to 1.2.0-rc1
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 27 Aug 2012 14:12:22 +0200
+
+pve-qemu-kvm (1.1-8) unstable; urgency=low
+
+  * fix bug 241: compile it with alsa support instead of oss
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 16 Aug 2012 09:11:19 +0200
+
+pve-qemu-kvm (1.1-7) unstable; urgency=low
+
+  * Enable VeNCrypt PLAIN authentication
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 09 Aug 2012 10:05:52 +0200
+
+pve-qemu-kvm (1.1-6) unstable; urgency=low
+
+  * enable libiscsi
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 17 Jul 2012 11:35:47 +0200
+
+pve-qemu-kvm (1.1-5) unstable; urgency=low
+
+  * update to latest stable-1.1 branch (qemu-kvm-1.1.1)
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 17 Jul 2012 08:58:31 +0200
+
+pve-qemu-kvm (1.1-4) unstable; urgency=low
+
+  * update to latest stable-1.1 branch
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 09 Jul 2012 07:11:06 +0200
+
+pve-qemu-kvm (1.1-3) unstable; urgency=low
+
+  * enable rbd support
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 05 Jun 2012 06:49:52 +0200
+
+pve-qemu-kvm (1.1-2) unstable; urgency=low
+
+  * update to qemu-kvm-1.1-rc3
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 24 May 2012 09:24:57 +0200
+
+pve-qemu-kvm (1.1-1) unstable; urgency=low
+
+  * update to qemu-kvm-1.1-rc2
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 21 May 2012 06:15:49 +0200
+
+pve-qemu-kvm (1.0-9) unstable; urgency=low
+
+  * revert patch to change prefer_msi and share_intx defaults
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 03 Apr 2012 07:29:27 +0200
+
+pve-qemu-kvm (1.0-8) unstable; urgency=low
+
+  * include latest changes from master (update to commit 
+  a0bc8c313ce7da8937e190b1e0cfd051a9ba243e)
+  
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 26 Mar 2012 07:22:10 +0200
+
+pve-qemu-kvm (1.0-7) unstable; urgency=low
+
+  * include latest changes from master
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 12 Mar 2012 07:11:15 +0100
+
+pve-qemu-kvm (1.0-6) unstable; urgency=low
+
+  * include changes from master
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 02 Mar 2012 09:40:41 +0100
+
+pve-qemu-kvm (1.0-5) unstable; urgency=low
+
+  * fix usb tablet activation
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 29 Feb 2012 09:54:52 +0100
+
+pve-qemu-kvm (1.0-4) unstable; urgency=low
+
+  * fix Westmere cpu definition
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 23 Feb 2012 13:44:38 +0100
+
+pve-qemu-kvm (1.0-3) unstable; urgency=low
+
+  * include latest updates from master
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 15 Feb 2012 11:32:23 +0100
+
+pve-qemu-kvm (1.0-2) unstable; urgency=low
+
+  * include post 1.0 changes from master
+  
+  * remove live-migration-fixes.diff: seem nobody needs that.
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 09 Feb 2012 13:15:14 +0100
+
+pve-qemu-kvm (1.0-1) unstable; urgency=low
+
+  * update to upstream 1.0
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 07 Dec 2011 09:58:07 +0100
+
+pve-qemu-kvm (0.15.0-1) unstable; urgency=low
+
+  * update to upstream 0.15.0
+
+  * depend on libaio1 (--enable-linux-aio)
+
+  * depend on libuuid1 (--enable-uuid)
+  
+  * use pxe roms from upstream qemu-kvm
+  
+  * do not use --disable-blobs (let qemu-kvm install files, and we remove
+    what we do not need)
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 11 Aug 2011 10:00:44 +0200
+
+pve-qemu-kvm (0.14.1-1) unstable; urgency=low
+
+  * update to upstream 0.14.1
+  
+  * remove enable-ksm.diff patch (newer libc already have those
+    definitions)
+  
+  * also install vgabios-qxl.bin vgabios-stdvga.bin vgabios-vmware.bin
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 21 Jun 2011 06:30:29 +0200
+
+pve-qemu-kvm (0.14.0-1) unstable; urgency=low
+
+  * update to 0.14.0
+
+  * removed kvmtrace (removed from upstream?)
+  
+  * add vnc keyboard fixes for fr-ca (reported by Pierre-Yves)
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 25 Feb 2011 08:17:56 +0100
+
+pve-qemu-kvm (0.13.0-3) unstable; urgency=low
+
+  * fix vnc keyboard altgr/shift emulation
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 07 Dec 2010 12:45:16 +0100
+
+pve-qemu-kvm (0.13.0-2) unstable; urgency=low
+
+  * do not install unnecessary blobs (manually install blobs, use
+    --disable-blobs)
+
+  * update migration and vnc keymap patches for 0.13.0
+  
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 25 Oct 2010 13:46:03 +0200
+
+pve-qemu-kvm (0.13.0-1) unstable; urgency=low
+
+  * update to qemu-kvm-0.13.0
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 21 Oct 2010 13:38:14 +0200
+
+pve-qemu-kvm (0.12.5-2) unstable; urgency=low
+
+  * enable up to 32 NICs (as suggested in the forum)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 06 Oct 2010 08:23:07 +0200
+
+pve-qemu-kvm (0.12.5-1) unstable; urgency=low
+
+  * update to qemu-kvm-0.12.5
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 05 Aug 2010 11:01:56 +0200
+
+pve-qemu-kvm (0.12.4-1) unstable; urgency=low
+
+  * update to qemu-kvm-0.12.4
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 11 May 2010 08:14:29 +0200
+
+pve-qemu-kvm (0.12.3-1) unstable; urgency=low
+
+  * update to qemu-kvm-0.12.3
+  
+  * include gPXE 1.0 network boot
+  
+  * remove multicore.diff patch
+  
+  * do not install ppc and sparc bios files
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 14 Apr 2010 13:30:23 +0200
+
+pve-qemu-kvm (0.11.1-2) unstable; urgency=low
+
+  * Use/Include PXE boot ROMs from the Etherboot package
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 26 Jan 2010 13:28:19 +0100
+
+pve-qemu-kvm (0.11.1-1) unstable; urgency=low
+
+  * update to qemu-kvm-0.11.1
+
+  * cleanup debian rules file
+  
+  * install kvmtrace kvmtrace_format and kvm_stat
+  
+  * configure with --disable-xen --with-kvm-trace 
+  
+  * depend on python for scripts
+  
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 14 Dec 2009 14:44:56 +0100
+
+pve-qemu-kvm (0.11.0-2) stable; urgency=low
+
+  * fix live migration (live-migration-fxes.diff)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 30 Sep 2009 11:07:23 +0200
+
+pve-qemu-kvm (0.11.0-1) stable; urgency=low
+
+  * update to stable branch
+
+  * rename packare to pve-qemu-kvm
+	
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 28 Sep 2009 10:35:05 +0200
+
+pve-kvm (86-4) unstable; urgency=low
+
+  * include multicore patch from amd
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 14 Sep 2009 10:40:00 +0200
+
+pve-kvm (86-3) unstable; urgency=low
+
+  * fix "i8042.c: No controller found" problem
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 15 Jun 2009 13:35:57 +0200
+
+pve-kvm (86-2) unstable; urgency=low
+
+  * add CPUID fix: http://git.kernel.org/?p=virt/kvm/qemu-kvm.git;a=commitdiff_plain;h=8fa3b3ce6e
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 09 Jun 2009 09:50:28 +0200
+
+pve-kvm (86-1) unstable; urgency=low
+
+  *  New upstream release
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 22 May 2009 09:16:27 +0200
+
+pve-kvm (85-1) unstable; urgency=low
+
+  *  New upstream release
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 28 Apr 2009 07:41:21 +0200
+
+pve-kvm (83-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed,  7 Jan 2009 12:57:02 +0100
+
+pve-kvm (75-1) unstable; urgency=low
+
+  *  New upstream release
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 11 Sep 2008 10:03:51 +0200
+
+pve-kvm (74-1) unstable; urgency=low
+
+  * New upstream release
+  
+  * added fairsched options
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 28 Aug 2008 12:40:32 +0200
+

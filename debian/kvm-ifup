@@ -1,0 +1,5 @@
+#!/bin/sh
+
+switch=$(/sbin/ip route list | awk '/^default / { print $NF }')
+/sbin/ifconfig $1 0.0.0.0 promisc up
+/sbin/brctl addif ${switch} $1

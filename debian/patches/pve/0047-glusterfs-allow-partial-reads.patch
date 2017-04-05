@@ -1,0 +1,78 @@
+From 519bcfc6d86a42a643ee65a0741bb2418c7d2e67 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 30 Nov 2016 10:27:47 +0100
+Subject: [PATCH 47/47] glusterfs: allow partial reads
+
+This should deal with qemu bug #1644754 until upstream
+decides which way to go. The general direction seems to be
+away from sector based block APIs and with that in mind, and
+when comparing to other network block backends (eg. nfs)
+treating partial reads as errors doesn't seem to make much
+sense.
+---
+ block/gluster.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/block/gluster.c b/block/gluster.c
+index 6dcf926..17c51ed 100644
+--- a/block/gluster.c
++++ b/block/gluster.c
+@@ -39,6 +39,7 @@ typedef struct GlusterAIOCB {
+     QEMUBH *bh;
+     Coroutine *coroutine;
+     AioContext *aio_context;
++    bool is_write;
+ } GlusterAIOCB;
+ 
+ typedef struct BDRVGlusterState {
+@@ -623,8 +624,10 @@ static void gluster_finish_aiocb(struct glfs_fd *fd, ssize_t ret, void *arg)
+         acb->ret = 0; /* Success */
+     } else if (ret < 0) {
+         acb->ret = -errno; /* Read/Write failed */
++    } else if (acb->is_write) {
++        acb->ret = -EIO; /* Partial write - fail it */
+     } else {
+-        acb->ret = -EIO; /* Partial read/write - fail it */
++        acb->ret = 0; /* Success */
+     }
+ 
+     acb->bh = aio_bh_new(acb->aio_context, qemu_gluster_complete_aio, acb);
+@@ -861,6 +864,7 @@ static coroutine_fn int qemu_gluster_co_pwrite_zeroes(BlockDriverState *bs,
+     acb.ret = 0;
+     acb.coroutine = qemu_coroutine_self();
+     acb.aio_context = bdrv_get_aio_context(bs);
++    acb.is_write = true;
+ 
+     ret = glfs_zerofill_async(s->fd, offset, size, gluster_finish_aiocb, &acb);
+     if (ret < 0) {
+@@ -979,9 +983,11 @@ static coroutine_fn int qemu_gluster_co_rw(BlockDriverState *bs,
+     acb.aio_context = bdrv_get_aio_context(bs);
+ 
+     if (write) {
++        acb.is_write = true;
+         ret = glfs_pwritev_async(s->fd, qiov->iov, qiov->niov, offset, 0,
+                                  gluster_finish_aiocb, &acb);
+     } else {
++        acb.is_write = false;
+         ret = glfs_preadv_async(s->fd, qiov->iov, qiov->niov, offset, 0,
+                                 gluster_finish_aiocb, &acb);
+     }
+@@ -1044,6 +1050,7 @@ static coroutine_fn int qemu_gluster_co_flush_to_disk(BlockDriverState *bs)
+     acb.ret = 0;
+     acb.coroutine = qemu_coroutine_self();
+     acb.aio_context = bdrv_get_aio_context(bs);
++    acb.is_write = true;
+ 
+     ret = glfs_fsync_async(s->fd, gluster_finish_aiocb, &acb);
+     if (ret < 0) {
+@@ -1090,6 +1097,7 @@ static coroutine_fn int qemu_gluster_co_pdiscard(BlockDriverState *bs,
+     acb.ret = 0;
+     acb.coroutine = qemu_coroutine_self();
+     acb.aio_context = bdrv_get_aio_context(bs);
++    acb.is_write = true;
+ 
+     ret = glfs_discard_async(s->fd, offset, size, gluster_finish_aiocb, &acb);
+     if (ret < 0) {
+-- 
+2.1.4
+

@@ -1,0 +1,36 @@
+From e7cf613192638f5ac24629961c4010a3b3575ad6 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 9 Dec 2015 15:41:13 +0100
+Subject: [PATCH 21/47] backup: do not use bdrv_drain_all
+
+---
+ blockdev.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/blockdev.c b/blockdev.c
+index f3c0c58..2371cf3 100644
+--- a/blockdev.c
++++ b/blockdev.c
+@@ -3129,9 +3129,6 @@ static void pvebackup_cancel(void *opaque)
+         vma_writer_set_error(backup_state.vmaw, "backup cancelled");
+     }
+ 
+-    /* drain all i/o (awake jobs waiting for aio) */
+-    bdrv_drain_all();
+-
+     GList *l = backup_state.di_list;
+     while (l) {
+         PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
+@@ -3140,8 +3137,7 @@ static void pvebackup_cancel(void *opaque)
+             BlockJob *job = di->bs->job;
+             if (job) {
+                 if (!di->completed) {
+-                     block_job_cancel_sync(job);
+-                     bdrv_drain_all(); /* drain all i/o (awake jobs waiting for aio) */
++                    block_job_cancel_sync(job);
+                 }
+             }
+         }
+-- 
+2.1.4
+

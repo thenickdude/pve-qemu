@@ -1,0 +1,158 @@
+From 3400a70a51015f119c12d3600943baae97aabb0f Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 9 Dec 2015 16:51:23 +0100
+Subject: [PATCH 27/47] vma: add firewall
+
+---
+ blockdev.c       | 78 ++++++++++++++++++++++++++++++++++----------------------
+ hmp.c            |  2 +-
+ qapi-schema.json |  1 +
+ qmp-commands.hx  |  2 +-
+ 4 files changed, 51 insertions(+), 32 deletions(-)
+
+diff --git a/blockdev.c b/blockdev.c
+index 2371cf3..bbb1502 100644
+--- a/blockdev.c
++++ b/blockdev.c
+@@ -3157,6 +3157,44 @@ void qmp_backup_cancel(Error **errp)
+     }
+ }
+ 
++static int config_to_vma(const char *file, BackupFormat format,
++			 const char *backup_dir, VmaWriter *vmaw,
++			 Error **errp)
++{
++        char *cdata = NULL;
++        gsize clen = 0;
++        GError *err = NULL;
++        if (!g_file_get_contents(file, &cdata, &clen, &err)) {
++            error_setg(errp, "unable to read file '%s'", file);
++            return 1;
++        }
++
++        char *basename = g_path_get_basename(file);
++
++        if (format == BACKUP_FORMAT_VMA) {
++            if (vma_writer_add_config(vmaw, basename, cdata, clen) != 0) {
++	      error_setg(errp, "unable to add %s config data to vma archive", file);
++                g_free(cdata);
++                g_free(basename);
++                return 1;
++            }
++        } else if (format == BACKUP_FORMAT_DIR) {
++            char config_path[PATH_MAX];
++            snprintf(config_path, PATH_MAX, "%s/%s", backup_dir, basename);
++            if (!g_file_set_contents(config_path, cdata, clen, &err)) {
++	      error_setg(errp, "unable to write config file '%s'", config_path);
++                g_free(cdata);
++                g_free(basename);
++                return 1;
++            }
++        }
++
++        g_free(basename);
++        g_free(cdata);
++
++	return 0;
++}
++
+ bool block_job_should_pause(BlockJob *job);
+ static void pvebackup_run_next_job(void)
+ {
+@@ -3184,6 +3222,7 @@ static void pvebackup_run_next_job(void)
+ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+                     BackupFormat format,
+                     bool has_config_file, const char *config_file,
++		    bool has_firewall_file, const char *firewall_file,
+                     bool has_devlist, const char *devlist,
+                     bool has_speed, int64_t speed, Error **errp)
+ {
+@@ -3335,38 +3374,17 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+ 
+     /* add configuration file to archive */
+     if (has_config_file) {
+-        char *cdata = NULL;
+-        gsize clen = 0;
+-        GError *err = NULL;
+-        if (!g_file_get_contents(config_file, &cdata, &clen, &err)) {
+-            error_setg(errp, "unable to read file '%s'", config_file);
+-            goto err;
+-        }
+-
+-        char *basename = g_path_get_basename(config_file);
+-
+-        if (format == BACKUP_FORMAT_VMA) {
+-            if (vma_writer_add_config(vmaw, basename, cdata, clen) != 0) {
+-                error_setg(errp, "unable to add config data to vma archive");
+-                g_free(cdata);
+-                g_free(basename);
+-                goto err;
+-            }
+-        } else if (format == BACKUP_FORMAT_DIR) {
+-            char config_path[PATH_MAX];
+-            snprintf(config_path, PATH_MAX, "%s/%s", backup_dir, basename);
+-            if (!g_file_set_contents(config_path, cdata, clen, &err)) {
+-                error_setg(errp, "unable to write config file '%s'", config_path);
+-                g_free(cdata);
+-                g_free(basename);
+-                goto err;
+-            }
+-        }
+-
+-        g_free(basename);
+-        g_free(cdata);
++      if(config_to_vma(config_file, format, backup_dir, vmaw, errp) != 0) {
++	goto err;
++      }
+     }
+ 
++    /* add firewall file to archive */
++    if (has_firewall_file) {
++      if(config_to_vma(firewall_file, format, backup_dir, vmaw, errp) != 0) {
++	goto err;
++      }
++    }
+     /* initialize global backup_state now */
+ 
+     backup_state.cancel = false;
+diff --git a/hmp.c b/hmp.c
+index 030fd97..5c5e8ed 100644
+--- a/hmp.c
++++ b/hmp.c
+@@ -1550,7 +1550,7 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
+     int64_t speed = qdict_get_try_int(qdict, "speed", 0);
+ 
+     qmp_backup(backup_file, true, dir ? BACKUP_FORMAT_DIR : BACKUP_FORMAT_VMA,
+-               false, NULL, !!devlist,
++               false, NULL, false, NULL, !!devlist,
+                devlist, qdict_haskey(qdict, "speed"), speed, &error);
+ 
+     hmp_handle_error(mon, &error);
+diff --git a/qapi-schema.json b/qapi-schema.json
+index d75e932..7bb0ee0 100644
+--- a/qapi-schema.json
++++ b/qapi-schema.json
+@@ -420,6 +420,7 @@
+ { 'command': 'backup', 'data': { 'backup-file': 'str',
+                                     '*format': 'BackupFormat',
+                                     '*config-file': 'str',
++                                    '*firewall-file': 'str',
+                                     '*devlist': 'str', '*speed': 'int' },
+   'returns': 'UuidInfo' }
+ 
+diff --git a/qmp-commands.hx b/qmp-commands.hx
+index a84932a..94cfac2 100644
+--- a/qmp-commands.hx
++++ b/qmp-commands.hx
+@@ -1315,7 +1315,7 @@ EQMP
+ 
+     {
+         .name       = "backup",
+-        .args_type  = "backup-file:s,format:s?,config-file:F?,speed:o?,devlist:s?",
++        .args_type  = "backup-file:s,format:s?,config-file:F?,firewall-file:F?,speed:o?,devlist:s?",
+         .mhandler.cmd_new = qmp_marshal_backup,
+     },
+ 
+-- 
+2.1.4
+

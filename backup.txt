@@ -1,0 +1,116 @@
+Efficient VM backup for qemu
+
+=Requirements=
+
+* Backup to a single archive file
+* Backup needs to contain all data to restore VM (full backup)
+* Do not depend on storage type or image format
+* Avoid use of temporary storage
+* store sparse images efficiently
+
+=Introduction=
+
+Most VM backup solutions use some kind of snapshot to get a consistent
+VM view at a specific point in time. For example, we previously used
+LVM to create a snapshot of all used VM images, which are then copied
+into a tar file.
+
+That basically means that any data written during backup involve
+considerable overhead. For LVM we get the following steps:
+
+1.) read original data (VM write)
+2.) write original data into snapshot (VM write)
+3.) write new data (VM write)
+4.) read data from snapshot (backup)
+5.) write data from snapshot into tar file (backup)
+
+Another approach to backup VM images is to create a new qcow2 image
+which use the old image as base. During backup, writes are redirected
+to the new image, so the old image represents a 'snapshot'. After
+backup, data need to be copied back from new image into the old
+one (commit). So a simple write during backup triggers the following
+steps:
+
+1.) write new data to new image (VM write)
+2.) read data from old image (backup)
+3.) write data from old image into tar file (backup)
+
+4.) read data from new image (commit)
+5.) write data to old image (commit)
+
+This is in fact the same overhead as before. Other tools like qemu
+livebackup produces similar overhead (2 reads, 3 writes).
+
+Some storage types/formats supports internal snapshots using some kind
+of reference counting (rados, sheepdog, dm-thin, qcow2). It would be possible
+to use that for backups, but for now we want to be storage-independent.
+
+=Make it more efficient=
+
+The be more efficient, we simply need to avoid unnecessary steps. The
+following steps are always required:
+
+1.) read old data before it gets overwritten
+2.) write that data into the backup archive
+3.) write new data (VM write)
+
+As you can see, this involves only one read, and two writes.
+
+To make that work, our backup archive need to be able to store image
+data 'out of order'. It is important to notice that this will not work
+with traditional archive formats like tar.
+
+During backup we simply intercept writes, then read existing data and
+store that directly into the archive. After that we can continue the
+write.
+
+==Advantages==
+
+* very good performance (1 read, 2 writes)
+* works on any storage type and image format.
+* avoid usage of temporary storage
+* we can define a new and simple archive format, which is able to
+  store sparse files efficiently.
+
+Note: Storing sparse files is a mess with existing archive
+formats. For example, tar requires information about holes at the
+beginning of the archive.
+
+==Disadvantages==
+
+* we need to define a new archive format
+
+Note: Most existing archive formats are optimized to store small files
+including file attributes. We simply do not need that for VM archives.
+
+* archive contains data 'out of order'
+
+If you want to access image data in sequential order, you need to
+re-order archive data. It would be possible to to that on the fly,
+using temporary files.
+
+Fortunately, a normal restore/extract works perfectly with 'out of
+order' data, because the target files are seekable.
+
+* slow backup storage can slow down VM during backup
+
+It is important to note that we only do sequential writes to the
+backup storage. Furthermore one can compress the backup stream. IMHO,
+it is better to slow down the VM a bit. All other solutions creates
+large amounts of temporary data during backup.
+
+=Archive format requirements=
+
+The basic requirement for such new format is that we can store image
+date 'out of order'. It is also very likely that we have less than 256
+drives/images per VM, and we want to be able to store VM configuration
+files.
+
+We have defined a very simply format with those properties, see:
+
+https://git.proxmox.com/?p=pve-qemu-kvm.git;a=blob;f=vma_spec.txt;
+
+Please let us know if you know an existing format which provides the
+same functionality.
+
+

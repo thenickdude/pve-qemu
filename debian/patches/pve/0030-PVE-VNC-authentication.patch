@@ -1,0 +1,683 @@
+From 51dd4df80640e1671de73c014c6273b154df920a Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Mon, 11 Jan 2016 10:40:31 +0100
+Subject: [PATCH 30/47] PVE VNC authentication
+
+---
+ crypto/tlscreds.c         |  47 +++++++++++
+ crypto/tlscredspriv.h     |   2 +
+ crypto/tlscredsx509.c     |  13 ++--
+ crypto/tlssession.c       |   1 +
+ include/crypto/tlscreds.h |   1 +
+ include/ui/console.h      |   1 +
+ qemu-options.hx           |   3 +
+ ui/vnc-auth-vencrypt.c    | 194 ++++++++++++++++++++++++++++++++++++++--------
+ ui/vnc.c                  | 140 ++++++++++++++++++++++++++++++++-
+ ui/vnc.h                  |   4 +
+ vl.c                      |   9 +++
+ 11 files changed, 375 insertions(+), 40 deletions(-)
+
+diff --git a/crypto/tlscreds.c b/crypto/tlscreds.c
+index a896553..e9ae13c 100644
+--- a/crypto/tlscreds.c
++++ b/crypto/tlscreds.c
+@@ -158,6 +158,33 @@ qcrypto_tls_creds_prop_get_verify(Object *obj,
+ 
+ 
+ static void
++qcrypto_tls_creds_prop_set_pve(Object *obj,
++                                 bool value,
++                                 Error **errp G_GNUC_UNUSED)
++{
++    QCryptoTLSCreds *creds = QCRYPTO_TLS_CREDS(obj);
++
++    creds->pve = value;
++}
++
++
++static bool
++qcrypto_tls_creds_prop_get_pve(Object *obj,
++                                  Error **errp G_GNUC_UNUSED)
++{
++    QCryptoTLSCreds *creds = QCRYPTO_TLS_CREDS(obj);
++
++    return creds->pve;
++}
++
++bool qcrypto_tls_creds_is_pve(QCryptoTLSCreds *creds)
++{
++    Error *errp = NULL;
++    return qcrypto_tls_creds_prop_get_pve((Object*)creds, &errp);
++}
++
++
++static void
+ qcrypto_tls_creds_prop_set_dir(Object *obj,
+                                const char *value,
+                                Error **errp G_GNUC_UNUSED)
+@@ -250,6 +277,26 @@ qcrypto_tls_creds_init(Object *obj)
+     QCryptoTLSCreds *creds = QCRYPTO_TLS_CREDS(obj);
+ 
+     creds->verifyPeer = true;
++    creds->pve = false;
++
++    object_property_add_bool(obj, "verify-peer",
++                             qcrypto_tls_creds_prop_get_verify,
++                             qcrypto_tls_creds_prop_set_verify,
++                             NULL);
++    object_property_add_bool(obj, "pve",
++                             qcrypto_tls_creds_prop_get_pve,
++                             qcrypto_tls_creds_prop_set_pve,
++                             NULL);
++    object_property_add_str(obj, "dir",
++                            qcrypto_tls_creds_prop_get_dir,
++                            qcrypto_tls_creds_prop_set_dir,
++                            NULL);
++    object_property_add_enum(obj, "endpoint",
++                             "QCryptoTLSCredsEndpoint",
++                             QCryptoTLSCredsEndpoint_lookup,
++                             qcrypto_tls_creds_prop_get_endpoint,
++                             qcrypto_tls_creds_prop_set_endpoint,
++                             NULL);
+ }
+ 
+ 
+diff --git a/crypto/tlscredspriv.h b/crypto/tlscredspriv.h
+index 13e9b6c..0356acc 100644
+--- a/crypto/tlscredspriv.h
++++ b/crypto/tlscredspriv.h
+@@ -36,6 +36,8 @@ int qcrypto_tls_creds_get_dh_params_file(QCryptoTLSCreds *creds,
+                                          gnutls_dh_params_t *dh_params,
+                                          Error **errp);
+ 
++bool qcrypto_tls_creds_is_pve(QCryptoTLSCreds *creds);
++
+ #endif
+ 
+ #endif /* QCRYPTO_TLSCREDSPRIV_H */
+diff --git a/crypto/tlscredsx509.c b/crypto/tlscredsx509.c
+index 520d34d..1ba971c 100644
+--- a/crypto/tlscredsx509.c
++++ b/crypto/tlscredsx509.c
+@@ -555,22 +555,23 @@ qcrypto_tls_creds_x509_load(QCryptoTLSCredsX509 *creds,
+         *key = NULL, *dhparams = NULL;
+     int ret;
+     int rv = -1;
++    bool pve = qcrypto_tls_creds_is_pve(&creds->parent_obj);
+ 
+     trace_qcrypto_tls_creds_x509_load(creds,
+             creds->parent_obj.dir ? creds->parent_obj.dir : "<nodir>");
+ 
+     if (creds->parent_obj.endpoint == QCRYPTO_TLS_CREDS_ENDPOINT_SERVER) {
+         if (qcrypto_tls_creds_get_path(&creds->parent_obj,
+-                                       QCRYPTO_TLS_CREDS_X509_CA_CERT,
++                                       pve ? "pve-root-ca.pem" : QCRYPTO_TLS_CREDS_X509_CA_CERT,
+                                        true, &cacert, errp) < 0 ||
+             qcrypto_tls_creds_get_path(&creds->parent_obj,
+                                        QCRYPTO_TLS_CREDS_X509_CA_CRL,
+                                        false, &cacrl, errp) < 0 ||
+             qcrypto_tls_creds_get_path(&creds->parent_obj,
+-                                       QCRYPTO_TLS_CREDS_X509_SERVER_CERT,
++                                       pve ? "local/pve-ssl.pem" : QCRYPTO_TLS_CREDS_X509_SERVER_CERT,
+                                        true, &cert, errp) < 0 ||
+             qcrypto_tls_creds_get_path(&creds->parent_obj,
+-                                       QCRYPTO_TLS_CREDS_X509_SERVER_KEY,
++                                       pve ? "local/pve-ssl.key" : QCRYPTO_TLS_CREDS_X509_SERVER_KEY,
+                                        true, &key, errp) < 0 ||
+             qcrypto_tls_creds_get_path(&creds->parent_obj,
+                                        QCRYPTO_TLS_CREDS_DH_PARAMS,
+@@ -579,13 +580,13 @@ qcrypto_tls_creds_x509_load(QCryptoTLSCredsX509 *creds,
+         }
+     } else {
+         if (qcrypto_tls_creds_get_path(&creds->parent_obj,
+-                                       QCRYPTO_TLS_CREDS_X509_CA_CERT,
++                                       pve ? "pve-root-ca.pem" : QCRYPTO_TLS_CREDS_X509_CA_CERT,
+                                        true, &cacert, errp) < 0 ||
+             qcrypto_tls_creds_get_path(&creds->parent_obj,
+-                                       QCRYPTO_TLS_CREDS_X509_CLIENT_CERT,
++                                       pve ? "local/pve-ssl.pem" : QCRYPTO_TLS_CREDS_X509_CLIENT_CERT,
+                                        false, &cert, errp) < 0 ||
+             qcrypto_tls_creds_get_path(&creds->parent_obj,
+-                                       QCRYPTO_TLS_CREDS_X509_CLIENT_KEY,
++                                       pve ? "local/pve-ssl.key" : QCRYPTO_TLS_CREDS_X509_CLIENT_KEY,
+                                        false, &key, errp) < 0) {
+             goto cleanup;
+         }
+diff --git a/crypto/tlssession.c b/crypto/tlssession.c
+index 2de42c6..768466a 100644
+--- a/crypto/tlssession.c
++++ b/crypto/tlssession.c
+@@ -23,6 +23,7 @@
+ #include "crypto/tlscredsanon.h"
+ #include "crypto/tlscredsx509.h"
+ #include "qapi/error.h"
++#include "crypto/tlscredspriv.h"
+ #include "qemu/acl.h"
+ #include "trace.h"
+ 
+diff --git a/include/crypto/tlscreds.h b/include/crypto/tlscreds.h
+index ad47d88..f86d379 100644
+--- a/include/crypto/tlscreds.h
++++ b/include/crypto/tlscreds.h
+@@ -55,6 +55,7 @@ struct QCryptoTLSCreds {
+ #endif
+     bool verifyPeer;
+     char *priority;
++    bool pve;
+ };
+ 
+ 
+diff --git a/include/ui/console.h b/include/ui/console.h
+index 2703a3a..db6dd22 100644
+--- a/include/ui/console.h
++++ b/include/ui/console.h
+@@ -456,6 +456,7 @@ static inline void cocoa_display_init(DisplayState *ds, int full_screen)
+ #endif
+ 
+ /* vnc.c */
++void pve_auth_setup(int vmid);
+ void vnc_display_init(const char *id);
+ void vnc_display_open(const char *id, Error **errp);
+ void vnc_display_add_client(const char *id, int csock, bool skipauth);
+diff --git a/qemu-options.hx b/qemu-options.hx
+index 37fad3b..f943ae6 100644
+--- a/qemu-options.hx
++++ b/qemu-options.hx
+@@ -473,6 +473,9 @@ STEXI
+ @table @option
+ ETEXI
+ 
++DEF("id", HAS_ARG, QEMU_OPTION_id,
++    "-id n	     set the VMID\n", QEMU_ARCH_ALL)
++
+ DEF("fda", HAS_ARG, QEMU_OPTION_fda,
+     "-fda/-fdb file  use 'file' as floppy disk 0/1 image\n", QEMU_ARCH_ALL)
+ DEF("fdb", HAS_ARG, QEMU_OPTION_fdb, "", QEMU_ARCH_ALL)
+diff --git a/ui/vnc-auth-vencrypt.c b/ui/vnc-auth-vencrypt.c
+index 11c8c9a..d11f1df 100644
+--- a/ui/vnc-auth-vencrypt.c
++++ b/ui/vnc-auth-vencrypt.c
+@@ -28,6 +28,107 @@
+ #include "vnc.h"
+ #include "qapi/error.h"
+ #include "qemu/main-loop.h"
++#include "qemu/sockets.h"
++
++static int protocol_client_auth_plain(VncState *vs, uint8_t *data, size_t len)
++{
++	const char *err = NULL;
++	char username[256];
++	char passwd[512];
++
++	char clientip[256];
++	clientip[0] = 0;
++	struct sockaddr_in client;
++	socklen_t addrlen = sizeof(client);
++	if (getpeername(vs->csock, &client, &addrlen) == 0) {
++		inet_ntop(client.sin_family, &client.sin_addr,
++			  clientip, sizeof(clientip));
++	}
++
++	if ((len != (vs->username_len + vs->password_len)) ||
++	    (vs->username_len >= (sizeof(username)-1)) ||
++	    (vs->password_len >= (sizeof(passwd)-1))	) {
++		err = "Got unexpected data length";
++		goto err;
++	}
++
++	strncpy(username, (char *)data, vs->username_len);
++	username[vs->username_len] = 0;
++	strncpy(passwd, (char *)data + vs->username_len, vs->password_len);
++	passwd[vs->password_len] = 0;
++
++	VNC_DEBUG("AUTH PLAIN username: %s pw: %s\n", username, passwd);
++
++	if (pve_auth_verify(clientip, username, passwd) == 0) {
++		vnc_write_u32(vs, 0); /* Accept auth completion */
++		start_client_init(vs);
++		return 0;
++	}
++
++	err =  "Authentication failed";
++err:
++       if (err) {
++	       VNC_DEBUG("AUTH PLAIN ERROR: %s\n", err);
++	       vnc_write_u32(vs, 1); /* Reject auth */
++	       if (vs->minor >= 8) {
++		       int elen = strlen(err);
++		       vnc_write_u32(vs, elen);
++		       vnc_write(vs, err, elen);
++	       }
++       }
++       vnc_flush(vs);
++       vnc_client_error(vs);
++
++       return 0;
++
++}
++
++static int protocol_client_auth_plain_start(VncState *vs, uint8_t *data, size_t len)
++{
++	uint32_t ulen = read_u32(data, 0);
++	uint32_t pwlen = read_u32(data, 4);
++	const char *err = NULL;
++
++	VNC_DEBUG("AUTH PLAIN START %u %u\n", ulen, pwlen);
++
++       if (!ulen) {
++	       err = "No User name.";
++	       goto err;
++       }
++       if (ulen >= 255) {
++	       err = "User name too long.";
++	       goto err;
++       }
++       if (!pwlen) {
++	       err = "Password too short";
++	       goto err;
++       }
++       if (pwlen >= 511) {
++	       err = "Password too long.";
++	       goto err;
++       }
++
++       vs->username_len = ulen;
++       vs->password_len = pwlen;
++
++       vnc_read_when(vs, protocol_client_auth_plain, ulen + pwlen);
++
++       return 0;
++err:
++       if (err) {
++	       VNC_DEBUG("AUTH PLAIN ERROR: %s\n", err);
++	       vnc_write_u32(vs, 1); /* Reject auth */
++	       if (vs->minor >= 8) {
++		       int elen = strlen(err);
++		       vnc_write_u32(vs, elen);
++		       vnc_write(vs, err, elen);
++	       }
++       }
++       vnc_flush(vs);
++       vnc_client_error(vs);
++
++       return 0;
++}
+ 
+ static void start_auth_vencrypt_subauth(VncState *vs)
+ {
+@@ -39,6 +140,17 @@ static void start_auth_vencrypt_subauth(VncState *vs)
+        start_client_init(vs);
+        break;
+ 
++    case VNC_AUTH_VENCRYPT_TLSPLAIN:
++    case VNC_AUTH_VENCRYPT_X509PLAIN:
++       VNC_DEBUG("Start TLS auth PLAIN\n");
++       vnc_read_when(vs, protocol_client_auth_plain_start, 8);
++       break;
++
++    case VNC_AUTH_VENCRYPT_PLAIN:
++       VNC_DEBUG("Start auth PLAIN\n");
++       vnc_read_when(vs, protocol_client_auth_plain_start, 8);
++       break;
++
+     case VNC_AUTH_VENCRYPT_TLSVNC:
+     case VNC_AUTH_VENCRYPT_X509VNC:
+        VNC_DEBUG("Start TLS auth VNC\n");
+@@ -87,44 +199,63 @@ static int protocol_client_vencrypt_auth(VncState *vs, uint8_t *data, size_t len
+ {
+     int auth = read_u32(data, 0);
+ 
+-    if (auth != vs->subauth) {
++    if (auth != vs->subauth && auth != VNC_AUTH_VENCRYPT_PLAIN) {
+         VNC_DEBUG("Rejecting auth %d\n", auth);
+         vnc_write_u8(vs, 0); /* Reject auth */
+         vnc_flush(vs);
+         vnc_client_error(vs);
+     } else {
+-        Error *err = NULL;
+-        QIOChannelTLS *tls;
+-        VNC_DEBUG("Accepting auth %d, setting up TLS for handshake\n", auth);
+-        vnc_write_u8(vs, 1); /* Accept auth */
+-        vnc_flush(vs);
+-
+-        if (vs->ioc_tag) {
+-            g_source_remove(vs->ioc_tag);
+-            vs->ioc_tag = 0;
++        if (auth == VNC_AUTH_VENCRYPT_PLAIN) {
++            vs->subauth = auth;
++            start_auth_vencrypt_subauth(vs);
+         }
++        else
++        {
++            Error *err = NULL;
++            QIOChannelTLS *tls;
++            VNC_DEBUG("Accepting auth %d, setting up TLS for handshake\n", auth);
++            vnc_write_u8(vs, 1); /* Accept auth */
++            vnc_flush(vs);
+ 
+-        tls = qio_channel_tls_new_server(
+-            vs->ioc,
+-            vs->vd->tlscreds,
+-            vs->vd->tlsaclname,
+-            &err);
+-        if (!tls) {
+-            VNC_DEBUG("Failed to setup TLS %s\n", error_get_pretty(err));
+-            error_free(err);
+-            vnc_client_error(vs);
+-            return 0;
+-        }
++            if (vs->ioc_tag) {
++                g_source_remove(vs->ioc_tag);
++                vs->ioc_tag = 0;
++            }
+ 
+-        VNC_DEBUG("Start TLS VeNCrypt handshake process\n");
+-        object_unref(OBJECT(vs->ioc));
+-        vs->ioc = QIO_CHANNEL(tls);
+-        vs->tls = qio_channel_tls_get_session(tls);
++            tls = qio_channel_tls_new_server(
++                vs->ioc,
++                vs->vd->tlscreds,
++                vs->vd->tlsaclname,
++                &err);
++            if (!tls) {
++                VNC_DEBUG("Failed to setup TLS %s\n", error_get_pretty(err));
++                error_free(err);
++                vnc_client_error(vs);
++                return 0;
++                vs->tls = qcrypto_tls_session_new(vs->vd->tlscreds,
++                                                  NULL,
++                                                  vs->vd->tlsaclname,
++                                                  QCRYPTO_TLS_CREDS_ENDPOINT_SERVER,
++                                                  &err);
++                if (!vs->tls) {
++                    VNC_DEBUG("Failed to setup TLS %s\n",
++                              error_get_pretty(err));
++                    error_free(err);
++                    vnc_client_error(vs);
++                    return 0;
++                }
++            }
+ 
+-        qio_channel_tls_handshake(tls,
+-                                  vnc_tls_handshake_done,
+-                                  vs,
+-                                  NULL);
++            VNC_DEBUG("Start TLS VeNCrypt handshake process\n");
++            object_unref(OBJECT(vs->ioc));
++            vs->ioc = QIO_CHANNEL(tls);
++            vs->tls = qio_channel_tls_get_session(tls);
++
++            qio_channel_tls_handshake(tls,
++                                      vnc_tls_handshake_done,
++                                      vs,
++                                      NULL);
++        }
+     }
+     return 0;
+ }
+@@ -138,10 +269,11 @@ static int protocol_client_vencrypt_init(VncState *vs, uint8_t *data, size_t len
+         vnc_flush(vs);
+         vnc_client_error(vs);
+     } else {
+-        VNC_DEBUG("Sending allowed auth %d\n", vs->subauth);
++        VNC_DEBUG("Sending allowed auths %d %d\n", vs->subauth, VNC_AUTH_VENCRYPT_PLAIN);
+         vnc_write_u8(vs, 0); /* Accept version */
+-        vnc_write_u8(vs, 1); /* Number of sub-auths */
++        vnc_write_u8(vs, 2); /* Number of sub-auths */
+         vnc_write_u32(vs, vs->subauth); /* The supported auth */
++        vnc_write_u32(vs, VNC_AUTH_VENCRYPT_PLAIN); /* Alternative supported auth */
+         vnc_flush(vs);
+         vnc_read_when(vs, protocol_client_vencrypt_auth, 4);
+     }
+diff --git a/ui/vnc.c b/ui/vnc.c
+index acbe3bd..2a18a20 100644
+--- a/ui/vnc.c
++++ b/ui/vnc.c
+@@ -55,6 +55,125 @@ static const struct timeval VNC_REFRESH_LOSSY = { 2, 0 };
+ #include "vnc_keysym.h"
+ #include "crypto/cipher.h"
+ 
++static int pve_vmid = 0;
++
++void pve_auth_setup(int vmid) {
++	pve_vmid = vmid;
++}
++
++static char *
++urlencode(char *buf, const char *value)
++{
++	static const char *hexchar = "0123456789abcdef";
++	char *p = buf;
++	int i;
++	int l = strlen(value);
++	for (i = 0; i < l; i++) {
++		char c = value[i];
++		if (('a' <= c && c <= 'z') ||
++		    ('A' <= c && c <= 'Z') ||
++		    ('0' <= c && c <= '9')) {
++			*p++ = c;
++		} else if (c == 32) {
++			*p++ = '+';
++		} else {
++			*p++ = '%';
++			*p++ = hexchar[c >> 4];
++			*p++ = hexchar[c & 15];
++		}
++	}
++	*p = 0;
++
++	return p;
++}
++
++int
++pve_auth_verify(const char *clientip, const char *username, const char *passwd)
++{
++	struct sockaddr_in server;
++
++	int sfd = socket(AF_INET, SOCK_STREAM, 0);
++	if (sfd == -1) {
++		perror("pve_auth_verify: socket failed");
++		return -1;
++	}
++
++	struct hostent *he;
++	if ((he = gethostbyname("localhost")) == NULL) {
++		fprintf(stderr, "pve_auth_verify: error resolving hostname\n");
++		goto err;
++	}
++
++	memcpy(&server.sin_addr, he->h_addr_list[0], he->h_length);
++	server.sin_family = AF_INET;
++	server.sin_port = htons(85);
++
++	if (connect(sfd, (struct sockaddr *)&server, sizeof(server))) {
++		perror("pve_auth_verify: error connecting to server");
++		goto err;
++	}
++
++	char buf[8192];
++	char form[8192];
++
++	char *p = form;
++	p = urlencode(p, "username");
++	*p++ = '=';
++	p = urlencode(p, username);
++
++	*p++ = '&';
++	p = urlencode(p, "password");
++	*p++ = '=';
++	p = urlencode(p, passwd);
++
++ 	*p++ = '&';
++	p = urlencode(p, "path");
++	*p++ = '=';
++	char authpath[256];
++	sprintf(authpath, "/vms/%d", pve_vmid);
++	p = urlencode(p, authpath);
++
++ 	*p++ = '&';
++ 	p = urlencode(p, "privs");
++	*p++ = '=';
++ 	p = urlencode(p, "VM.Console");
++
++	sprintf(buf, "POST /api2/json/access/ticket HTTP/1.1\n"
++		"Host: localhost:85\n"
++		"Connection: close\n"
++		"PVEClientIP: %s\n"
++		"Content-Type: application/x-www-form-urlencoded\n"
++		"Content-Length: %zd\n\n%s\n", clientip, strlen(form), form);
++	ssize_t len = strlen(buf);
++	ssize_t sb = send(sfd, buf, len, 0);
++	if (sb < 0) {
++		perror("pve_auth_verify: send failed");
++		goto err;
++	}
++	if (sb != len) {
++		fprintf(stderr, "pve_auth_verify: partial send error\n");
++		goto err;
++	}
++
++	len = recv(sfd, buf, sizeof(buf) - 1, 0);
++	if (len < 0) {
++		perror("pve_auth_verify: recv failed");
++		goto err;
++	}
++
++	buf[len] = 0;
++
++	//printf("DATA:%s\n", buf);
++
++	shutdown(sfd, SHUT_RDWR);
++
++	return strncmp(buf, "HTTP/1.1 200 OK", 15);
++
++err:
++	shutdown(sfd, SHUT_RDWR);
++	return -1;
++}
++
+ static QTAILQ_HEAD(, VncDisplay) vnc_displays =
+     QTAILQ_HEAD_INITIALIZER(vnc_displays);
+ 
+@@ -3413,11 +3532,17 @@ vnc_display_setup_auth(VncDisplay *vs,
+             if (object_dynamic_cast(OBJECT(vs->tlscreds),
+                                     TYPE_QCRYPTO_TLS_CREDS_X509)) {
+                 VNC_DEBUG("Initializing VNC server with x509 password auth\n");
+-                vs->subauth = VNC_AUTH_VENCRYPT_X509VNC;
++                if (vs->tlscreds->pve)
++                    vs->subauth = VNC_AUTH_VENCRYPT_X509PLAIN;
++                else
++                    vs->subauth = VNC_AUTH_VENCRYPT_X509VNC;
+             } else if (object_dynamic_cast(OBJECT(vs->tlscreds),
+                                            TYPE_QCRYPTO_TLS_CREDS_ANON)) {
+                 VNC_DEBUG("Initializing VNC server with TLS password auth\n");
+-                vs->subauth = VNC_AUTH_VENCRYPT_TLSVNC;
++                if (vs->tlscreds->pve)
++                    vs->subauth = VNC_AUTH_VENCRYPT_TLSPLAIN;
++                else
++                    vs->subauth = VNC_AUTH_VENCRYPT_TLSVNC;
+             } else {
+                 error_setg(errp,
+                            "Unsupported TLS cred type %s",
+@@ -3508,6 +3633,7 @@ vnc_display_create_creds(bool x509,
+                          bool x509verify,
+                          const char *dir,
+                          const char *id,
++                         bool pve,
+                          Error **errp)
+ {
+     gchar *credsid = g_strdup_printf("tlsvnc%s", id);
+@@ -3523,6 +3649,7 @@ vnc_display_create_creds(bool x509,
+                                       "endpoint", "server",
+                                       "dir", dir,
+                                       "verify-peer", x509verify ? "yes" : "no",
++                                      "pve", pve ? "yes" : "no",
+                                       NULL);
+     } else {
+         creds = object_new_with_props(TYPE_QCRYPTO_TLS_CREDS_ANON,
+@@ -3530,6 +3657,7 @@ vnc_display_create_creds(bool x509,
+                                       credsid,
+                                       &err,
+                                       "endpoint", "server",
++                                      "pve", pve ? "yes" : "no",
+                                       NULL);
+     }
+ 
+@@ -3727,12 +3855,17 @@ void vnc_display_open(const char *id, Error **errp)
+         }
+     } else {
+         const char *path;
+-        bool tls = false, x509 = false, x509verify = false;
++        bool tls = false, x509 = false, x509verify = false, pve = false;
+         tls  = qemu_opt_get_bool(opts, "tls", false);
+         path = qemu_opt_get(opts, "x509");
+         if (tls || path) {
+             if (path) {
+                 x509 = true;
++                if (!strcmp(path, "on")) {
++                    /* magic to default to /etc/pve */
++                    path = "/etc/pve";
++                    pve = true;
++                }
+             } else {
+                 path = qemu_opt_get(opts, "x509verify");
+                 if (path) {
+@@ -3744,6 +3877,7 @@ void vnc_display_open(const char *id, Error **errp)
+                                                     x509verify,
+                                                     path,
+                                                     vs->id,
++                                                    pve,
+                                                     errp);
+             if (!vs->tlscreds) {
+                 goto fail;
+diff --git a/ui/vnc.h b/ui/vnc.h
+index ab5f244..2fde9d3 100644
+--- a/ui/vnc.h
++++ b/ui/vnc.h
+@@ -282,6 +282,8 @@ struct VncState
+     int auth;
+     int subauth; /* Used by VeNCrypt */
+     char challenge[VNC_AUTH_CHALLENGE_SIZE];
++    int username_len;
++    int password_len;
+     QCryptoTLSSession *tls; /* Borrowed pointer from channel, don't free */
+ #ifdef CONFIG_VNC_SASL
+     VncStateSASL sasl;
+@@ -577,4 +579,6 @@ int vnc_zrle_send_framebuffer_update(VncState *vs, int x, int y, int w, int h);
+ int vnc_zywrle_send_framebuffer_update(VncState *vs, int x, int y, int w, int h);
+ void vnc_zrle_clear(VncState *vs);
+ 
++int pve_auth_verify(const char *clientip, const char *username, const char *passwd);
++
+ #endif /* QEMU_VNC_H */
+diff --git a/vl.c b/vl.c
+index 0b5a721..4742300 100644
+--- a/vl.c
++++ b/vl.c
+@@ -2950,6 +2950,7 @@ static int global_init_func(void *opaque, QemuOpts *opts, Error **errp)
+ int main(int argc, char **argv, char **envp)
+ {
+     int i;
++    long int vm_id_long = 0;
+     int snapshot, linux_boot;
+     const char *initrd_filename;
+     const char *kernel_filename, *kernel_cmdline;
+@@ -3722,6 +3723,14 @@ int main(int argc, char **argv, char **envp)
+                     exit(1);
+                 }
+                 break;
++            case QEMU_OPTION_id:
++                vm_id_long = strtol(optarg, (char **) &optarg, 10);
++                if (*optarg != 0 || vm_id_long < 100 || vm_id_long > INT_MAX) {
++                    fprintf(stderr, "Invalid ID\n");
++                    exit(1);
++                }
++                pve_auth_setup(vm_id_long);
++                break;
+             case QEMU_OPTION_vnc:
+                 vnc_parse(optarg, &error_fatal);
+                 break;
+-- 
+2.1.4
+

@@ -1,0 +1,42 @@
+From b9bc05a3a687f9993c5c2a8890b53ab9e8dbc96c Mon Sep 17 00:00:00 2001
+From: Prasad J Pandit <pjp@fedoraproject.org>
+Date: Tue, 31 Jan 2017 17:54:16 +0530
+Subject: [PATCH 4/8] sd: sdhci: block count enable not relevant in single
+ block transfer
+
+In SDHCI device emulation the 'Block count enable' bit
+of the Transfer Mode register is only relevant in multi block
+transfers. We need not check it in single block transfers.
+
+Signed-off-by: Prasad J Pandit <pjp@fedoraproject.org>
+---
+ hw/sd/sdhci.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/hw/sd/sdhci.c b/hw/sd/sdhci.c
+index 35f953a..85cac42 100644
+--- a/hw/sd/sdhci.c
++++ b/hw/sd/sdhci.c
+@@ -570,7 +570,6 @@ static void sdhci_sdma_transfer_multi_blocks(SDHCIState *s)
+ }
+ 
+ /* single block SDMA transfer */
+-
+ static void sdhci_sdma_transfer_single_block(SDHCIState *s)
+ {
+     int n;
+@@ -589,10 +588,7 @@ static void sdhci_sdma_transfer_single_block(SDHCIState *s)
+             sdbus_write_data(&s->sdbus, s->fifo_buffer[n]);
+         }
+     }
+-
+-    if (s->trnmod & SDHC_TRNS_BLK_CNT_EN) {
+-        s->blkcnt--;
+-    }
++    s->blkcnt--;
+ 
+     sdhci_end_transfer(s);
+ }
+-- 
+2.1.4
+

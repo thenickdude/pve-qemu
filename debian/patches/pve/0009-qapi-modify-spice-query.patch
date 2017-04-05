@@ -1,0 +1,49 @@
+From c09467afaf37989942076b45f6ffa7bb8ebde2ca Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 9 Dec 2015 14:32:11 +0100
+Subject: [PATCH 09/47] qapi: modify spice query
+
+Provide the last ticket in the SpiceInfo struct optionally.
+---
+ qapi-schema.json | 3 +++
+ ui/spice-core.c  | 5 +++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/qapi-schema.json b/qapi-schema.json
+index 63507f5..518c2ea 100644
+--- a/qapi-schema.json
++++ b/qapi-schema.json
+@@ -1253,11 +1253,14 @@
+ #
+ # @channels: a list of @SpiceChannel for each active spice channel
+ #
++# @ticket: #optional The last ticket set with set_password
++#
+ # Since: 0.14.0
+ ##
+ { 'struct': 'SpiceInfo',
+   'data': {'enabled': 'bool', 'migrated': 'bool', '*host': 'str', '*port': 'int',
+            '*tls-port': 'int', '*auth': 'str', '*compiled-version': 'str',
++           '*ticket': 'str',
+            'mouse-mode': 'SpiceQueryMouseMode', '*channels': ['SpiceChannel']} }
+ 
+ ##
+diff --git a/ui/spice-core.c b/ui/spice-core.c
+index da05054..acf5a73 100644
+--- a/ui/spice-core.c
++++ b/ui/spice-core.c
+@@ -543,6 +543,11 @@ SpiceInfo *qmp_query_spice(Error **errp)
+     micro = SPICE_SERVER_VERSION & 0xff;
+     info->compiled_version = g_strdup_printf("%d.%d.%d", major, minor, micro);
+ 
++    if (auth_passwd) {
++        info->has_ticket = true;
++        info->ticket =  g_strdup(auth_passwd);
++    }
++
+     if (port) {
+         info->has_port = true;
+         info->port = port;
+-- 
+2.1.4
+

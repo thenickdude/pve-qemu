@@ -1,0 +1,52 @@
+From dc5b92fbb2d405fd86228409b1f25c0bb2d6d973 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 9 Dec 2015 14:31:18 +0100
+Subject: [PATCH 08/47] qapi: modify query machines
+
+provide '*is-current' in MachineInfo struct
+---
+ qapi-schema.json | 4 +++-
+ vl.c             | 5 +++++
+ 2 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/qapi-schema.json b/qapi-schema.json
+index 4bf7222..63507f5 100644
+--- a/qapi-schema.json
++++ b/qapi-schema.json
+@@ -3027,6 +3027,8 @@
+ #
+ # @default: #optional whether the machine is default
+ #
++# @current: #optional whether this machine is currently used
++#
+ # @cpu-max: maximum number of CPUs supported by the machine type
+ #           (since 1.5.0)
+ #
+@@ -3036,7 +3038,7 @@
+ ##
+ { 'struct': 'MachineInfo',
+   'data': { 'name': 'str', '*alias': 'str',
+-            '*is-default': 'bool', 'cpu-max': 'int',
++            '*is-default': 'bool', '*is-current': 'bool', 'cpu-max': 'int',
+             'hotpluggable-cpus': 'bool'} }
+ 
+ ##
+diff --git a/vl.c b/vl.c
+index 6a218ce..b226e0b 100644
+--- a/vl.c
++++ b/vl.c
+@@ -1509,6 +1509,11 @@ MachineInfoList *qmp_query_machines(Error **errp)
+         info->cpu_max = !mc->max_cpus ? 1 : mc->max_cpus;
+         info->hotpluggable_cpus = !!mc->query_hotpluggable_cpus;
+ 
++        if (strcmp(mc->name, MACHINE_GET_CLASS(current_machine)->name) == 0) {
++            info->has_is_current = true;
++            info->is_current = true;
++        }
++
+         entry = g_malloc0(sizeof(*entry));
+         entry->value = info;
+         entry->next = mach_list;
+-- 
+2.1.4
+

@@ -1,0 +1,51 @@
+From b3ce5aeaacdd0cec5bab1d83ee24bae73b0dd506 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 25 Jan 2017 14:48:57 +0100
+Subject: [PATCH 1/4] cirrus: handle negative pitch in
+ cirrus_invalidate_region()
+
+cirrus_invalidate_region() calls memory_region_set_dirty()
+on a per-line basis, always ranging from off_begin to
+off_begin+bytesperline. With a negative pitch off_begin
+marks the top most used address and thus we need to do an
+initial shift backwards by a line for negative pitches of
+backward blits, otherwise the first iteration covers the
+line going from the start offset forwards instead of
+backwards.
+Additionally since the start address is inclusive, if we
+shift by a full `bytesperline` we move to the first address
+*not* included in the blit, so we only shift by one less
+than bytesperline.
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Message-id: 1485352137-29367-1-git-send-email-w.bumiller@proxmox.com
+
+[ kraxel: codestyle fixes ]
+
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+---
+ hw/display/cirrus_vga.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/hw/display/cirrus_vga.c b/hw/display/cirrus_vga.c
+index 379910d..0f05e45 100644
+--- a/hw/display/cirrus_vga.c
++++ b/hw/display/cirrus_vga.c
+@@ -661,9 +661,14 @@ static void cirrus_invalidate_region(CirrusVGAState * s, int off_begin,
+     int off_cur;
+     int off_cur_end;
+ 
++    if (off_pitch < 0) {
++        off_begin -= bytesperline - 1;
++    }
++
+     for (y = 0; y < lines; y++) {
+ 	off_cur = off_begin;
+ 	off_cur_end = (off_cur + bytesperline) & s->cirrus_addr_mask;
++        assert(off_cur_end >= off_cur);
+         memory_region_set_dirty(&s->vga.vram, off_cur, off_cur_end - off_cur);
+ 	off_begin += off_pitch;
+     }
+-- 
+2.1.4
+

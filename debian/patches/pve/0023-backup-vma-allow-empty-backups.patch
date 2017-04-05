@@ -1,0 +1,256 @@
+From e9b9fd9156a6631998ec4b4254fe2e91859b340a Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 9 Dec 2015 16:31:51 +0100
+Subject: [PATCH 23/47] backup: vma: allow empty backups
+
+---
+ vma-reader.c | 29 ++++++++++++-------------
+ vma-writer.c | 30 ++++++++++++++++----------
+ vma.c        | 70 ++++++++++++++++++++++++++++++++++++------------------------
+ vma.h        |  1 +
+ 4 files changed, 76 insertions(+), 54 deletions(-)
+
+diff --git a/vma-reader.c b/vma-reader.c
+index 2aafb26..78f1de9 100644
+--- a/vma-reader.c
++++ b/vma-reader.c
+@@ -326,11 +326,6 @@ static int vma_reader_read_head(VmaReader *vmar, Error **errp)
+         }
+     }
+ 
+-    if (!count) {
+-        error_setg(errp, "vma does not contain data");
+-        return -1;
+-    }
+-
+     for (i = 0; i < VMA_MAX_CONFIGS; i++) {
+         uint32_t name_ptr = GUINT32_FROM_BE(h->config_names[i]);
+         uint32_t data_ptr = GUINT32_FROM_BE(h->config_data[i]);
+@@ -822,16 +817,20 @@ static int vma_reader_restore_full(VmaReader *vmar, int vmstate_fd,
+     }
+ 
+     if (verbose) {
+-        printf("total bytes read %zd, sparse bytes %zd (%.3g%%)\n",
+-               vmar->clusters_read*VMA_CLUSTER_SIZE,
+-               vmar->zero_cluster_data,
+-               (double)(100.0*vmar->zero_cluster_data)/
+-               (vmar->clusters_read*VMA_CLUSTER_SIZE));
+-
+-        int64_t datasize = vmar->clusters_read*VMA_CLUSTER_SIZE-vmar->zero_cluster_data;
+-        if (datasize) { // this does not make sense for empty files
+-            printf("space reduction due to 4K zero blocks %.3g%%\n",
+-                   (double)(100.0*vmar->partial_zero_cluster_data) / datasize);
++        if (vmar->clusters_read) {
++            printf("total bytes read %zd, sparse bytes %zd (%.3g%%)\n",
++                   vmar->clusters_read*VMA_CLUSTER_SIZE,
++                   vmar->zero_cluster_data,
++                   (double)(100.0*vmar->zero_cluster_data)/
++                   (vmar->clusters_read*VMA_CLUSTER_SIZE));
++
++            int64_t datasize = vmar->clusters_read*VMA_CLUSTER_SIZE-vmar->zero_cluster_data;
++            if (datasize) { // this does not make sense for empty files
++                printf("space reduction due to 4K zero blocks %.3g%%\n",
++                       (double)(100.0*vmar->partial_zero_cluster_data) / datasize);
++            }
++        } else {
++            printf("vma archive contains no image data\n");
+         }
+     }
+     return ret;
+diff --git a/vma-writer.c b/vma-writer.c
+index 79b7fd4..0d26fc6 100644
+--- a/vma-writer.c
++++ b/vma-writer.c
+@@ -252,7 +252,7 @@ vma_queue_write(VmaWriter *vmaw, const void *buf, size_t bytes)
+     }
+ 
+     vmaw->co_writer = NULL;
+-    
++
+     return (done == bytes) ? bytes : -1;
+ }
+ 
+@@ -376,10 +376,6 @@ static int coroutine_fn vma_write_header(VmaWriter *vmaw)
+     time_t ctime = time(NULL);
+     head->ctime = GUINT64_TO_BE(ctime);
+ 
+-    if (!vmaw->stream_count) {
+-        return -1;
+-    }
+-
+     for (i = 0; i < VMA_MAX_CONFIGS; i++) {
+         head->config_names[i] = GUINT32_TO_BE(vmaw->config_names[i]);
+         head->config_data[i] = GUINT32_TO_BE(vmaw->config_data[i]);
+@@ -496,6 +492,23 @@ static int vma_count_open_streams(VmaWriter *vmaw)
+     return open_drives;
+ }
+ 
++
++/**
++ * You need to call this if the vma archive does not contain
++ * any data stream.
++ */
++int coroutine_fn
++vma_writer_flush_output(VmaWriter *vmaw)
++{
++    qemu_co_mutex_lock(&vmaw->flush_lock);
++    int ret = vma_writer_flush(vmaw);
++    qemu_co_mutex_unlock(&vmaw->flush_lock);
++    if (ret < 0) {
++        vma_writer_set_error(vmaw, "vma_writer_flush_header failed");
++    }
++    return ret;
++}
++
+ /**
+  * all jobs should call this when there is no more data
+  * Returns: number of remaining stream (0 ==> finished)
+@@ -523,12 +536,7 @@ vma_writer_close_stream(VmaWriter *vmaw, uint8_t dev_id)
+ 
+     if (open_drives <= 0) {
+         DPRINTF("vma_writer_set_status all drives completed\n");
+-        qemu_co_mutex_lock(&vmaw->flush_lock);
+-        int ret = vma_writer_flush(vmaw);
+-        qemu_co_mutex_unlock(&vmaw->flush_lock);
+-        if (ret < 0) {
+-            vma_writer_set_error(vmaw, "vma_writer_close_stream: flush failed");
+-        }
++        vma_writer_flush_output(vmaw);
+     }
+ 
+     return open_drives;
+diff --git a/vma.c b/vma.c
+index c88a4358..08e4725 100644
+--- a/vma.c
++++ b/vma.c
+@@ -27,7 +27,7 @@ static void help(void)
+         "\n"
+         "vma list <filename>\n"
+         "vma config <filename> [-c config]\n"
+-        "vma create <filename> [-c config] <archive> pathname ...\n"
++        "vma create <filename> [-c config] pathname ...\n"
+         "vma extract <filename> [-r <fifo>] <targetdir>\n"
+         "vma verify <filename> [-v]\n"
+         ;
+@@ -395,6 +395,18 @@ typedef struct BackupJob {
+ 
+ #define BACKUP_SECTORS_PER_CLUSTER (VMA_CLUSTER_SIZE / BDRV_SECTOR_SIZE)
+ 
++static void coroutine_fn backup_run_empty(void *opaque)
++{
++    VmaWriter *vmaw = (VmaWriter *)opaque;
++
++    vma_writer_flush_output(vmaw);
++
++    Error *err = NULL;
++    if (vma_writer_close(vmaw, &err) != 0) {
++        g_warning("vma_writer_close failed %s", error_get_pretty(err));
++    }
++}
++
+ static void coroutine_fn backup_run(void *opaque)
+ {
+     BackupJob *job = (BackupJob *)opaque;
+@@ -468,8 +480,8 @@ static int create_archive(int argc, char **argv)
+     }
+ 
+ 
+-    /* make sure we have archive name and at least one path */
+-    if ((optind + 2) > argc) {
++    /* make sure we an archive name */
++    if ((optind + 1) > argc) {
+         help();
+     }
+ 
+@@ -504,11 +516,11 @@ static int create_archive(int argc, char **argv)
+         l = g_list_next(l);
+     }
+ 
+-    int ind = 0;
++    int devcount = 0;
+     while (optind < argc) {
+         const char *path = argv[optind++];
+         char *devname = NULL;
+-        path = extract_devname(path, &devname, ind++);
++        path = extract_devname(path, &devname, devcount++);
+ 
+         Error *errp = NULL;
+         BlockDriverState *bs;
+@@ -539,37 +551,39 @@ static int create_archive(int argc, char **argv)
+     int percent = 0;
+     int last_percent = -1;
+ 
+-    while (1) {
+-        main_loop_wait(false);
+-        vma_writer_get_status(vmaw, &vmastat);
++    if (devcount) {
++        while (1) {
++            main_loop_wait(false);
++            vma_writer_get_status(vmaw, &vmastat);
++
++            if (verbose) {
+ 
+-        if (verbose) {
++                uint64_t total = 0;
++                uint64_t transferred = 0;
++                uint64_t zero_bytes = 0;
+ 
+-            uint64_t total = 0;
+-            uint64_t transferred = 0;
+-            uint64_t zero_bytes = 0;
++                int i;
++                for (i = 0; i < 256; i++) {
++                    if (vmastat.stream_info[i].size) {
++                        total += vmastat.stream_info[i].size;
++                        transferred += vmastat.stream_info[i].transferred;
++                        zero_bytes += vmastat.stream_info[i].zero_bytes;
++                    }
++                }
++                percent = (transferred*100)/total;
++                if (percent != last_percent) {
++                    fprintf(stderr, "progress %d%% %zd/%zd %zd\n", percent,
++                            transferred, total, zero_bytes);
++                    fflush(stderr);
+ 
+-            int i;
+-            for (i = 0; i < 256; i++) {
+-                if (vmastat.stream_info[i].size) {
+-                    total += vmastat.stream_info[i].size;
+-                    transferred += vmastat.stream_info[i].transferred;
+-                    zero_bytes += vmastat.stream_info[i].zero_bytes;
++                    last_percent = percent;
+                 }
+             }
+-            percent = (transferred*100)/total;
+-            if (percent != last_percent) {
+-                fprintf(stderr, "progress %d%% %zd/%zd %zd\n", percent,
+-                        transferred, total, zero_bytes);
+-                fflush(stderr);
+ 
+-                last_percent = percent;
++            if (vmastat.closed) {
++                break;
+             }
+         }
+-
+-        if (vmastat.closed) {
+-            break;
+-        }
+     } else {
+         Coroutine *co = qemu_coroutine_create(backup_run_empty, vmaw);
+         qemu_coroutine_enter(co);
+diff --git a/vma.h b/vma.h
+index 98377e4..365ceb2 100644
+--- a/vma.h
++++ b/vma.h
+@@ -128,6 +128,7 @@ int64_t coroutine_fn vma_writer_write(VmaWriter *vmaw, uint8_t dev_id,
+                                       size_t *zero_bytes);
+ 
+ int coroutine_fn vma_writer_close_stream(VmaWriter *vmaw, uint8_t dev_id);
++int coroutine_fn vma_writer_flush_output(VmaWriter *vmaw);
+ 
+ int vma_writer_get_status(VmaWriter *vmaw, VmaStatus *status);
+ void vma_writer_set_error(VmaWriter *vmaw, const char *fmt, ...);
+-- 
+2.1.4
+

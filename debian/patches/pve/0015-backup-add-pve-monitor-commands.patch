@@ -1,0 +1,797 @@
+From 798846b48b31d8231a3af5858285845d932d1d6b Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 9 Dec 2015 15:20:56 +0100
+Subject: [PATCH 15/47] backup: add pve monitor commands
+
+---
+ blockdev.c                | 439 ++++++++++++++++++++++++++++++++++++++++++++++
+ blockjob.c                |   3 +-
+ hmp-commands-info.hx      |  13 ++
+ hmp-commands.hx           |  29 +++
+ hmp.c                     |  61 +++++++
+ hmp.h                     |   3 +
+ include/block/block_int.h |   2 +-
+ qapi-schema.json          |  89 ++++++++++
+ qmp-commands.hx           |  18 ++
+ 9 files changed, 655 insertions(+), 2 deletions(-)
+
+diff --git a/blockdev.c b/blockdev.c
+index 5e3707d..5417bb0 100644
+--- a/blockdev.c
++++ b/blockdev.c
+@@ -52,6 +52,7 @@
+ #include "sysemu/arch_init.h"
+ #include "qemu/cutils.h"
+ #include "qemu/help_option.h"
++#include "vma.h"
+ 
+ static QTAILQ_HEAD(, BlockDriverState) monitor_bdrv_states =
+     QTAILQ_HEAD_INITIALIZER(monitor_bdrv_states);
+@@ -2976,6 +2977,444 @@ static void block_job_cb(void *opaque, int ret)
+     }
+ }
+ 
++/* PVE backup related function */
++
++static struct PVEBackupState {
++    Error *error;
++    bool cancel;
++    uuid_t uuid;
++    char uuid_str[37];
++    int64_t speed;
++    time_t start_time;
++    time_t end_time;
++    char *backup_file;
++    VmaWriter *vmaw;
++    GList *di_list;
++    size_t total;
++    size_t transferred;
++    size_t zero_bytes;
++} backup_state;
++
++typedef struct PVEBackupDevInfo {
++    BlockDriverState *bs;
++    size_t size;
++    uint8_t dev_id;
++    //bool started;
++    bool completed;
++} PVEBackupDevInfo;
++
++static void pvebackup_run_next_job(void);
++
++static int pvebackup_dump_cb(void *opaque, BlockBackend *target,
++                             int64_t sector_num, int n_sectors,
++                             unsigned char *buf)
++{
++    PVEBackupDevInfo *di = opaque;
++
++    if (sector_num & 0x7f) {
++        if (!backup_state.error) {
++            error_setg(&backup_state.error,
++                       "got unaligned write inside backup dump "
++                       "callback (sector %ld)", sector_num);
++        }
++        return -1; // not aligned to cluster size
++    }
++
++    int64_t cluster_num = sector_num >> 7;
++    int size = n_sectors * BDRV_SECTOR_SIZE;
++
++    int ret = -1;
++
++    if (backup_state.vmaw) {
++        size_t zero_bytes = 0;
++        ret = vma_writer_write(backup_state.vmaw, di->dev_id, cluster_num,
++                               buf, &zero_bytes);
++        backup_state.zero_bytes += zero_bytes;
++    } else {
++        ret = size;
++        if (!buf) {
++            backup_state.zero_bytes += size;
++        }
++    }
++
++    backup_state.transferred += size;
++
++    return ret;
++}
++
++static void pvebackup_cleanup(void)
++{
++    backup_state.end_time = time(NULL);
++
++    if (backup_state.vmaw) {
++        Error *local_err = NULL;
++        vma_writer_close(backup_state.vmaw, &local_err);
++        error_propagate(&backup_state.error, local_err);
++        backup_state.vmaw = NULL;
++    }
++
++    if (backup_state.di_list) {
++        GList *l = backup_state.di_list;
++        while (l) {
++            PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++            l = g_list_next(l);
++            g_free(di);
++        }
++        g_list_free(backup_state.di_list);
++        backup_state.di_list = NULL;
++    }
++}
++
++static void pvebackup_complete_cb(void *opaque, int ret)
++{
++    PVEBackupDevInfo *di = opaque;
++
++    assert(backup_state.vmaw);
++
++    di->completed = true;
++
++    if (ret < 0 && !backup_state.error) {
++        error_setg(&backup_state.error, "job failed with err %d - %s",
++                   ret, strerror(-ret));
++    }
++
++    BlockDriverState *bs = di->bs;
++
++    di->bs = NULL;
++
++    vma_writer_close_stream(backup_state.vmaw, di->dev_id);
++
++    block_job_cb(bs, ret);
++
++    if (!backup_state.cancel) {
++        pvebackup_run_next_job();
++    }
++}
++
++static void pvebackup_cancel(void *opaque)
++{
++    backup_state.cancel = true;
++
++    if (!backup_state.error) {
++        error_setg(&backup_state.error, "backup cancelled");
++    }
++
++    /* drain all i/o (awake jobs waiting for aio) */
++    bdrv_drain_all();
++
++    GList *l = backup_state.di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++        if (!di->completed && di->bs) {
++            BlockJob *job = di->bs->job;
++            if (job) {
++                if (!di->completed) {
++                    block_job_cancel_sync(job);
++                }
++            }
++        }
++    }
++
++    pvebackup_cleanup();
++}
++
++void qmp_backup_cancel(Error **errp)
++{
++    Coroutine *co = qemu_coroutine_create(pvebackup_cancel, NULL);
++    qemu_coroutine_enter(co);
++
++    while (backup_state.vmaw) {
++        /* vma writer use main aio context */
++        aio_poll(qemu_get_aio_context(), true);
++    }
++}
++
++bool block_job_should_pause(BlockJob *job);
++static void pvebackup_run_next_job(void)
++{
++    GList *l = backup_state.di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++        if (!di->completed && di->bs && di->bs->job) {
++            BlockJob *job = di->bs->job;
++            if (block_job_should_pause(job)) {
++                bool cancel = backup_state.error || backup_state.cancel;
++                if (cancel) {
++                    block_job_cancel(job);
++                } else {
++                    block_job_resume(job);
++                }
++            }
++            return;
++        }
++    }
++
++    pvebackup_cleanup();
++}
++
++UuidInfo *qmp_backup(const char *backup_file, bool has_format,
++                    BackupFormat format,
++                    bool has_config_file, const char *config_file,
++                    bool has_devlist, const char *devlist,
++                    bool has_speed, int64_t speed, Error **errp)
++{
++    BlockBackend *blk;
++    BlockDriverState *bs = NULL;
++    Error *local_err = NULL;
++    uuid_t uuid;
++    VmaWriter *vmaw = NULL;
++    gchar **devs = NULL;
++    GList *di_list = NULL;
++    GList *l;
++    UuidInfo *uuid_info;
++
++    if (backup_state.di_list) {
++        error_set(errp, ERROR_CLASS_GENERIC_ERROR,
++                  "previous backup not finished");
++        return NULL;
++    }
++
++    /* Todo: try to auto-detect format based on file name */
++    format = has_format ? format : BACKUP_FORMAT_VMA;
++
++    if (format != BACKUP_FORMAT_VMA) {
++        error_set(errp, ERROR_CLASS_GENERIC_ERROR, "unknown backup format");
++        return NULL;
++    }
++
++    if (has_devlist) {
++        devs = g_strsplit_set(devlist, ",;:", -1);
++
++        gchar **d = devs;
++        while (d && *d) {
++            blk = blk_by_name(*d);
++            if (blk) {
++                bs = blk_bs(blk);
++                if (bdrv_is_read_only(bs)) {
++                    error_setg(errp, "Node '%s' is read only", *d);
++                    goto err;
++                }
++                if (!bdrv_is_inserted(bs)) {
++                    error_setg(errp, QERR_DEVICE_HAS_NO_MEDIUM, *d);
++                    goto err;
++                }
++                PVEBackupDevInfo *di = g_new0(PVEBackupDevInfo, 1);
++                di->bs = bs;
++                di_list = g_list_append(di_list, di);
++            } else {
++                error_set(errp, ERROR_CLASS_DEVICE_NOT_FOUND,
++                          "Device '%s' not found", *d);
++                goto err;
++            }
++            d++;
++        }
++
++    } else {
++        BdrvNextIterator it;
++
++        bs = NULL;
++        for (bs = bdrv_first(&it); bs; bs = bdrv_next(&it)) {
++            if (!bdrv_is_inserted(bs) || bdrv_is_read_only(bs)) {
++                continue;
++            }
++
++            PVEBackupDevInfo *di = g_new0(PVEBackupDevInfo, 1);
++            di->bs = bs;
++            di_list = g_list_append(di_list, di);
++        }
++    }
++
++    if (!di_list) {
++        error_set(errp, ERROR_CLASS_GENERIC_ERROR, "empty device list");
++        goto err;
++    }
++
++    size_t total = 0;
++
++    l = di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++        if (bdrv_op_is_blocked(di->bs, BLOCK_OP_TYPE_BACKUP_SOURCE, errp)) {
++            goto err;
++        }
++
++        ssize_t size = bdrv_getlength(di->bs);
++        if (size < 0) {
++            error_setg_errno(errp, -di->size, "bdrv_getlength failed");
++            goto err;
++        }
++        di->size = size;
++        total += size;
++    }
++
++    uuid_generate(uuid);
++
++    vmaw = vma_writer_create(backup_file, uuid, &local_err);
++    if (!vmaw) {
++        if (local_err) {
++            error_propagate(errp, local_err);
++        }
++        goto err;
++    }
++
++    /* register all devices for vma writer */
++    l = di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++
++        const char *devname = bdrv_get_device_name(di->bs);
++        di->dev_id = vma_writer_register_stream(vmaw, devname, di->size);
++        if (di->dev_id <= 0) {
++            error_set(errp, ERROR_CLASS_GENERIC_ERROR,
++                      "register_stream failed");
++            goto err;
++        }
++    }
++
++    /* add configuration file to archive */
++    if (has_config_file) {
++        char *cdata = NULL;
++        gsize clen = 0;
++        GError *err = NULL;
++        if (!g_file_get_contents(config_file, &cdata, &clen, &err)) {
++            error_setg(errp, "unable to read file '%s'", config_file);
++            goto err;
++        }
++
++        const char *basename = g_path_get_basename(config_file);
++        if (vma_writer_add_config(vmaw, basename, cdata, clen) != 0) {
++            error_setg(errp, "unable to add config data to vma archive");
++            g_free(cdata);
++            goto err;
++        }
++        g_free(cdata);
++    }
++
++    /* initialize global backup_state now */
++
++    backup_state.cancel = false;
++
++    if (backup_state.error) {
++        error_free(backup_state.error);
++        backup_state.error = NULL;
++    }
++
++    backup_state.speed = (has_speed && speed > 0) ? speed : 0;
++
++    backup_state.start_time = time(NULL);
++    backup_state.end_time = 0;
++
++    if (backup_state.backup_file) {
++        g_free(backup_state.backup_file);
++    }
++    backup_state.backup_file = g_strdup(backup_file);
++
++    backup_state.vmaw = vmaw;
++
++    uuid_copy(backup_state.uuid, uuid);
++    uuid_unparse_lower(uuid, backup_state.uuid_str);
++
++    backup_state.di_list = di_list;
++
++    backup_state.total = total;
++    backup_state.transferred = 0;
++    backup_state.zero_bytes = 0;
++
++    /* start all jobs (paused state) */
++    l = di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++
++        backup_start(NULL, di->bs, NULL, speed, MIRROR_SYNC_MODE_FULL, NULL,
++                     BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
++                     pvebackup_dump_cb, pvebackup_complete_cb, di,
++                     1, NULL, &local_err);
++        if (local_err != NULL) {
++            error_setg(&backup_state.error, "backup_job_create failed");
++            pvebackup_cancel(NULL);
++        }
++    }
++
++    if (!backup_state.error) {
++        pvebackup_run_next_job(); // run one job
++    }
++
++    uuid_info = g_malloc0(sizeof(*uuid_info));
++    uuid_info->UUID = g_strdup(backup_state.uuid_str);
++    return uuid_info;
++
++err:
++
++    l = di_list;
++    while (l) {
++        g_free(l->data);
++        l = g_list_next(l);
++    }
++    g_list_free(di_list);
++
++    if (devs) {
++        g_strfreev(devs);
++    }
++
++    if (vmaw) {
++        Error *err = NULL;
++        vma_writer_close(vmaw, &err);
++        unlink(backup_file);
++    }
++
++    return NULL;
++}
++
++BackupStatus *qmp_query_backup(Error **errp)
++{
++    BackupStatus *info = g_malloc0(sizeof(*info));
++
++    if (!backup_state.start_time) {
++        /* not started, return {} */
++        return info;
++    }
++
++    info->has_status = true;
++    info->has_start_time = true;
++    info->start_time = backup_state.start_time;
++
++    if (backup_state.backup_file) {
++        info->has_backup_file = true;
++        info->backup_file = g_strdup(backup_state.backup_file);
++    }
++
++    info->has_uuid = true;
++    info->uuid = g_strdup(backup_state.uuid_str);
++
++    if (backup_state.end_time) {
++        if (backup_state.error) {
++            info->status = g_strdup("error");
++            info->has_errmsg = true;
++            info->errmsg = g_strdup(error_get_pretty(backup_state.error));
++        } else {
++            info->status = g_strdup("done");
++        }
++        info->has_end_time = true;
++        info->end_time = backup_state.end_time;
++    } else {
++        info->status = g_strdup("active");
++    }
++
++    info->has_total = true;
++    info->total = backup_state.total;
++    info->has_zero_bytes = true;
++    info->zero_bytes = backup_state.zero_bytes;
++    info->has_transferred = true;
++    info->transferred = backup_state.transferred;
++
++    return info;
++}
++
+ void qmp_block_stream(bool has_job_id, const char *job_id, const char *device,
+                       bool has_base, const char *base,
+                       bool has_backing_file, const char *backing_file,
+diff --git a/blockjob.c b/blockjob.c
+index a5ba3be..a550458 100644
+--- a/blockjob.c
++++ b/blockjob.c
+@@ -331,7 +331,8 @@ void block_job_pause(BlockJob *job)
+     job->pause_count++;
+ }
+ 
+-static bool block_job_should_pause(BlockJob *job)
++bool block_job_should_pause(BlockJob *job);
++bool block_job_should_pause(BlockJob *job)
+ {
+     return job->pause_count > 0;
+ }
+diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
+index 74446c6..7616fe2 100644
+--- a/hmp-commands-info.hx
++++ b/hmp-commands-info.hx
+@@ -502,6 +502,19 @@ STEXI
+ Show CPU statistics.
+ ETEXI
+ 
++    {
++        .name       = "backup",
++        .args_type  = "",
++        .params     = "",
++        .help       = "show backup status",
++        .mhandler.cmd = hmp_info_backup,
++    },
++
++STEXI
++@item info backup
++show backup status
++ETEXI
++
+ #if defined(CONFIG_SLIRP)
+     {
+         .name       = "usernet",
+diff --git a/hmp-commands.hx b/hmp-commands.hx
+index 848efee..8f2f3e0 100644
+--- a/hmp-commands.hx
++++ b/hmp-commands.hx
+@@ -87,6 +87,35 @@ STEXI
+ Copy data from a backing file into a block device.
+ ETEXI
+ 
++   {
++        .name       = "backup",
++        .args_type  = "backupfile:s,speed:o?,devlist:s?",
++        .params     = "backupfile [speed [devlist]]",
++        .help       = "create a VM Backup.",
++        .mhandler.cmd = hmp_backup,
++    },
++
++STEXI
++@item backup
++@findex backup
++Create a VM backup.
++ETEXI
++
++    {
++        .name       = "backup_cancel",
++        .args_type  = "",
++        .params     = "",
++        .help       = "cancel the current VM backup",
++        .mhandler.cmd = hmp_backup_cancel,
++    },
++
++STEXI
++@item backup_cancel
++@findex backup_cancel
++Cancel the current VM backup.
++
++ETEXI
++
+     {
+         .name       = "block_job_set_speed",
+         .args_type  = "device:B,speed:o",
+diff --git a/hmp.c b/hmp.c
+index 3b0dd81..95da164 100644
+--- a/hmp.c
++++ b/hmp.c
+@@ -149,6 +149,44 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
+     qapi_free_MouseInfoList(mice_list);
+ }
+ 
++void hmp_info_backup(Monitor *mon, const QDict *qdict)
++{
++    BackupStatus *info;
++
++    info = qmp_query_backup(NULL);
++    if (info->has_status) {
++        if (info->has_errmsg) {
++            monitor_printf(mon, "Backup status: %s - %s\n",
++                           info->status, info->errmsg);
++        } else {
++            monitor_printf(mon, "Backup status: %s\n", info->status);
++        }
++    }
++
++    if (info->has_backup_file) {
++        monitor_printf(mon, "Start time: %s", ctime(&info->start_time));
++        if (info->end_time) {
++            monitor_printf(mon, "End time: %s", ctime(&info->end_time));
++        }
++
++        int per = (info->has_total && info->total &&
++            info->has_transferred && info->transferred) ?
++            (info->transferred * 100)/info->total : 0;
++        int zero_per = (info->has_total && info->total &&
++                        info->has_zero_bytes && info->zero_bytes) ?
++            (info->zero_bytes * 100)/info->total : 0;
++        monitor_printf(mon, "Backup file: %s\n", info->backup_file);
++        monitor_printf(mon, "Backup uuid: %s\n", info->uuid);
++        monitor_printf(mon, "Total size: %zd\n", info->total);
++        monitor_printf(mon, "Transferred bytes: %zd (%d%%)\n",
++                       info->transferred, per);
++        monitor_printf(mon, "Zero bytes: %zd (%d%%)\n",
++                       info->zero_bytes, zero_per);
++    }
++
++    qapi_free_BackupStatus(info);
++}
++
+ void hmp_info_migrate(Monitor *mon, const QDict *qdict)
+ {
+     MigrationInfo *info;
+@@ -1493,6 +1531,29 @@ void hmp_block_stream(Monitor *mon, const QDict *qdict)
+     hmp_handle_error(mon, &error);
+ }
+ 
++void hmp_backup_cancel(Monitor *mon, const QDict *qdict)
++{
++    Error *error = NULL;
++
++    qmp_backup_cancel(&error);
++
++    hmp_handle_error(mon, &error);
++}
++
++void hmp_backup(Monitor *mon, const QDict *qdict)
++{
++    Error *error = NULL;
++
++    const char *backup_file = qdict_get_str(qdict, "backupfile");
++    const char *devlist = qdict_get_try_str(qdict, "devlist");
++    int64_t speed = qdict_get_try_int(qdict, "speed", 0);
++
++    qmp_backup(backup_file, true, BACKUP_FORMAT_VMA, false, NULL, !!devlist,
++               devlist, qdict_haskey(qdict, "speed"), speed, &error);
++
++    hmp_handle_error(mon, &error);
++}
++
+ void hmp_block_job_set_speed(Monitor *mon, const QDict *qdict)
+ {
+     Error *error = NULL;
+diff --git a/hmp.h b/hmp.h
+index 0876ec0..9a4c1f6 100644
+--- a/hmp.h
++++ b/hmp.h
+@@ -30,6 +30,7 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_capabilities(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_parameters(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_cache_size(Monitor *mon, const QDict *qdict);
++void hmp_info_backup(Monitor *mon, const QDict *qdict);
+ void hmp_info_cpus(Monitor *mon, const QDict *qdict);
+ void hmp_info_block(Monitor *mon, const QDict *qdict);
+ void hmp_info_blockstats(Monitor *mon, const QDict *qdict);
+@@ -76,6 +77,8 @@ void hmp_eject(Monitor *mon, const QDict *qdict);
+ void hmp_change(Monitor *mon, const QDict *qdict);
+ void hmp_block_set_io_throttle(Monitor *mon, const QDict *qdict);
+ void hmp_block_stream(Monitor *mon, const QDict *qdict);
++void hmp_backup(Monitor *mon, const QDict *qdict);
++void hmp_backup_cancel(Monitor *mon, const QDict *qdict);
+ void hmp_block_job_set_speed(Monitor *mon, const QDict *qdict);
+ void hmp_block_job_cancel(Monitor *mon, const QDict *qdict);
+ void hmp_block_job_pause(Monitor *mon, const QDict *qdict);
+diff --git a/include/block/block_int.h b/include/block/block_int.h
+index db4650e..0f79b51 100644
+--- a/include/block/block_int.h
++++ b/include/block/block_int.h
+@@ -59,7 +59,7 @@
+ 
+ #define BLOCK_PROBE_BUF_SIZE        512
+ 
+-typedef int BackupDumpFunc(void *opaque, BlockDriverState *bs,
++typedef int BackupDumpFunc(void *opaque, BlockBackend *be,
+                            int64_t sector_num, int n_sectors, unsigned char *buf);
+ 
+ enum BdrvTrackedRequestType {
+diff --git a/qapi-schema.json b/qapi-schema.json
+index 518c2ea..89d9ea6 100644
+--- a/qapi-schema.json
++++ b/qapi-schema.json
+@@ -356,6 +356,95 @@
+ ##
+ { 'command': 'query-events', 'returns': ['EventInfo'] }
+ 
++# @BackupStatus:
++#
++# Detailed backup status.
++#
++# @status: #optional string describing the current backup status.
++#          This can be 'active', 'done', 'error'. If this field is not
++#          returned, no backup process has been initiated
++#
++# @errmsg: #optional error message (only returned if status is 'error')
++#
++# @total: #optional total amount of bytes involved in the backup process
++#
++# @transferred: #optional amount of bytes already backed up.
++#
++# @zero-bytes: #optional amount of 'zero' bytes detected.
++#
++# @start-time: #optional time (epoch) when backup job started.
++#
++# @end-time: #optional time (epoch) when backup job finished.
++#
++# @backupfile: #optional backup file name
++#
++# @uuid: #optional uuid for this backup job
++#
++##
++{ 'struct': 'BackupStatus',
++  'data': {'*status': 'str', '*errmsg': 'str', '*total': 'int',
++           '*transferred': 'int', '*zero-bytes': 'int',
++           '*start-time': 'int', '*end-time': 'int',
++           '*backup-file': 'str', '*uuid': 'str' } }
++
++##
++# @BackupFormat
++#
++# An enumeration of supported backup formats.
++#
++# @vma: Proxmox vma backup format
++##
++{ 'enum': 'BackupFormat',
++  'data': [ 'vma' ] }
++
++##
++# @backup:
++#
++# Starts a VM backup.
++#
++# @backup-file: the backup file name
++#
++# @format: format of the backup file
++#
++# @config-filename: #optional name of a configuration file to include into
++# the backup archive.
++#
++# @speed: #optional the maximum speed, in bytes per second
++#
++# @devlist: #optional list of block device names (separated by ',', ';'
++# or ':'). By default the backup includes all writable block devices.
++#
++# Returns: the uuid of the backup job
++#
++##
++{ 'command': 'backup', 'data': { 'backup-file': 'str',
++                                    '*format': 'BackupFormat',
++                                    '*config-file': 'str',
++                                    '*devlist': 'str', '*speed': 'int' },
++  'returns': 'UuidInfo' }
++
++##
++# @query-backup
++#
++# Returns information about current/last backup task.
++#
++# Returns: @BackupStatus
++#
++##
++{ 'command': 'query-backup', 'returns': 'BackupStatus' }
++
++##
++# @backup-cancel
++#
++# Cancel the current executing backup process.
++#
++# Returns: nothing on success
++#
++# Notes: This command succeeds even if there is no backup process running.
++#
++##
++{ 'command': 'backup-cancel' }
++
+ ##
+ # @MigrationStats
+ #
+diff --git a/qmp-commands.hx b/qmp-commands.hx
+index 6de28d4..a8e8522 100644
+--- a/qmp-commands.hx
++++ b/qmp-commands.hx
+@@ -1314,6 +1314,24 @@ Example:
+ EQMP
+ 
+     {
++        .name       = "backup",
++        .args_type  = "backup-file:s,format:s?,config-file:F?,speed:o?,devlist:s?",
++        .mhandler.cmd_new = qmp_marshal_backup,
++    },
++
++    {
++        .name       = "backup-cancel",
++        .args_type  = "",
++        .mhandler.cmd_new = qmp_marshal_backup_cancel,
++    },
++
++    {
++        .name       = "query-backup",
++        .args_type  = "",
++        .mhandler.cmd_new = qmp_marshal_query_backup,
++    },
++
++    {
+         .name       = "block-job-set-speed",
+         .args_type  = "device:B,speed:o",
+         .mhandler.cmd_new = qmp_marshal_block_job_set_speed,
+-- 
+2.1.4
+

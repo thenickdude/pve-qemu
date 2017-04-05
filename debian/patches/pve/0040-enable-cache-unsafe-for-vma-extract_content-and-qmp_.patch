@@ -1,0 +1,43 @@
+From 383a94de8f4f887a95b8089b2f0141321d94f5fe Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Mon, 1 Aug 2016 10:52:46 +0200
+Subject: [PATCH 40/47] enable cache=unsafe for vma extract_content and
+ qmp_savevm_start
+
+We don't send any flush here, so we need to open with cache=unsafe.
+
+Signed-off-by: Alexandre Derumier <aderumier@odiso.com>
+---
+ savevm-async.c | 2 +-
+ vma.c          | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/savevm-async.c b/savevm-async.c
+index 7979435..76cd8fa 100644
+--- a/savevm-async.c
++++ b/savevm-async.c
+@@ -253,7 +253,7 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
+ {
+     Error *local_err = NULL;
+ 
+-    int bdrv_oflags = BDRV_O_RDWR;
++    int bdrv_oflags = BDRV_O_RDWR | BDRV_O_NO_FLUSH;
+     int ret;
+ 
+     if (snap_state.state != SAVE_STATE_DONE) {
+diff --git a/vma.c b/vma.c
+index ff974bd..a8fa4ff 100644
+--- a/vma.c
++++ b/vma.c
+@@ -280,7 +280,7 @@ static int extract_content(int argc, char **argv)
+         } else if (di) {
+             char *devfn = NULL;
+             const char *format = NULL;
+-            int flags = BDRV_O_RDWR;
++            int flags = BDRV_O_RDWR | BDRV_O_NO_FLUSH;
+             bool write_zero = true;
+ 
+             if (readmap) {
+-- 
+2.1.4
+

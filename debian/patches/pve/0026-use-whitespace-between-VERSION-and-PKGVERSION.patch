@@ -1,0 +1,27 @@
+From 017016151cb8f9a364f0b0006603772620966d5a Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 9 Dec 2015 16:50:05 +0100
+Subject: [PATCH 26/47] use whitespace between VERSION and PKGVERSION
+
+Our kvm version parser expects a white space or comma after
+the version string, see PVE::QemuServer::kvm_user_version()
+---
+ vl.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/vl.c b/vl.c
+index c01b1b5..0b5a721 100644
+--- a/vl.c
++++ b/vl.c
+@@ -1920,7 +1920,7 @@ static void main_loop(void)
+ 
+ static void version(void)
+ {
+-    printf("QEMU emulator version " QEMU_VERSION QEMU_PKGVERSION ", "
++    printf("QEMU emulator version " QEMU_VERSION " " QEMU_PKGVERSION ", "
+            QEMU_COPYRIGHT "\n");
+ }
+ 
+-- 
+2.1.4
+

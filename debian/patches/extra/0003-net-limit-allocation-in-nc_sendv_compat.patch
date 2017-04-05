@@ -1,0 +1,37 @@
+From 2705772316ff905f3ed08871c602fca1c636f332 Mon Sep 17 00:00:00 2001
+From: Peter Lieven <pl@kamp.de>
+Date: Thu, 30 Jun 2016 11:49:40 +0200
+Subject: [PATCH 3/3] net: limit allocation in nc_sendv_compat
+
+we only need to allocate enough memory to hold the packet. This might be
+less than NET_BUFSIZE. Additionally fail early if the packet is larger
+than NET_BUFSIZE.
+
+Signed-off-by: Peter Lieven <pl@kamp.de>
+---
+ net/net.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/net/net.c b/net/net.c
+index c94d93d..2ac46a6 100644
+--- a/net/net.c
++++ b/net/net.c
+@@ -690,9 +690,13 @@ static ssize_t nc_sendv_compat(NetClientState *nc, const struct iovec *iov,
+         buffer = iov[0].iov_base;
+         offset = iov[0].iov_len;
+     } else {
+-        buf = g_new(uint8_t, NET_BUFSIZE);
++        offset = iov_size(iov, iovcnt);
++        if (offset > NET_BUFSIZE) {
++            return -1;
++        }
++        buf = g_malloc(offset);
+         buffer = buf;
+-        offset = iov_to_buf(iov, iovcnt, 0, buf, NET_BUFSIZE);
++        offset = iov_to_buf(iov, iovcnt, 0, buf, offset);
+     }
+ 
+     if (flags & QEMU_NET_PACKET_FLAG_RAW && nc->info->receive_raw) {
+-- 
+2.1.4
+
