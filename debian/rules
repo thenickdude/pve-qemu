@@ -35,6 +35,8 @@ endif
 config.status: configure
 	dh_testdir
 	# Add here commands to configure the package.
+
+	# guest-agent is only required for guest systems
 	./configure --with-confsuffix="/kvm" --target-list=$(ARCH)-softmmu \
 	--prefix=/usr --datadir=/usr/share \
 	--docdir=/usr/share/doc/pve-qemu-kvm \
@@ -43,7 +45,8 @@ config.status: configure
 	--disable-smartcard --audio-drv-list="alsa" --enable-spice \
 	--enable-usb-redir --enable-glusterfs --enable-libusb --disable-gtk \
 	--enable-xfsctl --enable-numa --disable-strip --enable-jemalloc \
-	--enable-virtfs --disable-libnfs --disable-fdt
+	--enable-virtfs --disable-libnfs --disable-fdt \
+	--disable-guest-agent --disable-guest-agent-msi
 
 build: patch build-stamp
 
@@ -107,9 +110,6 @@ install: build
 	rm $(destdir)/usr/share/kvm/u-boot.e500
 	# remove Aplha files
 	rm $(destdir)/usr/share/kvm/palcode-clipper
-
-        # remove guest agent (that is only required for a guest)
-	rm $(destdir)/usr/bin/qemu-ga
 
 	# Remove things we don't package at all, would be a "kvm-dev" package
 	rm -Rf $(destdir)/usr/include/linux/
