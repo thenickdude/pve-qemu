@@ -35,7 +35,15 @@ endif
 config.status: configure
 	dh_testdir
 	# Add here commands to configure the package.
-	./configure --with-confsuffix="/kvm" --target-list=$(ARCH)-softmmu --prefix=/usr --datadir=/usr/share --docdir=/usr/share/doc/pve-qemu-kvm --sysconfdir=/etc --localstatedir=/var --disable-xen --enable-gnutls --enable-sdl --enable-linux-aio --enable-rbd --enable-libiscsi --disable-smartcard --audio-drv-list="alsa" --enable-spice --enable-usb-redir --enable-glusterfs --enable-libusb --disable-gtk --enable-xfsctl --enable-numa --disable-strip --enable-jemalloc --enable-virtfs --disable-libnfs --disable-fdt
+	./configure --with-confsuffix="/kvm" --target-list=$(ARCH)-softmmu \
+	--prefix=/usr --datadir=/usr/share \
+	--docdir=/usr/share/doc/pve-qemu-kvm \
+	--sysconfdir=/etc --localstatedir=/var --disable-xen --enable-gnutls \
+	--enable-sdl --enable-linux-aio --enable-rbd --enable-libiscsi \
+	--disable-smartcard --audio-drv-list="alsa" --enable-spice \
+	--enable-usb-redir --enable-glusterfs --enable-libusb --disable-gtk \
+	--enable-xfsctl --enable-numa --disable-strip --enable-jemalloc \
+	--enable-virtfs --disable-libnfs --disable-fdt
 
 build: patch build-stamp
 
