@@ -1,4 +1,4 @@
-From eabdbcd58c6e21cc19a6edbd7122b660d3f0263b Mon Sep 17 00:00:00 2001
+From e3df83da92875d8a125a2f6de8e06f3c49198786 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:33:34 +0100
 Subject: [PATCH 10/49] ui/spice: default to pve certs unless otherwise

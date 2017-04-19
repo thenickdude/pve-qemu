@@ -1,4 +1,4 @@
-From 4e5f2bdc825f1201c8b701d5c20939f9743db0ea Mon Sep 17 00:00:00 2001
+From 9bb5bfdac053a5f12ef8a4fd0cfd78bca604409a Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:30:21 +0100
 Subject: [PATCH 07/49] set the CPU model to kvm64/32 instead of qemu64/32

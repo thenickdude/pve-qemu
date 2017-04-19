@@ -1,4 +1,4 @@
-From a334b486692afc5b5b7ffb55b661c5a0ad2c75e2 Mon Sep 17 00:00:00 2001
+From 5dfe68b80f11a2c797fda4f769e1c3342e7c959c Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Thu, 30 Mar 2017 16:05:34 +0200
 Subject: [PATCH 48/49] vma: don't use O_DIRECT on pipes

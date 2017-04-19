@@ -1,4 +1,4 @@
-From 89c76cee2e39bd1e1a7b560b0a3eb5e83fa2bae8 Mon Sep 17 00:00:00 2001
+From f36eabd014acd6aaa9e90bba23fa6c1a329d7752 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:40:00 +0100
 Subject: [PATCH 19/49] backup: vma: remove async queue
@@ -9,7 +9,7 @@ Subject: [PATCH 19/49] backup: vma: remove async queue
  2 files changed, 38 insertions(+), 147 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index 6253ef1c5e..ef159b0753 100644
+index d3aef2cc83..bad5b2a8b8 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -3122,6 +3122,11 @@ static void pvebackup_cancel(void *opaque)

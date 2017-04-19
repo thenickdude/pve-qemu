@@ -1,4 +1,4 @@
-From 72c5264d057a0605448bc9e1b20ee2f94022e7fc Mon Sep 17 00:00:00 2001
+From 17b5f31fd4a416bad199a60a851a9fb4a2049a10 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:27:05 +0100
 Subject: [PATCH 05/49] use kvm by default

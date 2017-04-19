@@ -1,4 +1,4 @@
-From aeb28b3ef956941778dcfb395da885d53abb5a8d Mon Sep 17 00:00:00 2001
+From 6026cb51df5eba11827e016051279c273009845c Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Mon, 11 Jan 2016 10:40:31 +0100
 Subject: [PATCH 30/49] PVE VNC authentication

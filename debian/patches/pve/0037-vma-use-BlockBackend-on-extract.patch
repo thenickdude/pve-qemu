@@ -1,4 +1,4 @@
-From 8be3faeadab088d717a91bfcad6c481bca0264f7 Mon Sep 17 00:00:00 2001
+From 7ebfbb540393217a1304b7d128f463e80c74702f Mon Sep 17 00:00:00 2001
 From: Thomas Lamprecht <t.lamprecht@proxmox.com>
 Date: Fri, 1 Jul 2016 15:47:29 +0200
 Subject: [PATCH 37/49] vma: use BlockBackend on extract

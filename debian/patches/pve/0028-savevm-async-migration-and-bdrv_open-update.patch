@@ -1,4 +1,4 @@
-From 69958cb77bf634951bde45a234871ca591e62dcc Mon Sep 17 00:00:00 2001
+From e6379574a7f9d5a83c4123c0a56855d2749d8365 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Thu, 10 Dec 2015 15:14:00 +0100
 Subject: [PATCH 28/49] savevm-async: migration and bdrv_open update

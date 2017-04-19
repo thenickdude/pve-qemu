@@ -1,4 +1,4 @@
-From a79af764a40e7587fe06ab058e42710253ddf686 Mon Sep 17 00:00:00 2001
+From 4ce0ea44bbdc0a0593a80733fb0ca71a6882a7d0 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 30 Nov 2016 10:27:47 +0100
 Subject: [PATCH 47/49] glusterfs: allow partial reads

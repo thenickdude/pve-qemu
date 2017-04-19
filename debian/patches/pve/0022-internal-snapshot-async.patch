@@ -1,4 +1,4 @@
-From dbd7eef96fe140c5ce332cee8173fe5b6ac44676 Mon Sep 17 00:00:00 2001
+From 4e68b29f5ceacac51af73b04b82a29a93d701c13 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:04:32 +0100
 Subject: [PATCH 22/49] internal snapshot async
@@ -33,10 +33,10 @@ index 9b12ee6afa..f5f8dbab3b 100644
  common-obj-$(CONFIG_SPICE) += spice-qemu-char.o
  
 diff --git a/block.c b/block.c
-index 927ba89eb7..884cbf83f2 100644
+index 1fbbb8d606..6ea9ed1c62 100644
 --- a/block.c
 +++ b/block.c
-@@ -3087,7 +3087,7 @@ out:
+@@ -3091,7 +3091,7 @@ out:
      bdrv_unref(bs_new);
  }
  
@@ -201,7 +201,7 @@ index 17a65b2313..8c1b4846b3 100644
  void hmp_screendump(Monitor *mon, const QDict *qdict);
  void hmp_nbd_server_start(Monitor *mon, const QDict *qdict);
 diff --git a/include/block/block.h b/include/block/block.h
-index 5149260827..b29c69d633 100644
+index 5ddc0cf21b..7eff87c7dd 100644
 --- a/include/block/block.h
 +++ b/include/block/block.h
 @@ -295,6 +295,7 @@ BlockDriverState *bdrv_find_backing_image(BlockDriverState *bs,

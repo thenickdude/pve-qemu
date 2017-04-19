@@ -1,4 +1,4 @@
-From 8459f3c5a32357477435b7f094b3007928ec6d9e Mon Sep 17 00:00:00 2001
+From 9bfc746e546c37c2c8a28fb5470835cd24c92847 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:34:41 +0100
 Subject: [PATCH 24/49] qmp: add get_link_status

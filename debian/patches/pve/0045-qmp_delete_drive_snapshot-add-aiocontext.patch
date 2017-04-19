@@ -1,4 +1,4 @@
-From a9cab937a9406034b56a28ebd51d02bc6405cf4a Mon Sep 17 00:00:00 2001
+From dd810e797c9ec62737ad8a76d6a10d04e9d5d1aa Mon Sep 17 00:00:00 2001
 From: Alexandre Derumier <aderumier@odiso.com>
 Date: Mon, 7 Nov 2016 11:47:50 +0100
 Subject: [PATCH 45/49] qmp_delete_drive_snapshot : add aiocontext

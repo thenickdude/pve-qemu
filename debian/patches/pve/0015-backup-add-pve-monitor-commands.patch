@@ -1,4 +1,4 @@
-From 678834d6358b6d784f7ae7b6df3476c4befa2073 Mon Sep 17 00:00:00 2001
+From 356514ad9830fea771dfa0aee2fd96d56d136595 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:20:56 +0100
 Subject: [PATCH 15/49] backup: add pve monitor commands
@@ -15,7 +15,7 @@ Subject: [PATCH 15/49] backup: add pve monitor commands
  8 files changed, 668 insertions(+), 6 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index bb3fc5bd43..3e5c9ce593 100644
+index 5ddd363a33..58cf5d3c80 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -35,6 +35,7 @@
@@ -505,7 +505,7 @@ index bb3fc5bd43..3e5c9ce593 100644
                        bool has_base, const char *base,
                        bool has_base_node, const char *base_node,
 diff --git a/blockjob.c b/blockjob.c
-index 9b619f385a..54bd34a7db 100644
+index 6e489327ff..2162b4d3d8 100644
 --- a/blockjob.c
 +++ b/blockjob.c
 @@ -37,8 +37,8 @@
