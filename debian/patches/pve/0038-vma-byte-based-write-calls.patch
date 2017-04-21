@@ -1,4 +1,4 @@
-From 865478a23fa7604a7bbf26bfcbae9ea6bdd93925 Mon Sep 17 00:00:00 2001
+From b6f11a95c56de227d2c66f4049ace7e01369c920 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Fri, 9 Sep 2016 14:51:28 +0200
 Subject: [PATCH 38/49] vma: byte based write calls

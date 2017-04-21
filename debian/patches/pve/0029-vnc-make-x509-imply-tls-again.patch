@@ -1,4 +1,4 @@
-From 7263e17ea9663a32729e9336e8061577c4ffb2e8 Mon Sep 17 00:00:00 2001
+From d4cccacea777bdf4ce379a0d889acbfd05fcdf05 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Tue, 12 Jan 2016 09:09:49 +0100
 Subject: [PATCH 29/49] vnc: make x509 imply tls again

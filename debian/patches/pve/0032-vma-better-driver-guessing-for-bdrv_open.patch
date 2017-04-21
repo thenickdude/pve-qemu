@@ -1,4 +1,4 @@
-From c1780d343b59c5ace49c665b32a7ea95f12113b2 Mon Sep 17 00:00:00 2001
+From 81e295744d016824a5c756bfc954c63f5a249b5f Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Tue, 23 Feb 2016 15:48:41 +0100
 Subject: [PATCH 32/49] vma: better driver guessing for bdrv_open

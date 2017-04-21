@@ -1,4 +1,4 @@
-From 6b5bffa06f7d4ecfe32cc5f4e042717010888351 Mon Sep 17 00:00:00 2001
+From 26b8ed17e06e00b287352b95212d46ff4261e70b Mon Sep 17 00:00:00 2001
 From: Alexandre Derumier <aderumier@odiso.com>
 Date: Tue, 13 Sep 2016 01:57:56 +0200
 Subject: [PATCH 42/49] qmp_snapshot_drive: add aiocontext

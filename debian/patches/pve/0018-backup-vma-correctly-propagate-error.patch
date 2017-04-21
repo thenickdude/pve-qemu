@@ -1,4 +1,4 @@
-From c736903d735b9a7a7c6ca80c486d9064df5b2737 Mon Sep 17 00:00:00 2001
+From 95ae3ad5710a4128f27e53d4fd926aa8fe596459 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:39:36 +0100
 Subject: [PATCH 18/49] backup: vma: correctly propagate error

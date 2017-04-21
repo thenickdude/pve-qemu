@@ -1,4 +1,4 @@
-From 33ef64ee185389d97f7d4f695d68bc33054de671 Mon Sep 17 00:00:00 2001
+From 18f7a9b94a81e794c66e6e9d1ca7a9dafb1d17cb Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:04:57 +0100
 Subject: [PATCH 14/49] backup: modify job api

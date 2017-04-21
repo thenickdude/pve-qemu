@@ -1,4 +1,4 @@
-From 187f37955a177dd4c5c7482a54246c9873e43acb Mon Sep 17 00:00:00 2001
+From bc5254a21ab6556c000e30fa340d11e0a5bb7dd3 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:32:11 +0100
 Subject: [PATCH 09/49] qapi: modify spice query

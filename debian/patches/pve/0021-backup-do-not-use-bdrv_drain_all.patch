@@ -1,4 +1,4 @@
-From 38abda3a4e7ed915f97bcc241e77a0c72ab16d85 Mon Sep 17 00:00:00 2001
+From fbb5d5b954df75a366110c2df3bb0685ebfca145 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:41:13 +0100
 Subject: [PATCH 21/49] backup: do not use bdrv_drain_all

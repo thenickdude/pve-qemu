@@ -1,4 +1,4 @@
-From 327d654584b593018eac0e983ff2005d179e3dc3 Mon Sep 17 00:00:00 2001
+From 6c2823a8f34f9edd061a8c56af8fa0fb5014c507 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:17:38 +0100
 Subject: [PATCH 03/49] vnc: altgr emulation

@@ -1,4 +1,4 @@
-From fefc7e4fe5e6b58685f5b50ff8e31a69423a94d6 Mon Sep 17 00:00:00 2001
+From 1cd097140cab2650415b311bd7549036df6e6978 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:27:49 +0100
 Subject: [PATCH 06/49] virtio-balloon: fix query

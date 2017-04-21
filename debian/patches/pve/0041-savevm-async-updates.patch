@@ -1,4 +1,4 @@
-From f03b2d0a470c6df14fcc37289e0976838af5d0ba Mon Sep 17 00:00:00 2001
+From 11d6573ad09a304b79c149c4f98e565f789b128d Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Fri, 9 Sep 2016 15:21:19 +0200
 Subject: [PATCH 41/49] savevm-async updates

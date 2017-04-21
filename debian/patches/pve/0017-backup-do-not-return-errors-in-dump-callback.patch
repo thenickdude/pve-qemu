@@ -1,4 +1,4 @@
-From 74c16a2631be564be69b0c337a4df3bc5d1e2e05 Mon Sep 17 00:00:00 2001
+From c8fdc50eaa27500204364f15de1aac2c0ac07bf8 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:22:19 +0100
 Subject: [PATCH 17/49] backup: do not return errors in dump callback

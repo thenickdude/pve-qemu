@@ -1,4 +1,4 @@
-From 5c4bb475402e8be8626858d2bf006cfd6ba4f632 Mon Sep 17 00:00:00 2001
+From 907dfd6792ab3e5030c859e1bd857f0127515e5c Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:50:05 +0100
 Subject: [PATCH 26/49] use whitespace between VERSION and PKGVERSION

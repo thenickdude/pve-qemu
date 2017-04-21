@@ -1,4 +1,4 @@
-From b85b4ca262e64cdaf4bc9970a211f6ce5727bd9a Mon Sep 17 00:00:00 2001
+From 95a583f2d001477eca4c74d49be44f00bf9a8440 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:31:18 +0100
 Subject: [PATCH 08/49] qapi: modify query machines

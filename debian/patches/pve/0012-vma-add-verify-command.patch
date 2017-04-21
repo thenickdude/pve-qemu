@@ -1,4 +1,4 @@
-From 606777f6aa96828549a080f650ed0130da3dbc0e Mon Sep 17 00:00:00 2001
+From d4c9597f3064b68853cefca90dd335cd5e5320d0 Mon Sep 17 00:00:00 2001
 From: Dietmar Maurer <dietmar@proxmox.com>
 Date: Mon, 11 Mar 2013 07:07:46 +0100
 Subject: [PATCH 12/49] vma: add verify command
