@@ -1,3 +1,20 @@
+pve-qemu-kvm (2.9.0-2) stable; urgency=medium
+
+  * fix CVE-2017-8380, CVE-2017-8309, CVE-2017-8379, CVE-2017-7493
+
+  * fix a possible deadlock when trying to resize a busy disk
+    See https://bugzilla.redhat.com/show_bug.cgi?id=1447551
+
+  * fix bad qemu-monitor commands causing I/O issues
+
+  * fix hangs in e1000e emulation
+
+  * qemu-img: various error handling improvements
+
+  * various fixes for: 9pfs, virtio, virtio-serial, megasas
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 06 Jun 2017 13:22:13 +0200
+
 pve-qemu-kvm (2.9.0-1) stable; urgency=medium
 
   * update to 2.9.0
