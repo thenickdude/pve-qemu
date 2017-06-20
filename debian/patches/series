@@ -49,3 +49,4 @@ extra/0020-qemu-nbd-Ignore-SIGPIPE.patch
 extra/0021-usb-redir-fix-stack-overflow-in-usbredir_log_data.patch
 extra/0022-exec-use-qemu_ram_ptr_length-to-access-guest-ram.patch
 extra/0023-slirp-check-len-against-dhcp-options-array-end.patch
+smc/0001-fix-smc-sierra.patch
