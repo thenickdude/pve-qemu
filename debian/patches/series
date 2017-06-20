@@ -77,3 +77,4 @@ extra/0046-qemu-iotests-test-NBD-over-UNIX-domain-sockets-in-08.patch
 extra/0047-block-nbd-client-nbd_co_send_request-fix-return-code.patch
 extra/0048-target-i386-cpu-Add-new-EPYC-CPU-model.patch
 extra/0049-i386-Add-EPYC-IBPB-CPU-model.patch
+smc/0001-fix-smc-sierra.patch
