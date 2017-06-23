@@ -47,6 +47,7 @@ pve/0046-convert-savevm-async-to-threads.patch
 pve/0047-glusterfs-allow-partial-reads.patch
 pve/0048-vma-don-t-use-O_DIRECT-on-pipes.patch
 pve/0049-block-zeroinit-request-child-permissions.patch
+pve/0050-qemu-img-dd-add-osize-and-read-from-to-stdin-stdout.patch
 extra/0001-Revert-target-i386-disable-LINT0-after-reset.patch
 extra/0002-qemu-img-wait-for-convert-coroutines-to-complete.patch
 extra/0003-block-Do-not-unref-bs-file-on-error-in-BD-s-open.patch
