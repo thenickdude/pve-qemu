@@ -1,7 +1,7 @@
-From 95166cdeaeaa9d00330483988b818abfcc473efe Mon Sep 17 00:00:00 2001
+From 9c4164d74133304aaf7d77001e5ac8a22150df44 Mon Sep 17 00:00:00 2001
 From: Kevin Wolf <kwolf@redhat.com>
 Date: Mon, 29 May 2017 14:08:32 +0200
-Subject: [PATCH 10/15] mirror: Drop permissions on s->target on completion
+Subject: [PATCH 10/23] mirror: Drop permissions on s->target on completion
 
 This fixes an assertion failure that was triggered by qemu-iotests 129
 on some CI host, while the same test case didn't seem to fail on other

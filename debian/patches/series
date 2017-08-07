@@ -41,3 +41,11 @@ extra/0012-audio-release-capture-buffers.patch
 extra/0013-input-limit-kbd-queue-depth.patch
 extra/0014-scsi-avoid-an-off-by-one-error-in-megasas_mmio_write.patch
 extra/0015-9pfs-local-forbid-client-access-to-metadata-CVE-2017.patch
+extra/0016-megasas-do-not-read-DCMD-opcode-more-than-once-from-.patch
+extra/0017-megasas-always-store-SCSIRequest-into-MegasasCmd.patch
+extra/0018-nbd-Fully-initialize-client-in-case-of-failed-negoti.patch
+extra/0019-nbd-Fix-regression-on-resiliency-to-port-scan.patch
+extra/0020-qemu-nbd-Ignore-SIGPIPE.patch
+extra/0021-usb-redir-fix-stack-overflow-in-usbredir_log_data.patch
+extra/0022-exec-use-qemu_ram_ptr_length-to-access-guest-ram.patch
+extra/0023-slirp-check-len-against-dhcp-options-array-end.patch

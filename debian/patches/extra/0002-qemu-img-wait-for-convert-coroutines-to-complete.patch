@@ -1,7 +1,7 @@
-From 40bb673c38565bb8660f15f088a85bb0fd12ab82 Mon Sep 17 00:00:00 2001
+From e340d6c3321d3eb4e6f7854550cfdc94aa1c8143 Mon Sep 17 00:00:00 2001
 From: Anton Nefedov <anton.nefedov@virtuozzo.com>
 Date: Wed, 26 Apr 2017 11:33:15 +0300
-Subject: [PATCH 02/15] qemu-img: wait for convert coroutines to complete
+Subject: [PATCH 02/23] qemu-img: wait for convert coroutines to complete
 
 On error path (like i/o error in one of the coroutines), it's required to
   - wait for coroutines completion before cleaning the common structures
@@ -18,7 +18,7 @@ Signed-off-by: Kevin Wolf <kwolf@redhat.com>
  1 file changed, 11 insertions(+), 15 deletions(-)
 
 diff --git a/qemu-img.c b/qemu-img.c
-index 4f7f458dd2..cf9885b75b 100644
+index b9d1ef7bb8..59f4f7f22a 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
 @@ -1761,13 +1761,13 @@ static void coroutine_fn convert_co_do_copy(void *opaque)

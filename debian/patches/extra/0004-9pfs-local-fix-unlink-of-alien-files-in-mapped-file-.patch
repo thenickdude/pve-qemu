@@ -1,7 +1,7 @@
-From 575b9657b84e7c35d4a378448cdb43939fb5e730 Mon Sep 17 00:00:00 2001
+From 952bdc64b03ffc3bdf3529b22f291ad26ef94d1b Mon Sep 17 00:00:00 2001
 From: Greg Kurz <groug@kaod.org>
 Date: Thu, 25 May 2017 10:30:13 +0200
-Subject: [PATCH 04/15] 9pfs: local: fix unlink of alien files in mapped-file
+Subject: [PATCH 04/23] 9pfs: local: fix unlink of alien files in mapped-file
  mode
 
 When trying to remove a file from a directory, both created in non-mapped

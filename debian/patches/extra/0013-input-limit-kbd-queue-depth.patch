@@ -1,7 +1,7 @@
-From e4f39e928710d19db0a0669b66520236197352aa Mon Sep 17 00:00:00 2001
+From e96b198df364a2918896c41a9759b38aaebcf211 Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Fri, 28 Apr 2017 10:42:37 +0200
-Subject: [PATCH 13/15] input: limit kbd queue depth
+Subject: [PATCH 13/23] input: limit kbd queue depth
 
 Apply a limit to the number of items we accept into the keyboard queue.
 

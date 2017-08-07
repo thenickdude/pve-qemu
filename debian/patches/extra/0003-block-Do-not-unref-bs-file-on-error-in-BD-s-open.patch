@@ -1,7 +1,7 @@
-From 7abd8d3ceb29140469c3662fb53de6a4dfe4623e Mon Sep 17 00:00:00 2001
+From 80a3ed331899e4710b33c4b2a88f1b7b888d6497 Mon Sep 17 00:00:00 2001
 From: Max Reitz <mreitz@redhat.com>
 Date: Thu, 13 Apr 2017 17:43:34 +0200
-Subject: [PATCH 03/15] block: Do not unref bs->file on error in BD's open
+Subject: [PATCH 03/23] block: Do not unref bs->file on error in BD's open
 
 The block layer takes care of removing the bs->file child if the block
 driver's bdrv_open()/bdrv_file_open() implementation fails. The block

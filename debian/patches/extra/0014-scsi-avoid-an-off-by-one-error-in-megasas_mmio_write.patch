@@ -1,7 +1,7 @@
-From 3bf1e29359a1e22a2ecdffb50f124db275abf5bd Mon Sep 17 00:00:00 2001
+From c442fb4a11d8dc527c90bf90a1fd1b15646f4c57 Mon Sep 17 00:00:00 2001
 From: Prasad J Pandit <pjp@fedoraproject.org>
 Date: Mon, 24 Apr 2017 17:36:34 +0530
-Subject: [PATCH 14/15] scsi: avoid an off-by-one error in megasas_mmio_write
+Subject: [PATCH 14/23] scsi: avoid an off-by-one error in megasas_mmio_write
 
 While reading magic sequence(MFI_SEQ) in megasas_mmio_write,
 an off-by-one error could occur as 's->adp_reset' index is not

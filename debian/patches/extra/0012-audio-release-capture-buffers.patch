@@ -1,7 +1,7 @@
-From 56ca431e96a6aadffdccecb882600dc780f13ad9 Mon Sep 17 00:00:00 2001
+From 74f9fd9420fadd64a42ee8de780dc6de61864ea8 Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Fri, 28 Apr 2017 09:56:12 +0200
-Subject: [PATCH 12/15] audio: release capture buffers
+Subject: [PATCH 12/23] audio: release capture buffers
 
 AUD_add_capture() allocates two buffers which are never released.
 Add the missing calls to AUD_del_capture().

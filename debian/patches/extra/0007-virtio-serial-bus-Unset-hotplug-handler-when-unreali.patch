@@ -1,7 +1,7 @@
-From 48c670e522857fa54207794d3dfc014b4809079c Mon Sep 17 00:00:00 2001
+From 691689ab216143f5fefd8e229ffd91086b9a261e Mon Sep 17 00:00:00 2001
 From: Ladi Prosek <lprosek@redhat.com>
 Date: Tue, 30 May 2017 10:59:43 +0200
-Subject: [PATCH 07/15] virtio-serial-bus: Unset hotplug handler when unrealize
+Subject: [PATCH 07/23] virtio-serial-bus: Unset hotplug handler when unrealize
 
 Virtio serial device controls the lifetime of virtio-serial-bus and
 virtio-serial-bus links back to the device via its hotplug-handler
