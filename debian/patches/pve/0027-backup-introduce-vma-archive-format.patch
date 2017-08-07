@@ -1,0 +1,1400 @@
+From c904f41916fbfa522513267933da3f08ec74215f Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 2 Aug 2017 13:51:02 +0200
+Subject: [PATCH 27/28] backup: introduce vma archive format
+
+---
+ MAINTAINERS          |   6 +
+ block/Makefile.objs  |   3 +
+ block/vma.c          | 424 +++++++++++++++++++++++++++++++++++++++++++
+ blockdev.c           | 499 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ configure            |  30 ++++
+ hmp-commands-info.hx |  13 ++
+ hmp-commands.hx      |  31 ++++
+ hmp.c                |  63 +++++++
+ hmp.h                |   3 +
+ qapi-schema.json     |  91 ++++++++++
+ qapi/block-core.json |  20 ++-
+ 11 files changed, 1181 insertions(+), 2 deletions(-)
+ create mode 100644 block/vma.c
+
+diff --git a/MAINTAINERS b/MAINTAINERS
+index c60235eaf6..d95f278eb4 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -1810,6 +1810,12 @@ L: qemu-block@nongnu.org
+ S: Supported
+ F: block/vvfat.c
+ 
++VMA
++M: Wolfgang Bumiller <w.bumiller@proxmox.com>.
++L: pve-devel@proxmox.com
++S: Supported
++F: block/vma.c
++
+ Image format fuzzer
+ M: Stefan Hajnoczi <stefanha@redhat.com>
+ L: qemu-block@nongnu.org
+diff --git a/block/Makefile.objs b/block/Makefile.objs
+index 8cdac08db5..6df5567dd3 100644
+--- a/block/Makefile.objs
++++ b/block/Makefile.objs
+@@ -21,6 +21,7 @@ block-obj-$(CONFIG_CURL) += curl.o
+ block-obj-$(CONFIG_RBD) += rbd.o
+ block-obj-$(CONFIG_GLUSTERFS) += gluster.o
+ block-obj-$(CONFIG_LIBSSH2) += ssh.o
++block-obj-$(CONFIG_VMA) += vma.o
+ block-obj-y += accounting.o dirty-bitmap.o
+ block-obj-y += write-threshold.o
+ block-obj-y += backup.o
+@@ -45,3 +46,5 @@ block-obj-$(if $(CONFIG_BZIP2),m,n) += dmg-bz2.o
+ dmg-bz2.o-libs     := $(BZIP2_LIBS)
+ qcow.o-libs        := -lz
+ linux-aio.o-libs   := -laio
++vma.o-cflags       := $(VMA_CFLAGS)
++vma.o-libs         := $(VMA_LIBS)
+diff --git a/block/vma.c b/block/vma.c
+new file mode 100644
+index 0000000000..7151514f94
+--- /dev/null
++++ b/block/vma.c
+@@ -0,0 +1,424 @@
++/*
++ * VMA archive backend for QEMU, container object
++ *
++ * Copyright (C) 2017 Proxmox Server Solutions GmbH
++ *
++ * This work is licensed under the terms of the GNU GPL, version 2 or later.
++ * See the COPYING file in the top-level directory.
++ *
++ */
++#include <vma/vma.h>
++
++#include "qemu/osdep.h"
++#include "qemu/uuid.h"
++#include "qemu-common.h"
++#include "qapi/error.h"
++#include "qapi/qmp/qerror.h"
++#include "qapi/qmp/qstring.h"
++#include "qom/object.h"
++#include "qom/object_interfaces.h"
++#include "block/block_int.h"
++
++/* exported interface */
++void vma_object_add_config_file(Object *obj, const char *name,
++                                const char *contents, size_t len,
++                                Error **errp);
++
++#define TYPE_VMA_OBJECT "vma"
++#define VMA_OBJECT(obj) \
++    OBJECT_CHECK(VMAObjectState, (obj), TYPE_VMA_OBJECT)
++#define VMA_OBJECT_GET_CLASS(obj) \
++    OBJECT_GET_CLASS(VMAObjectClass, (obj), TYPE_VMA_OBJECT)
++
++typedef struct VMAObjectClass {
++    ObjectClass parent_class;
++} VMAObjectClass;
++
++typedef struct VMAObjectState {
++    Object parent;
++
++    char        *filename;
++
++    QemuUUID     uuid;
++    bool         blocked;
++    VMAWriter   *vma;
++    QemuMutex    mutex;
++} VMAObjectState;
++
++static VMAObjectState *vma_by_id(const char *name)
++{
++    Object *container;
++    Object *obj;
++
++    container = object_get_objects_root();
++    obj = object_resolve_path_component(container, name);
++
++    return VMA_OBJECT(obj);
++}
++
++static void vma_object_class_complete(UserCreatable *uc, Error **errp)
++{
++    int rc;
++    VMAObjectState *vo = VMA_OBJECT(uc);
++    VMAObjectClass *voc = VMA_OBJECT_GET_CLASS(uc);
++    (void)!vo;
++    (void)!voc;
++
++    if (!vo->filename) {
++        error_setg(errp, "Parameter 'filename' is required");
++        return;
++    }
++
++    rc = VMAWriter_fopen(vo->filename, &vo->vma);
++    if (rc < 0) {
++        error_setg_errno(errp, -rc, "failed to create VMA archive");
++        return;
++    }
++
++    rc = VMAWriter_set_uuid(vo->vma, vo->uuid.data, sizeof(vo->uuid.data));
++    if (rc < 0) {
++        error_setg_errno(errp, -rc, "failed to set UUID of VMA archive");
++        return;
++    }
++
++    qemu_mutex_init(&vo->mutex);
++}
++
++static bool vma_object_can_be_deleted(UserCreatable *uc, Error **errp)
++{
++    //VMAObjectState *vo = VMA_OBJECT(uc);
++    //if (!vo->vma) {
++    //    return true;
++    //}
++    //return false;
++    return true;
++}
++
++static void vma_object_class_init(ObjectClass *oc, void *data)
++{
++    UserCreatableClass *ucc = USER_CREATABLE_CLASS(oc);
++
++    ucc->can_be_deleted = vma_object_can_be_deleted;
++    ucc->complete = vma_object_class_complete;
++}
++
++static char *vma_object_get_filename(Object *obj, Error **errp)
++{
++    VMAObjectState *vo = VMA_OBJECT(obj);
++
++    return g_strdup(vo->filename);
++}
++
++static void vma_object_set_filename(Object *obj, const char *str, Error **errp)
++{
++    VMAObjectState *vo = VMA_OBJECT(obj);
++
++    if (vo->vma) {
++        error_setg(errp, "filename cannot be changed after creation");
++        return;
++    }
++
++    g_free(vo->filename);
++    vo->filename = g_strdup(str);
++}
++
++static char *vma_object_get_uuid(Object *obj, Error **errp)
++{
++    VMAObjectState *vo = VMA_OBJECT(obj);
++
++    return qemu_uuid_unparse_strdup(&vo->uuid);
++}
++
++static void vma_object_set_uuid(Object *obj, const char *str, Error **errp)
++{
++    VMAObjectState *vo = VMA_OBJECT(obj);
++
++    if (vo->vma) {
++        error_setg(errp, "uuid cannot be changed after creation");
++        return;
++    }
++
++    qemu_uuid_parse(str, &vo->uuid);
++}
++
++static bool vma_object_get_blocked(Object *obj, Error **errp)
++{
++    VMAObjectState *vo = VMA_OBJECT(obj);
++
++    return vo->blocked;
++}
++
++static void vma_object_set_blocked(Object *obj, bool blocked, Error **errp)
++{
++    VMAObjectState *vo = VMA_OBJECT(obj);
++
++    (void)errp;
++
++    vo->blocked = blocked;
++}
++
++void vma_object_add_config_file(Object *obj, const char *name,
++                                const char *contents, size_t len,
++                                Error **errp)
++{
++    int rc;
++    VMAObjectState *vo = VMA_OBJECT(obj);
++
++    if (!vo || !vo->vma) {
++        error_setg(errp, "not a valid vma object to add config files to");
++        return;
++    }
++
++    rc = VMAWriter_addConfigFile(vo->vma, name, contents, len);
++    if (rc < 0) {
++        error_setg_errno(errp, -rc, "failed to add config file to VMA");
++        return;
++    }
++}
++
++static void vma_object_init(Object *obj)
++{
++    VMAObjectState *vo = VMA_OBJECT(obj);
++    (void)!vo;
++
++    object_property_add_str(obj, "filename",
++                            vma_object_get_filename, vma_object_set_filename,
++                            NULL);
++    object_property_add_str(obj, "uuid",
++                            vma_object_get_uuid, vma_object_set_uuid,
++                            NULL);
++    object_property_add_bool(obj, "blocked",
++                            vma_object_get_blocked, vma_object_set_blocked,
++                            NULL);
++}
++
++static void vma_object_finalize(Object *obj)
++{
++    VMAObjectState *vo = VMA_OBJECT(obj);
++    VMAObjectClass *voc = VMA_OBJECT_GET_CLASS(obj);
++    (void)!voc;
++
++    qemu_mutex_destroy(&vo->mutex);
++
++    VMAWriter_destroy(vo->vma, true);
++    g_free(vo->filename);
++}
++
++static const TypeInfo vma_object_info = {
++    .name = TYPE_VMA_OBJECT,
++    .parent = TYPE_OBJECT,
++    .class_size = sizeof(VMAObjectClass),
++    .class_init = vma_object_class_init,
++    .instance_size = sizeof(VMAObjectState),
++    .instance_init = vma_object_init,
++    .instance_finalize = vma_object_finalize,
++    .interfaces = (InterfaceInfo[]) {
++        { TYPE_USER_CREATABLE },
++        { }
++    }
++};
++
++static void register_types(void)
++{
++    type_register_static(&vma_object_info);
++}
++
++type_init(register_types);
++
++typedef struct {
++    VMAObjectState *vma_obj;
++    char           *name;
++    size_t          device_id;
++    uint64_t        byte_size;
++} BDRVVMAState;
++
++static void qemu_vma_parse_filename(const char *filename, QDict *options,
++                                    Error **errp)
++{
++    char *sep;
++
++    sep = strchr(filename, '/');
++    if (!sep || sep == filename) {
++        error_setg(errp, "VMA filename should be <vma-object>/<device-name>");
++        return;
++    }
++
++    qdict_put(options, "vma", qstring_from_substr(filename, 0, sep-filename-1));
++
++    while (*sep && *sep == '/')
++        ++sep;
++    if (!*sep) {
++        error_setg(errp, "missing device name\n");
++        return;
++    }
++
++    qdict_put(options, "name", qstring_from_str(sep));
++}
++
++static QemuOptsList runtime_opts = {
++    .name = "vma-drive",
++    .head = QTAILQ_HEAD_INITIALIZER(runtime_opts.head),
++    .desc = {
++        {
++            .name = "vma",
++            .type = QEMU_OPT_STRING,
++            .help = "VMA Object name",
++        },
++        {
++            .name = "name",
++            .type = QEMU_OPT_STRING,
++            .help = "VMA device name",
++        },
++        {
++            .name = BLOCK_OPT_SIZE,
++            .type = QEMU_OPT_SIZE,
++            .help = "Virtual disk size"
++        },
++        { /* end of list */ }
++    },
++};
++static int qemu_vma_open(BlockDriverState *bs, QDict *options, int flags,
++                         Error **errp)
++{
++    Error *local_err = NULL;
++    BDRVVMAState *s = bs->opaque;
++    QemuOpts *opts;
++    const char *vma_id, *device_name;
++    ssize_t dev_id;
++    int64_t bytes = 0;
++    int ret;
++
++    opts = qemu_opts_create(&runtime_opts, NULL, 0, &error_abort);
++    qemu_opts_absorb_qdict(opts, options, &local_err);
++    if (local_err) {
++        error_propagate(errp, local_err);
++        ret = -EINVAL;
++        goto failed_opts;
++    }
++
++    bytes = ROUND_UP(qemu_opt_get_size_del(opts, BLOCK_OPT_SIZE, 0),
++                     BDRV_SECTOR_SIZE);
++
++    vma_id = qemu_opt_get(opts, "vma");
++    device_name = qemu_opt_get(opts, "name");
++
++    VMAObjectState *vma = vma_by_id(vma_id);
++    if (!vma) {
++        ret = -EINVAL;
++        error_setg(errp, "no such VMA object: %s", vma_id);
++        goto failed_opts;
++    }
++
++    dev_id = VMAWriter_findDevice(vma->vma, device_name);
++    if (dev_id >= 0) {
++        error_setg(errp, "drive already exists in VMA object");
++        ret = -EIO;
++        goto failed_opts;
++    }
++
++    dev_id = VMAWriter_addDevice(vma->vma, device_name, (uint64_t)bytes);
++    if (dev_id < 0) {
++        error_setg_errno(errp, -dev_id, "failed to add VMA device");
++        ret = -EIO;
++        goto failed_opts;
++    }
++
++    object_ref(OBJECT(vma));
++    s->vma_obj = vma;
++    s->name = g_strdup(device_name);
++    s->device_id = (size_t)dev_id;
++    s->byte_size = bytes;
++
++    ret = 0;
++
++failed_opts:
++    qemu_opts_del(opts);
++    return ret;
++}
++
++static void qemu_vma_close(BlockDriverState *bs)
++{
++    BDRVVMAState *s = bs->opaque;
++
++    (void)VMAWriter_finishDevice(s->vma_obj->vma, s->device_id);
++    object_unref(OBJECT(s->vma_obj));
++
++    g_free(s->name);
++}
++
++static int64_t qemu_vma_getlength(BlockDriverState *bs)
++{
++    BDRVVMAState *s = bs->opaque;
++
++    return s->byte_size;
++}
++
++static coroutine_fn int qemu_vma_co_writev(BlockDriverState *bs,
++                                           int64_t sector_num,
++                                           int nb_sectors,
++                                           QEMUIOVector *qiov)
++{
++    size_t i;
++    ssize_t rc;
++    BDRVVMAState *s = bs->opaque;
++    VMAObjectState *vo = s->vma_obj;
++    off_t offset = sector_num * BDRV_SECTOR_SIZE;
++
++    qemu_mutex_lock(&vo->mutex);
++    if (vo->blocked) {
++        return -EPERM;
++    }
++    for (i = 0; i != qiov->niov; ++i) {
++        const struct iovec *v = &qiov->iov[i];
++        size_t blocks = v->iov_len / VMA_BLOCK_SIZE;
++        if (blocks * VMA_BLOCK_SIZE != v->iov_len) {
++            return -EIO;
++        }
++        rc = VMAWriter_writeBlocks(vo->vma, s->device_id,
++                                   v->iov_base, blocks, offset);
++        if (errno) {
++            return -errno;
++        }
++        if (rc != blocks) {
++            return -EIO;
++        }
++        offset += v->iov_len;
++    }
++    qemu_mutex_unlock(&vo->mutex);
++    return 0;
++}
++
++static int qemu_vma_get_info(BlockDriverState *bs, BlockDriverInfo *bdi)
++{
++    bdi->cluster_size = VMA_CLUSTER_SIZE;
++    bdi->unallocated_blocks_are_zero = true;
++    bdi->can_write_zeroes_with_unmap = false;
++    return 0;
++}
++
++static BlockDriver bdrv_vma_drive = {
++    .format_name                  = "vma-drive",
++    .instance_size                = sizeof(BDRVVMAState),
++
++#if 0
++    .bdrv_create                  = qemu_vma_create,
++    .create_opts                  = &qemu_vma_create_opts,
++#endif
++
++    .bdrv_parse_filename          = qemu_vma_parse_filename,
++    .bdrv_file_open               = qemu_vma_open,
++
++    .bdrv_close                   = qemu_vma_close,
++    .bdrv_has_zero_init           = bdrv_has_zero_init_1,
++    .bdrv_getlength               = qemu_vma_getlength,
++    .bdrv_get_info                = qemu_vma_get_info,
++
++    .bdrv_co_writev               = qemu_vma_co_writev,
++};
++
++static void bdrv_vma_init(void)
++{
++    bdrv_register(&bdrv_vma_drive);
++}
++
++block_init(bdrv_vma_init);
+diff --git a/blockdev.c b/blockdev.c
+index ec5e931029..981276692a 100644
+--- a/blockdev.c
++++ b/blockdev.c
+@@ -31,10 +31,12 @@
+  */
+ 
+ #include "qemu/osdep.h"
++#include "qemu/uuid.h"
+ #include "sysemu/block-backend.h"
+ #include "sysemu/blockdev.h"
+ #include "hw/block/block.h"
+ #include "block/blockjob.h"
++#include "block/blockjob_int.h"
+ #include "block/throttle-groups.h"
+ #include "monitor/monitor.h"
+ #include "qemu/error-report.h"
+@@ -2956,6 +2958,503 @@ out:
+     aio_context_release(aio_context);
+ }
+ 
++/* PVE backup related function */
++
++static struct PVEBackupState {
++    Error *error;
++    bool cancel;
++    QemuUUID uuid;
++    char uuid_str[37];
++    int64_t speed;
++    time_t start_time;
++    time_t end_time;
++    char *backup_file;
++    Object *vmaobj;
++    GList *di_list;
++    size_t next_job;
++    size_t total;
++    size_t transferred;
++    size_t zero_bytes;
++} backup_state;
++
++typedef struct PVEBackupDevInfo {
++    BlockDriverState *bs;
++    size_t size;
++    uint8_t dev_id;
++    bool completed;
++    char targetfile[PATH_MAX];
++    BlockDriverState *target;
++} PVEBackupDevInfo;
++
++static void pvebackup_run_next_job(void);
++
++static void pvebackup_cleanup(void)
++{
++    backup_state.end_time = time(NULL);
++
++    if (backup_state.vmaobj) {
++        object_unparent(backup_state.vmaobj);
++        backup_state.vmaobj = NULL;
++    }
++
++    if (backup_state.di_list) {
++        GList *l = backup_state.di_list;
++        while (l) {
++            PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++            l = g_list_next(l);
++            g_free(di);
++        }
++        g_list_free(backup_state.di_list);
++        backup_state.di_list = NULL;
++    }
++}
++
++static void pvebackup_complete_cb(void *opaque, int ret)
++{
++    PVEBackupDevInfo *di = opaque;
++
++    di->completed = true;
++
++    if (ret < 0 && !backup_state.error) {
++        error_setg(&backup_state.error, "job failed with err %d - %s",
++                   ret, strerror(-ret));
++    }
++
++    di->bs = NULL;
++    di->target = NULL;
++
++    if (backup_state.vmaobj) {
++        object_unparent(backup_state.vmaobj);
++        backup_state.vmaobj = NULL;
++    }
++
++    if (!backup_state.cancel) {
++        pvebackup_run_next_job();
++    }
++}
++
++static void pvebackup_cancel(void *opaque)
++{
++    backup_state.cancel = true;
++
++    if (!backup_state.error) {
++        error_setg(&backup_state.error, "backup cancelled");
++    }
++
++    if (backup_state.vmaobj) {
++        Error *err;
++        /* make sure vma writer does not block anymore */
++        if (!object_set_props(backup_state.vmaobj, &err, "blocked", "yes", NULL)) {
++            if (err) {
++                error_report_err(err);
++            }
++        }
++    }
++
++    GList *l = backup_state.di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++        if (!di->completed && di->bs) {
++            BlockJob *job = di->bs->job;
++            if (job) {
++                if (!di->completed) {
++                    block_job_cancel_sync(job);
++                }
++            }
++        }
++    }
++
++    pvebackup_cleanup();
++}
++
++void qmp_backup_cancel(Error **errp)
++{
++    Coroutine *co = qemu_coroutine_create(pvebackup_cancel, NULL);
++    qemu_coroutine_enter(co);
++
++    while (backup_state.vmaobj) {
++        /* FIXME: Find something better for this */
++        aio_poll(qemu_get_aio_context(), true);
++    }
++}
++
++void vma_object_add_config_file(Object *obj, const char *name, 
++                                const char *contents, size_t len,
++                                Error **errp);
++static int config_to_vma(const char *file, BackupFormat format,
++                         Object *vmaobj,
++                         const char *backup_dir,
++                         Error **errp)
++{
++        char *cdata = NULL;
++        gsize clen = 0;
++        GError *err = NULL;
++        if (!g_file_get_contents(file, &cdata, &clen, &err)) {
++            error_setg(errp, "unable to read file '%s'", file);
++            return 1;
++        }
++
++        char *basename = g_path_get_basename(file);
++
++        if (format == BACKUP_FORMAT_VMA) {
++            vma_object_add_config_file(vmaobj, basename, cdata, clen, errp);
++        } else if (format == BACKUP_FORMAT_DIR) {
++            char config_path[PATH_MAX];
++            snprintf(config_path, PATH_MAX, "%s/%s", backup_dir, basename);
++            if (!g_file_set_contents(config_path, cdata, clen, &err)) {
++              error_setg(errp, "unable to write config file '%s'", config_path);
++                g_free(cdata);
++                g_free(basename);
++                return 1;
++            }
++        }
++
++        g_free(basename);
++        g_free(cdata);
++
++        return 0;
++}
++
++static void pvebackup_run_next_job(void)
++{
++    bool cancel = backup_state.error || backup_state.cancel;
++fprintf(stderr, "run next job: %zu\n", backup_state.next_job);
++    GList *next = g_list_nth(backup_state.di_list, backup_state.next_job);
++    while (next) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)next->data;
++        backup_state.next_job++;
++        if (!di->completed && di->bs && di->bs->job) {
++            BlockJob *job = di->bs->job;
++            if (cancel) {
++                block_job_cancel(job);
++            } else {
++                block_job_resume(job);
++            }
++            return;
++        }
++        next = g_list_next(next);
++    }
++    pvebackup_cleanup();
++}
++
++UuidInfo *qmp_backup(const char *backup_file, bool has_format,
++                    BackupFormat format,
++                    bool has_config_file, const char *config_file,
++                    bool has_firewall_file, const char *firewall_file,
++                    bool has_devlist, const char *devlist,
++                    bool has_speed, int64_t speed, Error **errp)
++{
++    BlockBackend *blk;
++    BlockDriverState *bs = NULL;
++    const char *backup_dir = NULL;
++    Error *local_err = NULL;
++    QemuUUID uuid;
++    gchar **devs = NULL;
++    GList *di_list = NULL;
++    GList *l;
++    UuidInfo *uuid_info;
++    BlockJob *job;
++
++    if (backup_state.di_list || backup_state.vmaobj) {
++        error_set(errp, ERROR_CLASS_GENERIC_ERROR,
++                  "previous backup not finished");
++        return NULL;
++    }
++
++    /* Todo: try to auto-detect format based on file name */
++    format = has_format ? format : BACKUP_FORMAT_VMA;
++
++    if (has_devlist) {
++        devs = g_strsplit_set(devlist, ",;:", -1);
++
++        gchar **d = devs;
++        while (d && *d) {
++            blk = blk_by_name(*d);
++            if (blk) {
++                bs = blk_bs(blk);
++                if (bdrv_is_read_only(bs)) {
++                    error_setg(errp, "Node '%s' is read only", *d);
++                    goto err;
++                }
++                if (!bdrv_is_inserted(bs)) {
++                    error_setg(errp, QERR_DEVICE_HAS_NO_MEDIUM, *d);
++                    goto err;
++                }
++                PVEBackupDevInfo *di = g_new0(PVEBackupDevInfo, 1);
++                di->bs = bs;
++                di_list = g_list_append(di_list, di);
++            } else {
++                error_set(errp, ERROR_CLASS_DEVICE_NOT_FOUND,
++                          "Device '%s' not found", *d);
++                goto err;
++            }
++            d++;
++        }
++
++    } else {
++        BdrvNextIterator it;
++
++        bs = NULL;
++        for (bs = bdrv_first(&it); bs; bs = bdrv_next(&it)) {
++            if (!bdrv_is_inserted(bs) || bdrv_is_read_only(bs)) {
++                continue;
++            }
++
++            PVEBackupDevInfo *di = g_new0(PVEBackupDevInfo, 1);
++            di->bs = bs;
++            di_list = g_list_append(di_list, di);
++        }
++    }
++
++    if (!di_list) {
++        error_set(errp, ERROR_CLASS_GENERIC_ERROR, "empty device list");
++        goto err;
++    }
++
++    size_t total = 0;
++
++    l = di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++        if (bdrv_op_is_blocked(di->bs, BLOCK_OP_TYPE_BACKUP_SOURCE, errp)) {
++            goto err;
++        }
++
++        ssize_t size = bdrv_getlength(di->bs);
++        if (size < 0) {
++            error_setg_errno(errp, -di->size, "bdrv_getlength failed");
++            goto err;
++        }
++        di->size = size;
++        total += size;
++    }
++
++    qemu_uuid_generate(&uuid);
++
++    if (format == BACKUP_FORMAT_VMA) {
++        char uuidstr[UUID_FMT_LEN+1];
++        qemu_uuid_unparse(&uuid, uuidstr);
++        uuidstr[UUID_FMT_LEN] = 0;
++        backup_state.vmaobj =
++            object_new_with_props("vma", object_get_objects_root(),
++                                  "vma-backup-obj", &local_err,
++                                  "filename", backup_file,
++                                  "uuid", uuidstr,
++                                  NULL);
++        if (!backup_state.vmaobj) {
++            if (local_err) {
++                error_propagate(errp, local_err);
++            }
++            goto err;
++        }
++
++        l = di_list;
++        while (l) {
++            QDict *options = qdict_new();
++
++            PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++            l = g_list_next(l);
++
++            const char *devname = bdrv_get_device_name(di->bs);
++            snprintf(di->targetfile, PATH_MAX, "vma-backup-obj/%s.raw", devname);
++
++            qdict_put(options, "driver", qstring_from_str("vma-drive"));
++            qdict_put(options, "size", qint_from_int(di->size));
++            di->target = bdrv_open(di->targetfile, NULL, options, BDRV_O_RDWR, &local_err);
++            if (!di->target) {
++                error_propagate(errp, local_err);
++                goto err;
++            }
++        }
++    } else if (format == BACKUP_FORMAT_DIR) {
++        if (mkdir(backup_file, 0640) != 0) {
++            error_setg_errno(errp, errno, "can't create directory '%s'\n",
++                             backup_file);
++            goto err;
++        }
++        backup_dir = backup_file;
++
++        l = di_list;
++        while (l) {
++            PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++            l = g_list_next(l);
++
++            const char *devname = bdrv_get_device_name(di->bs);
++            snprintf(di->targetfile, PATH_MAX, "%s/%s.raw", backup_dir, devname);
++
++            int flags = BDRV_O_RDWR;
++            bdrv_img_create(di->targetfile, "raw", NULL, NULL, NULL,
++                            di->size, flags, &local_err, false);
++            if (local_err) {
++                error_propagate(errp, local_err);
++                goto err;
++            }
++
++            di->target = bdrv_open(di->targetfile, NULL, NULL, flags, &local_err);
++            if (!di->target) {
++                error_propagate(errp, local_err);
++                goto err;
++            }
++        }
++    } else {
++       error_set(errp, ERROR_CLASS_GENERIC_ERROR, "unknown backup format");
++       goto err;
++    }
++
++    /* add configuration file to archive */
++    if (has_config_file) {
++      if(config_to_vma(config_file, format, backup_state.vmaobj, backup_dir, errp) != 0) {
++        goto err;
++      }
++    }
++
++    /* add firewall file to archive */
++    if (has_firewall_file) {
++      if(config_to_vma(firewall_file, format, backup_state.vmaobj, backup_dir, errp) != 0) {
++        goto err;
++      }
++    }
++    /* initialize global backup_state now */
++
++    backup_state.cancel = false;
++
++    if (backup_state.error) {
++        error_free(backup_state.error);
++        backup_state.error = NULL;
++    }
++
++    backup_state.speed = (has_speed && speed > 0) ? speed : 0;
++
++    backup_state.start_time = time(NULL);
++    backup_state.end_time = 0;
++
++    if (backup_state.backup_file) {
++        g_free(backup_state.backup_file);
++    }
++    backup_state.backup_file = g_strdup(backup_file);
++
++    memcpy(&backup_state.uuid, &uuid, sizeof(uuid));
++    qemu_uuid_unparse(&uuid, backup_state.uuid_str);
++
++    backup_state.di_list = di_list;
++    backup_state.next_job = 0;
++
++    backup_state.total = total;
++    backup_state.transferred = 0;
++    backup_state.zero_bytes = 0;
++
++    /* start all jobs (paused state) */
++    l = di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++
++        job = backup_job_create(NULL, di->bs, di->target, speed, MIRROR_SYNC_MODE_FULL, NULL,
++                                false, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
++                                BLOCK_JOB_DEFAULT,
++                                pvebackup_complete_cb, di, 2, NULL, &local_err);
++        if (di->target) {
++            bdrv_unref(di->target);
++            di->target = NULL;
++        }
++        if (!job || local_err != NULL) {
++            error_setg(&backup_state.error, "backup_job_create failed");
++            pvebackup_cancel(NULL);
++        } else {
++            block_job_start(job);
++        }
++    }
++
++    if (!backup_state.error) {
++        pvebackup_run_next_job(); // run one job
++    }
++
++    uuid_info = g_malloc0(sizeof(*uuid_info));
++    uuid_info->UUID = g_strdup(backup_state.uuid_str);
++
++    return uuid_info;
++
++err:
++
++    l = di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++
++        if (di->target) {
++            bdrv_unref(di->target);
++        }
++
++        if (di->targetfile[0]) {
++            unlink(di->targetfile);
++        }
++        g_free(di);
++    }
++    g_list_free(di_list);
++
++    if (devs) {
++        g_strfreev(devs);
++    }
++
++    if (backup_state.vmaobj) {
++        object_unparent(backup_state.vmaobj);
++        backup_state.vmaobj = NULL;
++    }
++
++    if (backup_dir) {
++        rmdir(backup_dir);
++    }
++
++    return NULL;
++}
++
++BackupStatus *qmp_query_backup(Error **errp)
++{
++    BackupStatus *info = g_malloc0(sizeof(*info));
++
++    if (!backup_state.start_time) {
++        /* not started, return {} */
++        return info;
++    }
++
++    info->has_status = true;
++    info->has_start_time = true;
++    info->start_time = backup_state.start_time;
++
++    if (backup_state.backup_file) {
++        info->has_backup_file = true;
++        info->backup_file = g_strdup(backup_state.backup_file);
++    }
++
++    info->has_uuid = true;
++    info->uuid = g_strdup(backup_state.uuid_str);
++
++    if (backup_state.end_time) {
++        if (backup_state.error) {
++            info->status = g_strdup("error");
++            info->has_errmsg = true;
++            info->errmsg = g_strdup(error_get_pretty(backup_state.error));
++        } else {
++            info->status = g_strdup("done");
++        }
++        info->has_end_time = true;
++        info->end_time = backup_state.end_time;
++    } else {
++        info->status = g_strdup("active");
++    }
++
++    info->has_total = true;
++    info->total = backup_state.total;
++    info->has_zero_bytes = true;
++    info->zero_bytes = backup_state.zero_bytes;
++    info->has_transferred = true;
++    info->transferred = backup_state.transferred;
++
++    return info;
++}
++
+ void qmp_block_stream(bool has_job_id, const char *job_id, const char *device,
+                       bool has_base, const char *base,
+                       bool has_base_node, const char *base_node,
+diff --git a/configure b/configure
+index be4d326ae0..841f7a8fae 100755
+--- a/configure
++++ b/configure
+@@ -320,6 +320,7 @@ numa=""
+ tcmalloc="no"
+ jemalloc="no"
+ replication="yes"
++vma=""
+ 
+ supported_cpu="no"
+ supported_os="no"
+@@ -1183,6 +1184,10 @@ for opt do
+   ;;
+   --enable-replication) replication="yes"
+   ;;
++  --disable-vma) vma="no"
++  ;;
++  --enable-vma) vma="yes"
++  ;;
+   *)
+       echo "ERROR: unknown option $opt"
+       echo "Try '$0 --help' for more information"
+@@ -1427,6 +1432,7 @@ disabled with --disable-FEATURE, default is enabled if available:
+   xfsctl          xfsctl support
+   qom-cast-debug  cast debugging support
+   tools           build qemu-io, qemu-nbd and qemu-image tools
++  vma             VMA archive backend
+ 
+ NOTE: The object files are built at the place where configure is launched
+ EOF
+@@ -3705,6 +3711,23 @@ EOF
+ fi
+ 
+ ##########################################
++# vma probe
++if test "$vma" != "no" ; then
++  if $pkg_config --exact-version=0.1.0 vma; then
++    vma="yes"
++    vma_cflags=$($pkg_config --cflags vma)
++    vma_libs=$($pkg_config --libs vma)
++  else
++    if test "$vma" = "yes" ; then
++      feature_not_found "VMA Archive backend support" \
++          "Install libvma devel"
++    fi
++    vma="no"
++  fi
++fi
++
++
++##########################################
+ # signalfd probe
+ signalfd="no"
+ cat > $TMPC << EOF
+@@ -5146,6 +5169,7 @@ echo "tcmalloc support  $tcmalloc"
+ echo "jemalloc support  $jemalloc"
+ echo "avx2 optimization $avx2_opt"
+ echo "replication support $replication"
++echo "VMA support       $vma"
+ 
+ if test "$sdl_too_old" = "yes"; then
+ echo "-> Your SDL version is too old - please upgrade to have SDL support"
+@@ -5703,6 +5727,12 @@ if test "$libssh2" = "yes" ; then
+   echo "LIBSSH2_LIBS=$libssh2_libs" >> $config_host_mak
+ fi
+ 
++if test "$vma" = "yes" ; then
++  echo "CONFIG_VMA=y" >> $config_host_mak
++  echo "VMA_CFLAGS=$vma_cflags" >> $config_host_mak
++  echo "VMA_LIBS=$vma_libs" >> $config_host_mak
++fi
++
+ # USB host support
+ if test "$libusb" = "yes"; then
+   echo "HOST_USB=libusb legacy" >> $config_host_mak
+diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
+index 5fc57a2210..3b5a0f95e4 100644
+--- a/hmp-commands-info.hx
++++ b/hmp-commands-info.hx
+@@ -487,6 +487,19 @@ STEXI
+ Show CPU statistics.
+ ETEXI
+ 
++    {
++        .name       = "backup",
++        .args_type  = "",
++        .params     = "",
++        .help       = "show backup status",
++        .cmd = hmp_info_backup,
++    },
++
++STEXI
++@item info backup
++show backup status
++ETEXI
++
+ #if defined(CONFIG_SLIRP)
+     {
+         .name       = "usernet",
+diff --git a/hmp-commands.hx b/hmp-commands.hx
+index 58940a762b..a2867b56f2 100644
+--- a/hmp-commands.hx
++++ b/hmp-commands.hx
+@@ -87,6 +87,37 @@ STEXI
+ Copy data from a backing file into a block device.
+ ETEXI
+ 
++   {
++        .name       = "backup",
++        .args_type  = "directory:-d,backupfile:s,speed:o?,devlist:s?",
++        .params     = "[-d] backupfile [speed [devlist]]",
++        .help       = "create a VM Backup."
++		    "\n\t\t\t Use -d to dump data into a directory instead"
++		    "\n\t\t\t of using VMA format.",
++        .cmd = hmp_backup,
++    },
++
++STEXI
++@item backup
++@findex backup
++Create a VM backup.
++ETEXI
++
++    {
++        .name       = "backup_cancel",
++        .args_type  = "",
++        .params     = "",
++        .help       = "cancel the current VM backup",
++        .cmd = hmp_backup_cancel,
++    },
++
++STEXI
++@item backup_cancel
++@findex backup_cancel
++Cancel the current VM backup.
++
++ETEXI
++
+     {
+         .name       = "block_job_set_speed",
+         .args_type  = "device:B,speed:o",
+diff --git a/hmp.c b/hmp.c
+index f725d061e6..12f1f46125 100644
+--- a/hmp.c
++++ b/hmp.c
+@@ -151,6 +151,44 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
+     qapi_free_MouseInfoList(mice_list);
+ }
+ 
++void hmp_info_backup(Monitor *mon, const QDict *qdict)
++{
++    BackupStatus *info;
++
++    info = qmp_query_backup(NULL);
++    if (info->has_status) {
++        if (info->has_errmsg) {
++            monitor_printf(mon, "Backup status: %s - %s\n",
++                           info->status, info->errmsg);
++        } else {
++            monitor_printf(mon, "Backup status: %s\n", info->status);
++        }
++    }
++
++    if (info->has_backup_file) {
++        monitor_printf(mon, "Start time: %s", ctime(&info->start_time));
++        if (info->end_time) {
++            monitor_printf(mon, "End time: %s", ctime(&info->end_time));
++        }
++
++        int per = (info->has_total && info->total &&
++            info->has_transferred && info->transferred) ?
++            (info->transferred * 100)/info->total : 0;
++        int zero_per = (info->has_total && info->total &&
++                        info->has_zero_bytes && info->zero_bytes) ?
++            (info->zero_bytes * 100)/info->total : 0;
++        monitor_printf(mon, "Backup file: %s\n", info->backup_file);
++        monitor_printf(mon, "Backup uuid: %s\n", info->uuid);
++        monitor_printf(mon, "Total size: %zd\n", info->total);
++        monitor_printf(mon, "Transferred bytes: %zd (%d%%)\n",
++                       info->transferred, per);
++        monitor_printf(mon, "Zero bytes: %zd (%d%%)\n",
++                       info->zero_bytes, zero_per);
++    }
++
++    qapi_free_BackupStatus(info);
++}
++
+ void hmp_info_migrate(Monitor *mon, const QDict *qdict)
+ {
+     MigrationInfo *info;
+@@ -1613,6 +1651,31 @@ void hmp_block_stream(Monitor *mon, const QDict *qdict)
+     hmp_handle_error(mon, &error);
+ }
+ 
++void hmp_backup_cancel(Monitor *mon, const QDict *qdict)
++{
++    Error *error = NULL;
++
++    qmp_backup_cancel(&error);
++
++    hmp_handle_error(mon, &error);
++}
++
++void hmp_backup(Monitor *mon, const QDict *qdict)
++{
++    Error *error = NULL;
++
++    int dir = qdict_get_try_bool(qdict, "directory", 0);
++    const char *backup_file = qdict_get_str(qdict, "backupfile");
++    const char *devlist = qdict_get_try_str(qdict, "devlist");
++    int64_t speed = qdict_get_try_int(qdict, "speed", 0);
++
++    qmp_backup(backup_file, true, dir ? BACKUP_FORMAT_DIR : BACKUP_FORMAT_VMA,
++               false, NULL, false, NULL, !!devlist,
++               devlist, qdict_haskey(qdict, "speed"), speed, &error);
++
++    hmp_handle_error(mon, &error);
++}
++
+ void hmp_block_job_set_speed(Monitor *mon, const QDict *qdict)
+ {
+     Error *error = NULL;
+diff --git a/hmp.h b/hmp.h
+index 0497afbf65..8c1b4846b3 100644
+--- a/hmp.h
++++ b/hmp.h
+@@ -31,6 +31,7 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_capabilities(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_parameters(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_cache_size(Monitor *mon, const QDict *qdict);
++void hmp_info_backup(Monitor *mon, const QDict *qdict);
+ void hmp_info_cpus(Monitor *mon, const QDict *qdict);
+ void hmp_info_block(Monitor *mon, const QDict *qdict);
+ void hmp_info_blockstats(Monitor *mon, const QDict *qdict);
+@@ -80,6 +81,8 @@ void hmp_eject(Monitor *mon, const QDict *qdict);
+ void hmp_change(Monitor *mon, const QDict *qdict);
+ void hmp_block_set_io_throttle(Monitor *mon, const QDict *qdict);
+ void hmp_block_stream(Monitor *mon, const QDict *qdict);
++void hmp_backup(Monitor *mon, const QDict *qdict);
++void hmp_backup_cancel(Monitor *mon, const QDict *qdict);
+ void hmp_block_job_set_speed(Monitor *mon, const QDict *qdict);
+ void hmp_block_job_cancel(Monitor *mon, const QDict *qdict);
+ void hmp_block_job_pause(Monitor *mon, const QDict *qdict);
+diff --git a/qapi-schema.json b/qapi-schema.json
+index 5e82933ca1..b20020a054 100644
+--- a/qapi-schema.json
++++ b/qapi-schema.json
+@@ -571,6 +571,97 @@
+ { 'command': 'query-events', 'returns': ['EventInfo'] }
+ 
+ ##
++# @BackupStatus:
++#
++# Detailed backup status.
++#
++# @status: string describing the current backup status.
++#          This can be 'active', 'done', 'error'. If this field is not
++#          returned, no backup process has been initiated
++#
++# @errmsg: error message (only returned if status is 'error')
++#
++# @total: total amount of bytes involved in the backup process
++#
++# @transferred: amount of bytes already backed up.
++#
++# @zero-bytes: amount of 'zero' bytes detected.
++#
++# @start-time: time (epoch) when backup job started.
++#
++# @end-time: time (epoch) when backup job finished.
++#
++# @backup-file: backup file name
++#
++# @uuid: uuid for this backup job
++#
++##
++{ 'struct': 'BackupStatus',
++  'data': {'*status': 'str', '*errmsg': 'str', '*total': 'int',
++           '*transferred': 'int', '*zero-bytes': 'int',
++           '*start-time': 'int', '*end-time': 'int',
++           '*backup-file': 'str', '*uuid': 'str' } }
++
++##
++# @BackupFormat:
++#
++# An enumeration of supported backup formats.
++#
++# @vma: Proxmox vma backup format
++##
++{ 'enum': 'BackupFormat',
++  'data': [ 'vma', 'dir' ] }
++
++##
++# @backup:
++#
++# Starts a VM backup.
++#
++# @backup-file: the backup file name
++#
++# @format: format of the backup file
++#
++# @config-file: a configuration file to include into
++# the backup archive.
++#
++# @speed: the maximum speed, in bytes per second
++#
++# @devlist: list of block device names (separated by ',', ';'
++# or ':'). By default the backup includes all writable block devices.
++#
++# Returns: the uuid of the backup job
++#
++##
++{ 'command': 'backup', 'data': { 'backup-file': 'str',
++                                    '*format': 'BackupFormat',
++                                    '*config-file': 'str',
++                                    '*firewall-file': 'str',
++                                    '*devlist': 'str', '*speed': 'int' },
++  'returns': 'UuidInfo' }
++
++##
++# @query-backup:
++#
++# Returns information about current/last backup task.
++#
++# Returns: @BackupStatus
++#
++##
++{ 'command': 'query-backup', 'returns': 'BackupStatus' }
++
++##
++# @backup-cancel:
++#
++# Cancel the current executing backup process.
++#
++# Returns: nothing on success
++#
++# Notes: This command succeeds even if there is no backup process running.
++#
++##
++{ 'command': 'backup-cancel' }
++
++##
+ # @MigrationStats:
+ #
+ # Detailed migration status.
+diff --git a/qapi/block-core.json b/qapi/block-core.json
+index 033457ce86..891afe5eaa 100644
+--- a/qapi/block-core.json
++++ b/qapi/block-core.json
+@@ -2116,7 +2116,7 @@
+             'host_device', 'http', 'https', 'iscsi', 'luks', 'nbd', 'nfs',
+             'null-aio', 'null-co', 'parallels', 'qcow', 'qcow2', 'qed',
+             'quorum', 'raw', 'rbd', 'replication', 'sheepdog', 'ssh',
+-            'vdi', 'vhdx', 'vmdk', 'vpc', 'vvfat' ] }
++            'vdi', 'vhdx', 'vmdk', 'vpc', 'vvfat', 'vma-drive' ] }
+ 
+ ##
+ # @BlockdevOptionsFile:
+@@ -2866,6 +2866,21 @@
+   'data': { '*offset': 'int', '*size': 'int' } }
+ 
+ ##
++# @BlockdevOptionsVMADrive:
++#
++# Driver specific block device options for VMA Drives
++#
++# @filename: vma-drive path
++#
++# @size: drive size in bytes
++#
++# Since: 2.9
++##
++{ 'struct': 'BlockdevOptionsVMADrive',
++  'data': { 'filename': 'str',
++            'size': 'int' } }
++
++##
+ # @BlockdevOptions:
+ #
+ # Options for creating a block device.  Many options are available for all
+@@ -2927,7 +2942,8 @@
+       'vhdx':       'BlockdevOptionsGenericFormat',
+       'vmdk':       'BlockdevOptionsGenericCOWFormat',
+       'vpc':        'BlockdevOptionsGenericFormat',
+-      'vvfat':      'BlockdevOptionsVVFAT'
++      'vvfat':      'BlockdevOptionsVVFAT',
++      'vma-drive':  'BlockdevOptionsVMADrive'
+   } }
+ 
+ ##
+-- 
+2.11.0
+

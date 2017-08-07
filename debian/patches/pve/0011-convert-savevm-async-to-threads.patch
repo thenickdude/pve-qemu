@@ -1,0 +1,234 @@
+From 1a92a719b15ed17e57999e009bc0fb4cf94ef468 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Tue, 8 Nov 2016 11:13:06 +0100
+Subject: [PATCH 11/28] convert savevm-async to threads
+
+---
+ savevm-async.c | 144 +++++++++++++++++++++++++++++++++++----------------------
+ 1 file changed, 88 insertions(+), 56 deletions(-)
+
+diff --git a/savevm-async.c b/savevm-async.c
+index 2f4766cf6c..624e3a34b4 100644
+--- a/savevm-async.c
++++ b/savevm-async.c
+@@ -48,6 +48,8 @@ static struct SnapshotState {
+     int saved_vm_running;
+     QEMUFile *file;
+     int64_t total_time;
++    QEMUBH *cleanup_bh;
++    QemuThread thread;
+ } snap_state;
+ 
+ SaveVMInfo *qmp_query_savevm(Error **errp)
+@@ -135,19 +137,6 @@ static void save_snapshot_error(const char *fmt, ...)
+     g_free (msg);
+ 
+     snap_state.state = SAVE_STATE_ERROR;
+-
+-    save_snapshot_cleanup();
+-}
+-
+-static void save_snapshot_completed(void)
+-{
+-    DPRINTF("save_snapshot_completed\n");
+-
+-    if (save_snapshot_cleanup() < 0) {
+-        snap_state.state = SAVE_STATE_ERROR;
+-    } else {
+-        snap_state.state = SAVE_STATE_COMPLETED;
+-    }
+ }
+ 
+ static int block_state_close(void *opaque)
+@@ -156,51 +145,90 @@ static int block_state_close(void *opaque)
+     return blk_flush(snap_state.target);
+ }
+ 
++typedef struct BlkRwCo {
++    int64_t offset;
++    QEMUIOVector *qiov;
++    int ret;
++} BlkRwCo;
++
++static void block_state_write_entry(void *opaque) {
++    BlkRwCo *rwco = opaque;
++    rwco->ret = blk_co_pwritev(snap_state.target, rwco->offset, rwco->qiov->size,
++                               rwco->qiov, 0);
++}
++
+ static ssize_t block_state_writev_buffer(void *opaque, struct iovec *iov,
+                                          int iovcnt, int64_t pos)
+ {
+-    int ret;
+     QEMUIOVector qiov;
++    AioContext *aio_context;
++    Coroutine *co;
++    BlkRwCo rwco;
++
++    assert(pos == snap_state.bs_pos);
++    rwco = (BlkRwCo) {
++        .offset = pos,
++        .qiov = &qiov,
++        .ret = NOT_DONE,
++    };
+ 
+     qemu_iovec_init_external(&qiov, iov, iovcnt);
+-    ret = blk_co_pwritev(snap_state.target, pos, qiov.size, &qiov, 0);
+-    if (ret < 0) {
+-        return ret;
++
++    aio_context = blk_get_aio_context(snap_state.target);
++    aio_context_acquire(aio_context);
++    co = qemu_coroutine_create(&block_state_write_entry, &rwco);
++    qemu_coroutine_enter(co);
++    while (rwco.ret == NOT_DONE) {
++        aio_poll(aio_context, true);
+     }
++    aio_context_release(aio_context);
++
+     snap_state.bs_pos += qiov.size;
+     return qiov.size;
+ }
+ 
+-static int store_and_stop(void) {
+-    if (global_state_store()) {
+-        save_snapshot_error("Error saving global state");
+-        return 1;
++static void process_savevm_cleanup(void *opaque)
++{
++    int ret;
++    qemu_bh_delete(snap_state.cleanup_bh);
++    snap_state.cleanup_bh = NULL;
++    qemu_mutex_unlock_iothread();
++    qemu_thread_join(&snap_state.thread);
++    qemu_mutex_lock_iothread();
++    ret = save_snapshot_cleanup();
++    if (ret < 0) {
++        save_snapshot_error("save_snapshot_cleanup error %d", ret);
++    } else if (snap_state.state == SAVE_STATE_ACTIVE) {
++        snap_state.state = SAVE_STATE_COMPLETED;
++    } else {
++        save_snapshot_error("process_savevm_cleanup: invalid state: %d",
++                            snap_state.state);
+     }
+-    if (runstate_is_running()) {
+-        vm_stop(RUN_STATE_SAVE_VM);
++    if (snap_state.saved_vm_running) {
++        vm_start();
++        snap_state.saved_vm_running = false;
+     }
+-    return 0;
+ }
+ 
+-static void process_savevm_co(void *opaque)
++static void *process_savevm_thread(void *opaque)
+ {
+     int ret;
+     int64_t maxlen;
++
+     MigrationParams params = {
+         .blk = 0,
+         .shared = 0
+     };
+ 
+-    snap_state.state = SAVE_STATE_ACTIVE;
++    rcu_register_thread();
+ 
+-    qemu_mutex_unlock_iothread();
+     qemu_savevm_state_header(snap_state.file);
+     ret = qemu_savevm_state_begin(snap_state.file, &params);
+-    qemu_mutex_lock_iothread();
+ 
+     if (ret < 0) {
+         save_snapshot_error("qemu_savevm_state_begin failed");
+-        return;
++        rcu_unregister_thread();
++        return NULL;
+     }
+ 
+     while (snap_state.state == SAVE_STATE_ACTIVE) {
+@@ -209,41 +237,43 @@ static void process_savevm_co(void *opaque)
+         qemu_savevm_state_pending(snap_state.file, 0, &pend_nonpost, &pend_post);
+         pending_size = pend_post + pend_nonpost;
+ 
+-        if (pending_size) {
+-                ret = qemu_savevm_state_iterate(snap_state.file, false);
+-                if (ret < 0) {
+-                    save_snapshot_error("qemu_savevm_state_iterate error %d", ret);
+-                    break;
+-                }
+-                DPRINTF("savevm inerate pending size %lu ret %d\n", pending_size, ret);
++        maxlen = blk_getlength(snap_state.target) - 30*1024*1024;
++
++        if (pending_size > 400000 && snap_state.bs_pos + pending_size < maxlen) {
++            qemu_mutex_lock_iothread();
++            ret = qemu_savevm_state_iterate(snap_state.file, false);
++            if (ret < 0) {
++                save_snapshot_error("qemu_savevm_state_iterate error %d", ret);
++                break;
++            }
++            qemu_mutex_unlock_iothread();
++            DPRINTF("savevm inerate pending size %lu ret %d\n", pending_size, ret);
+         } else {
+-            DPRINTF("done iterating\n");
+-            if (store_and_stop())
++            qemu_mutex_lock_iothread();
++            qemu_system_wakeup_request(QEMU_WAKEUP_REASON_OTHER);
++            ret = global_state_store();
++            if (ret) {
++                save_snapshot_error("global_state_store error %d", ret);
+                 break;
++            }
++            ret = vm_stop_force_state(RUN_STATE_FINISH_MIGRATE);
++            if (ret < 0) {
++                save_snapshot_error("vm_stop_force_state error %d", ret);
++                break;
++            }
+             DPRINTF("savevm inerate finished\n");
+             qemu_savevm_state_complete_precopy(snap_state.file, false);
++            qemu_savevm_state_cleanup();
+             DPRINTF("save complete\n");
+-            save_snapshot_completed();
+             break;
+         }
+-
+-        /* stop the VM if we get to the end of available space,
+-         * or if pending_size is just a few MB
+-         */
+-        maxlen = blk_getlength(snap_state.target) - 30*1024*1024;
+-        if ((pending_size < 100000) ||
+-            ((snap_state.bs_pos + pending_size) >= maxlen)) {
+-            if (store_and_stop())
+-                break;
+-        }
+     }
+ 
+-    if(snap_state.state == SAVE_STATE_CANCELLED) {
+-        save_snapshot_completed();
+-        Error *errp = NULL;
+-        qmp_savevm_end(&errp);
+-    }
++    qemu_bh_schedule(snap_state.cleanup_bh);
++    qemu_mutex_unlock_iothread();
+ 
++    rcu_unregister_thread();
++    return NULL;
+ }
+ 
+ static const QEMUFileOps block_file_ops = {
+@@ -306,8 +336,10 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
+     error_setg(&snap_state.blocker, "block device is in use by savevm");
+     blk_op_block_all(snap_state.target, snap_state.blocker);
+ 
+-    Coroutine *co = qemu_coroutine_create(process_savevm_co, NULL);
+-    qemu_coroutine_enter(co);
++    snap_state.state = SAVE_STATE_ACTIVE;
++    snap_state.cleanup_bh = qemu_bh_new(process_savevm_cleanup, &snap_state);
++    qemu_thread_create(&snap_state.thread, "savevm-async", process_savevm_thread,
++                       NULL, QEMU_THREAD_JOINABLE);
+ 
+     return;
+ 
+-- 
+2.11.0
+

@@ -1,0 +1,25 @@
+From 0b8732d8e19f69471e2f9b8c9a654de62482915a Mon Sep 17 00:00:00 2001
+From: Thomas Lamprecht <t.lamprecht@proxmox.com>
+Date: Wed, 6 Apr 2016 16:45:15 +0200
+Subject: [PATCH 18/28] migrate: fix possible unitialised return value
+
+---
+ migration/savevm.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/migration/savevm.c b/migration/savevm.c
+index feb0dc6834..d2615f4620 100644
+--- a/migration/savevm.c
++++ b/migration/savevm.c
+@@ -1111,7 +1111,7 @@ int qemu_savevm_state_complete_precopy(QEMUFile *f, bool iterable_only)
+     QJSON *vmdesc;
+     int vmdesc_len;
+     SaveStateEntry *se;
+-    int ret;
++    int ret = -1;
+     bool in_postcopy = migration_in_postcopy(migrate_get_current());
+ 
+     trace_savevm_state_complete_precopy();
+-- 
+2.11.0
+

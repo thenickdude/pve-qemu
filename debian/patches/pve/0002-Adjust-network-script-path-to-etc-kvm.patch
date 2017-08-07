@@ -1,7 +1,7 @@
 From 65a038b874c5770f48077cf77742ac10bb083922 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:16:49 +0100
-Subject: [PATCH 02/49] Adjust network script path to /etc/kvm/
+Subject: [PATCH 02/28] Adjust network script path to /etc/kvm/
 
 ---
  include/net/net.h | 5 +++--
