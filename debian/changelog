@@ -1,3 +1,24 @@
+pve-qemu-kvm (2.9.0-3) stable; urgency=medium
+
+  * fix CVE-2017-7539: qemu-nbd crashes due to undefined I/O coroutine
+
+  * fix CVE-2017-11434: slirp: out-of-bounds read while parsing dhcp options
+
+  * fix CVE-2017-11334: exec: oob access during dma operation
+
+  * fix CVE-2017-10806: usb-redirect: stack buffer overflow in debug logging
+
+  * fix CVE-2017-10664: qemu-nbd: server breaks with SIGPIPE upon client abort
+
+  * fix CVE-2017-9524: nbd: segmentation fault due to client non-negotiation
+
+  * fix CVE-2017-9503: scsi: null pointer dereference while processing megasas
+    command
+
+  * support larger backup cluster sizes with vzdump
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 07 Aug 2017 10:34:02 +0200
+
 pve-qemu-kvm (2.9.0-2) stable; urgency=medium
 
   * fix CVE-2017-8380, CVE-2017-8309, CVE-2017-8379, CVE-2017-7493
