@@ -1,3 +1,9 @@
+pve-qemu-kvm (2.9.0-4) stable; urgency=medium
+
+  * vma: fix regression in backup with non-cluster-aligned sizes
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 14 Aug 2017 13:32:49 +0200
+
 pve-qemu-kvm (2.9.0-3) stable; urgency=medium
 
   * fix CVE-2017-7539: qemu-nbd crashes due to undefined I/O coroutine
