@@ -105,7 +105,17 @@ index 1ede70c061..51b5ba6eda 100644
      assert(s->target);
      blk_unref(s->target);
      s->target = NULL;
-@@ -330,9 +344,11 @@ static BlockErrorAction backup_error_action(BackupBlockJob *job,
+@@ -255,7 +269,8 @@ static void backup_attached_aio_context(BlockJob *job, AioContext *aio_context)
+ {
+     BackupBlockJob *s = container_of(job, BackupBlockJob, common);
+ 
+-    blk_set_aio_context(s->target, aio_context);
++    if (s->target)
++        blk_set_aio_context(s->target, aio_context);
+ }
+ 
+ void backup_do_checkpoint(BlockJob *job, Error **errp)
+@@ -330,9 +345,11 @@ static BlockErrorAction backup_error_action(BackupBlockJob *job,
      if (read) {
          return block_job_error_action(&job->common, job->on_source_error,
                                        true, error);
