@@ -1,3 +1,9 @@
+pve-qemu-kvm (2.9.0-5) stable; urgency=medium
+
+  * Fix #1420: fix stop mode backups with virtio-blk
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 05 Sep 2017 10:12:22 +0200
+
 pve-qemu-kvm (2.9.0-4) stable; urgency=medium
 
   * vma: fix regression in backup with non-cluster-aligned sizes
