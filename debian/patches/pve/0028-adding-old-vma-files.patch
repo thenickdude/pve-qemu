@@ -1,4 +1,4 @@
-From 741b9f52069e043e93f0fc47e820ddbfa0bff7a3 Mon Sep 17 00:00:00 2001
+From 19761ee4aa12da9a3e4028cc611a18d972559de0 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Mon, 7 Aug 2017 08:51:16 +0200
 Subject: [PATCH 28/28] adding old vma files
@@ -6,7 +6,7 @@ Subject: [PATCH 28/28] adding old vma files
 ---
  Makefile                  |   3 +-
  Makefile.objs             |   1 +
- block/backup.c            | 128 ++++---
+ block/backup.c            | 132 ++++---
  block/replication.c       |   1 +
  blockdev.c                | 250 +++++++++-----
  blockjob.c                |  11 +-
@@ -15,7 +15,7 @@ Subject: [PATCH 28/28] adding old vma files
  vma-writer.c              | 771 +++++++++++++++++++++++++++++++++++++++++
  vma.c                     | 757 ++++++++++++++++++++++++++++++++++++++++
  vma.h                     | 149 ++++++++
- 11 files changed, 2799 insertions(+), 133 deletions(-)
+ 11 files changed, 2802 insertions(+), 134 deletions(-)
  create mode 100644 vma-reader.c
  create mode 100644 vma-writer.c
  create mode 100644 vma.c
@@ -55,7 +55,7 @@ index fbfbbb7f70..f5f8dbab3b 100644
  block-obj-m = block/
  
 diff --git a/block/backup.c b/block/backup.c
-index 1ede70c061..51b5ba6eda 100644
+index 1ede70c061..7c5febc434 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -36,6 +36,7 @@ typedef struct BackupBlockJob {
@@ -96,26 +96,28 @@ index 1ede70c061..51b5ba6eda 100644
          }
          if (ret < 0) {
              trace_backup_do_cow_write_fail(job, start, ret);
-@@ -246,6 +258,8 @@ static void backup_abort(BlockJob *job)
+@@ -246,6 +258,9 @@ static void backup_abort(BlockJob *job)
  static void backup_clean(BlockJob *job)
  {
      BackupBlockJob *s = container_of(job, BackupBlockJob, common);
-+    if (!s->target)
++    if (!s->target) {
 +        return;
++    }
      assert(s->target);
      blk_unref(s->target);
      s->target = NULL;
-@@ -255,7 +269,8 @@ static void backup_attached_aio_context(BlockJob *job, AioContext *aio_context)
+@@ -255,7 +270,9 @@ static void backup_attached_aio_context(BlockJob *job, AioContext *aio_context)
  {
      BackupBlockJob *s = container_of(job, BackupBlockJob, common);
  
 -    blk_set_aio_context(s->target, aio_context);
-+    if (s->target)
++    if (s->target) {
 +        blk_set_aio_context(s->target, aio_context);
++    }
  }
  
  void backup_do_checkpoint(BlockJob *job, Error **errp)
-@@ -330,9 +345,11 @@ static BlockErrorAction backup_error_action(BackupBlockJob *job,
+@@ -330,9 +347,11 @@ static BlockErrorAction backup_error_action(BackupBlockJob *job,
      if (read) {
          return block_job_error_action(&job->common, job->on_source_error,
                                        true, error);
@@ -128,15 +130,7 @@ index 1ede70c061..51b5ba6eda 100644
      }
  }
  
-@@ -453,6 +469,7 @@ static void coroutine_fn backup_run(void *opaque)
- 
-     job->done_bitmap = bitmap_new(end);
- 
-+
-     job->before_write.notify = backup_before_write_notify;
-     bdrv_add_before_write_notifier(bs, &job->before_write);
- 
-@@ -557,6 +574,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -557,6 +576,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                    BlockdevOnError on_source_error,
                    BlockdevOnError on_target_error,
                    int creation_flags,
@@ -144,7 +138,7 @@ index 1ede70c061..51b5ba6eda 100644
                    BlockCompletionFunc *cb, void *opaque,
                    int pause_count,
                    BlockJobTxn *txn, Error **errp)
-@@ -567,7 +585,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -567,7 +587,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
      int ret;
  
      assert(bs);
@@ -153,7 +147,7 @@ index 1ede70c061..51b5ba6eda 100644
  
      if (bs == target) {
          error_setg(errp, "Source and target cannot be the same");
-@@ -580,13 +598,13 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -580,13 +600,13 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
          return NULL;
      }
  
@@ -169,7 +163,7 @@ index 1ede70c061..51b5ba6eda 100644
          error_setg(errp, "Compression is not supported for this drive %s",
                     bdrv_get_device_name(target));
          return NULL;
-@@ -596,7 +614,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -596,7 +616,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
          return NULL;
      }
  
@@ -178,7 +172,7 @@ index 1ede70c061..51b5ba6eda 100644
          return NULL;
      }
  
-@@ -636,15 +654,18 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -636,15 +656,18 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
          goto error;
      }
  
@@ -204,7 +198,7 @@ index 1ede70c061..51b5ba6eda 100644
      job->on_source_error = on_source_error;
      job->on_target_error = on_target_error;
      job->sync_mode = sync_mode;
-@@ -652,38 +673,55 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -652,38 +675,55 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                         sync_bitmap : NULL;
      job->compress = compress;
  
