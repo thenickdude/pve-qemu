@@ -1,4 +1,4 @@
-From 8f6787a80cafc259d2247a294ea657aee0928488 Mon Sep 17 00:00:00 2001
+From 4c989793d0df71e8f90da8c8f883d42a8aa92191 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:50:05 +0100
 Subject: [PATCH 14/28] use whitespace between VERSION and PKGVERSION
@@ -10,7 +10,7 @@ the version string, see PVE::QemuServer::kvm_user_version()
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/vl.c b/vl.c
-index 19afd47871..d0780a41b4 100644
+index 2132a77129..5d888cd179 100644
 --- a/vl.c
 +++ b/vl.c
 @@ -1909,7 +1909,7 @@ static void main_loop(void)

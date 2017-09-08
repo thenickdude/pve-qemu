@@ -1,4 +1,4 @@
-From e90d84abb42bc2befe9a48a9be2873d5dce68236 Mon Sep 17 00:00:00 2001
+From 78f096b96d63ed2e7eefd5826c5b8ef62f1244eb Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Tue, 12 Jan 2016 09:09:49 +0100
 Subject: [PATCH 16/28] vnc: make x509 imply tls again
@@ -8,7 +8,7 @@ Subject: [PATCH 16/28] vnc: make x509 imply tls again
  1 file changed, 2 insertions(+), 3 deletions(-)
 
 diff --git a/ui/vnc.c b/ui/vnc.c
-index 9c8ab42eea..eb9420e830 100644
+index f30687884b..a345bf0d78 100644
 --- a/ui/vnc.c
 +++ b/ui/vnc.c
 @@ -3881,9 +3881,8 @@ void vnc_display_open(const char *id, Error **errp)

@@ -1,4 +1,4 @@
-From a761848c2ded6eb644c0e0e5d9184f54db59828a Mon Sep 17 00:00:00 2001
+From ba17137d9645c421717b20aef09fed3945dc6d14 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:31:18 +0100
 Subject: [PATCH 07/28] qapi: modify query machines
@@ -32,7 +32,7 @@ index f38b85bf6a..51e150c6c1 100644
  
  ##
 diff --git a/vl.c b/vl.c
-index 0b4ed5241c..868c4893df 100644
+index b719cc432e..46de1b9087 100644
 --- a/vl.c
 +++ b/vl.c
 @@ -1518,6 +1518,11 @@ MachineInfoList *qmp_query_machines(Error **errp)

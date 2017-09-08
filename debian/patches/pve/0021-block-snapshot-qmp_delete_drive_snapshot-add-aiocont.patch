@@ -1,4 +1,4 @@
-From 1540187ba7716d502908a1815298d7c3fc8db6a6 Mon Sep 17 00:00:00 2001
+From e46b7bfe99cf88021d65b7796318066b1326ad53 Mon Sep 17 00:00:00 2001
 From: Alexandre Derumier <aderumier@odiso.com>
 Date: Mon, 7 Nov 2016 11:47:50 +0100
 Subject: [PATCH 21/28] block: snapshot: qmp_delete_drive_snapshot : add
@@ -12,7 +12,7 @@ Signed-off-by: Alexandre Derumier <aderumier@odiso.com>
  1 file changed, 10 insertions(+), 3 deletions(-)
 
 diff --git a/savevm-async.c b/savevm-async.c
-index 95995eab31..9f839faab5 100644
+index ece193a065..716dd2d7a1 100644
 --- a/savevm-async.c
 +++ b/savevm-async.c
 @@ -459,6 +459,7 @@ void qmp_delete_drive_snapshot(const char *device, const char *name,

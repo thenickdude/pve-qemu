@@ -1,4 +1,4 @@
-From f5ec823838e35470f0c9ff6bf7968ac02fa08b4d Mon Sep 17 00:00:00 2001
+From 728c38cd3035da76df02cf955c0452c3401eb3f3 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Thu, 17 Mar 2016 11:33:37 +0100
 Subject: [PATCH 24/28] block: add the zeroinit block driver filter
@@ -23,7 +23,7 @@ index de96f8ee80..8cdac08db5 100644
  block-obj-$(CONFIG_WIN32) += file-win32.o win32-aio.o
 diff --git a/block/zeroinit.c b/block/zeroinit.c
 new file mode 100644
-index 0000000000..a857ec3c62
+index 0000000000..305185512e
 --- /dev/null
 +++ b/block/zeroinit.c
 @@ -0,0 +1,220 @@
@@ -203,7 +203,7 @@ index 0000000000..a857ec3c62
 +
 +static int zeroinit_truncate(BlockDriverState *bs, int64_t offset)
 +{
-+    return bdrv_truncate(bs->file, offset);
++    return bdrv_truncate(bs->file, offset, NULL);
 +}
 +
 +static int zeroinit_get_info(BlockDriverState *bs, BlockDriverInfo *bdi)

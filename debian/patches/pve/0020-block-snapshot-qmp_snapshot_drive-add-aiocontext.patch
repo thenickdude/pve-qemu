@@ -1,4 +1,4 @@
-From 976296684d224ab866fc8b7ebe0d2de4b5b39170 Mon Sep 17 00:00:00 2001
+From dccd9887366b5df7eeb8394cc0476536ebc8dd45 Mon Sep 17 00:00:00 2001
 From: Alexandre Derumier <aderumier@odiso.com>
 Date: Tue, 13 Sep 2016 01:57:56 +0200
 Subject: [PATCH 20/28] block: snapshot: qmp_snapshot_drive: add aiocontext
@@ -9,7 +9,7 @@ Signed-off-by: Alexandre Derumier <aderumier@odiso.com>
  1 file changed, 11 insertions(+), 4 deletions(-)
 
 diff --git a/savevm-async.c b/savevm-async.c
-index 624e3a34b4..95995eab31 100644
+index 97d51d3edd..ece193a065 100644
 --- a/savevm-async.c
 +++ b/savevm-async.c
 @@ -377,6 +377,7 @@ void qmp_snapshot_drive(const char *device, const char *name, Error **errp)

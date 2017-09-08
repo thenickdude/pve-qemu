@@ -1,4 +1,4 @@
-From 8c4c8041d0cb8523af453e1d1a8408215db6964f Mon Sep 17 00:00:00 2001
+From 9082b919824dbedc5c3aa04369abb2f433ef6ec1 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:17:38 +0100
 Subject: [PATCH 15/28] vnc: altgr emulation
@@ -8,7 +8,7 @@ Subject: [PATCH 15/28] vnc: altgr emulation
  1 file changed, 25 insertions(+), 1 deletion(-)
 
 diff --git a/ui/vnc.c b/ui/vnc.c
-index 349cfc9d86..9c8ab42eea 100644
+index b0314441c4..f30687884b 100644
 --- a/ui/vnc.c
 +++ b/ui/vnc.c
 @@ -1631,6 +1631,10 @@ static void kbd_leds(void *opaque, int ledstate)

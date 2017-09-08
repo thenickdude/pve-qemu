@@ -1,4 +1,4 @@
-From 0b8732d8e19f69471e2f9b8c9a654de62482915a Mon Sep 17 00:00:00 2001
+From 9398ed96d5c02451ec85a3fcea2284b6efd4b7a8 Mon Sep 17 00:00:00 2001
 From: Thomas Lamprecht <t.lamprecht@proxmox.com>
 Date: Wed, 6 Apr 2016 16:45:15 +0200
 Subject: [PATCH 18/28] migrate: fix possible unitialised return value

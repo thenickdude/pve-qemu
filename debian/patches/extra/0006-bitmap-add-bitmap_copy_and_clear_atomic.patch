@@ -1,0 +1,51 @@
+From 9d6486413e60b1d973f7ec2ac006fc9b8e210ddd Mon Sep 17 00:00:00 2001
+From: Gerd Hoffmann <kraxel@redhat.com>
+Date: Fri, 21 Apr 2017 11:16:24 +0200
+Subject: [PATCH 06/13] bitmap: add bitmap_copy_and_clear_atomic
+
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+Message-id: 20170421091632.30900-2-kraxel@redhat.com
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+---
+ include/qemu/bitmap.h |  2 ++
+ util/bitmap.c         | 11 +++++++++++
+ 2 files changed, 13 insertions(+)
+
+diff --git a/include/qemu/bitmap.h b/include/qemu/bitmap.h
+index 63ea2d0b1e..c318da12d7 100644
+--- a/include/qemu/bitmap.h
++++ b/include/qemu/bitmap.h
+@@ -220,6 +220,8 @@ void bitmap_set(unsigned long *map, long i, long len);
+ void bitmap_set_atomic(unsigned long *map, long i, long len);
+ void bitmap_clear(unsigned long *map, long start, long nr);
+ bool bitmap_test_and_clear_atomic(unsigned long *map, long start, long nr);
++void bitmap_copy_and_clear_atomic(unsigned long *dst, unsigned long *src,
++                                  long nr);
+ unsigned long bitmap_find_next_zero_area(unsigned long *map,
+                                          unsigned long size,
+                                          unsigned long start,
+diff --git a/util/bitmap.c b/util/bitmap.c
+index c1a84ca5e3..efced9a7d8 100644
+--- a/util/bitmap.c
++++ b/util/bitmap.c
+@@ -287,6 +287,17 @@ bool bitmap_test_and_clear_atomic(unsigned long *map, long start, long nr)
+     return dirty != 0;
+ }
+ 
++void bitmap_copy_and_clear_atomic(unsigned long *dst, unsigned long *src,
++                                  long nr)
++{
++    while (nr > 0) {
++        *dst = atomic_xchg(src, 0);
++        dst++;
++        src++;
++        nr -= BITS_PER_LONG;
++    }
++}
++
+ #define ALIGN_MASK(x,mask)      (((x)+(mask))&~(mask))
+ 
+ /**
+-- 
+2.11.0
+

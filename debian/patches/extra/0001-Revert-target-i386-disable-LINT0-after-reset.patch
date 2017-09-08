@@ -1,7 +1,7 @@
-From 3949cb837593d29db5c06cef51f405ee3250c4c1 Mon Sep 17 00:00:00 2001
+From b143eba39dd462833093ee1c9660bb157e72ce54 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Mon, 4 Jul 2016 15:02:26 +0200
-Subject: [PATCH 01/23] Revert "target-i386: disable LINT0 after reset"
+Subject: [PATCH 01/13] Revert "target-i386: disable LINT0 after reset"
 
 This reverts commit b8eb5512fd8a115f164edbbe897cdf8884920ccb.
 ---
@@ -9,7 +9,7 @@ This reverts commit b8eb5512fd8a115f164edbbe897cdf8884920ccb.
  1 file changed, 9 insertions(+)
 
 diff --git a/hw/intc/apic_common.c b/hw/intc/apic_common.c
-index c3829e31b5..d4411a2fd4 100644
+index 1ef56f8d10..31fb73e9fb 100644
 --- a/hw/intc/apic_common.c
 +++ b/hw/intc/apic_common.c
 @@ -257,6 +257,15 @@ static void apic_reset_common(DeviceState *dev)

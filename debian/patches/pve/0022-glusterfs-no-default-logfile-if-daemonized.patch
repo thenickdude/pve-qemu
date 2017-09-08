@@ -1,4 +1,4 @@
-From 26129edb715505ae35207eff2477cffec50af13e Mon Sep 17 00:00:00 2001
+From a53fb2c9746d90e6020a0d7e5e8e2e346c81fb99 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Mon, 24 Oct 2016 09:32:36 +0200
 Subject: [PATCH 22/28] glusterfs: no default logfile if daemonized

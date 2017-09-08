@@ -1,7 +1,7 @@
-From d312b31b5c5e8e36c6e283bdb04b4784dd2e023b Mon Sep 17 00:00:00 2001
+From 3884a6e250302f5f3d002ed03c20fb9678ea85e7 Mon Sep 17 00:00:00 2001
 From: Paolo Bonzini <pbonzini@redhat.com>
 Date: Thu, 1 Jun 2017 17:26:14 +0200
-Subject: [PATCH 17/23] megasas: always store SCSIRequest* into MegasasCmd
+Subject: [PATCH 03/13] megasas: always store SCSIRequest* into MegasasCmd
 
 This ensures that the request is unref'ed properly, and avoids a
 segmentation fault in the new qtest testcase that is added.
@@ -14,10 +14,10 @@ Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
  1 file changed, 16 insertions(+), 15 deletions(-)
 
 diff --git a/hw/scsi/megasas.c b/hw/scsi/megasas.c
-index 887958481b..a0cafe3010 100644
+index 135662df31..734fdaef90 100644
 --- a/hw/scsi/megasas.c
 +++ b/hw/scsi/megasas.c
-@@ -607,6 +607,9 @@ static void megasas_reset_frames(MegasasState *s)
+@@ -609,6 +609,9 @@ static void megasas_reset_frames(MegasasState *s)
  static void megasas_abort_command(MegasasCmd *cmd)
  {
      /* Never abort internal commands.  */
@@ -27,7 +27,7 @@ index 887958481b..a0cafe3010 100644
      if (cmd->req != NULL) {
          scsi_req_cancel(cmd->req);
      }
-@@ -1014,7 +1017,6 @@ static int megasas_pd_get_info_submit(SCSIDevice *sdev, int lun,
+@@ -1017,7 +1020,6 @@ static int megasas_pd_get_info_submit(SCSIDevice *sdev, int lun,
      uint64_t pd_size;
      uint16_t pd_id = ((sdev->id & 0xFF) << 8) | (lun & 0xFF);
      uint8_t cmdbuf[6];
@@ -35,7 +35,7 @@ index 887958481b..a0cafe3010 100644
      size_t len, resid;
  
      if (!cmd->iov_buf) {
-@@ -1023,8 +1025,8 @@ static int megasas_pd_get_info_submit(SCSIDevice *sdev, int lun,
+@@ -1026,8 +1028,8 @@ static int megasas_pd_get_info_submit(SCSIDevice *sdev, int lun,
          info->inquiry_data[0] = 0x7f; /* Force PQual 0x3, PType 0x1f */
          info->vpd_page83[0] = 0x7f;
          megasas_setup_inquiry(cmdbuf, 0, sizeof(info->inquiry_data));
@@ -46,7 +46,7 @@ index 887958481b..a0cafe3010 100644
              trace_megasas_dcmd_req_alloc_failed(cmd->index,
                                                  "PD get info std inquiry");
              g_free(cmd->iov_buf);
-@@ -1033,26 +1035,26 @@ static int megasas_pd_get_info_submit(SCSIDevice *sdev, int lun,
+@@ -1036,26 +1038,26 @@ static int megasas_pd_get_info_submit(SCSIDevice *sdev, int lun,
          }
          trace_megasas_dcmd_internal_submit(cmd->index,
                                             "PD get info std inquiry", lun);
@@ -79,7 +79,7 @@ index 887958481b..a0cafe3010 100644
          }
          return MFI_STAT_INVALID_STATUS;
      }
-@@ -1214,7 +1216,6 @@ static int megasas_ld_get_info_submit(SCSIDevice *sdev, int lun,
+@@ -1217,7 +1219,6 @@ static int megasas_ld_get_info_submit(SCSIDevice *sdev, int lun,
      struct mfi_ld_info *info = cmd->iov_buf;
      size_t dcmd_size = sizeof(struct mfi_ld_info);
      uint8_t cdb[6];
@@ -87,7 +87,7 @@ index 887958481b..a0cafe3010 100644
      ssize_t len, resid;
      uint16_t sdev_id = ((sdev->id & 0xFF) << 8) | (lun & 0xFF);
      uint64_t ld_size;
-@@ -1223,8 +1224,8 @@ static int megasas_ld_get_info_submit(SCSIDevice *sdev, int lun,
+@@ -1226,8 +1227,8 @@ static int megasas_ld_get_info_submit(SCSIDevice *sdev, int lun,
          cmd->iov_buf = g_malloc0(dcmd_size);
          info = cmd->iov_buf;
          megasas_setup_inquiry(cdb, 0x83, sizeof(info->vpd_page83));
@@ -98,7 +98,7 @@ index 887958481b..a0cafe3010 100644
              trace_megasas_dcmd_req_alloc_failed(cmd->index,
                                                  "LD get info vpd inquiry");
              g_free(cmd->iov_buf);
-@@ -1233,10 +1234,10 @@ static int megasas_ld_get_info_submit(SCSIDevice *sdev, int lun,
+@@ -1236,10 +1237,10 @@ static int megasas_ld_get_info_submit(SCSIDevice *sdev, int lun,
          }
          trace_megasas_dcmd_internal_submit(cmd->index,
                                             "LD get info vpd inquiry", lun);
@@ -111,7 +111,7 @@ index 887958481b..a0cafe3010 100644
          }
          return MFI_STAT_INVALID_STATUS;
      }
-@@ -1865,7 +1866,7 @@ static void megasas_command_complete(SCSIRequest *req, uint32_t status,
+@@ -1851,7 +1852,7 @@ static void megasas_command_complete(SCSIRequest *req, uint32_t status,
          return;
      }
  

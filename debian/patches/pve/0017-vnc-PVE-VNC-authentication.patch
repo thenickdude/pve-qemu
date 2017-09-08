@@ -1,4 +1,4 @@
-From e9712692a0a336bf56025e1bc8056636cbd3931e Mon Sep 17 00:00:00 2001
+From 981ee6783da6e4d5905fcc972950296187a55c0d Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Mon, 11 Jan 2016 10:40:31 +0100
 Subject: [PATCH 17/28] vnc: PVE VNC authentication
@@ -180,7 +180,7 @@ index d759338816..69f010e1db 100644
  void vnc_display_open(const char *id, Error **errp);
  void vnc_display_add_client(const char *id, int csock, bool skipauth);
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 10f0e81f9b..fbd1a1cecf 100644
+index cbcb27da9a..0b1957c034 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
 @@ -513,6 +513,9 @@ STEXI
@@ -434,7 +434,7 @@ index ffaab57550..594ca737a9 100644
          vnc_read_when(vs, protocol_client_vencrypt_auth, 4);
      }
 diff --git a/ui/vnc.c b/ui/vnc.c
-index eb9420e830..2710614a72 100644
+index a345bf0d78..42db7e386b 100644
 --- a/ui/vnc.c
 +++ b/ui/vnc.c
 @@ -56,6 +56,125 @@ static const struct timeval VNC_REFRESH_LOSSY = { 2, 0 };
@@ -654,7 +654,7 @@ index 694cf32ca9..78d622ab84 100644
 +
  #endif /* QEMU_VNC_H */
 diff --git a/vl.c b/vl.c
-index d0780a41b4..2496b066b7 100644
+index 5d888cd179..1000a4a259 100644
 --- a/vl.c
 +++ b/vl.c
 @@ -2947,6 +2947,7 @@ static int qemu_read_default_config_file(void)
@@ -665,7 +665,7 @@ index d0780a41b4..2496b066b7 100644
      int snapshot, linux_boot;
      const char *initrd_filename;
      const char *kernel_filename, *kernel_cmdline;
-@@ -3774,6 +3775,14 @@ int main(int argc, char **argv, char **envp)
+@@ -3778,6 +3779,14 @@ int main(int argc, char **argv, char **envp)
                      exit(1);
                  }
                  break;

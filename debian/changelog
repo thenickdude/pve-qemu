@@ -1,3 +1,19 @@
+pve-qemu-kvm (2.9.1-1) stable; urgency=medium
+
+  * update to 2.9.1
+
+  * fix CVE-2017-14167: i386: multiboot OOB access while loading guest kernel image
+
+  * fix CVE-2017-13673: vga: reachable assert failure during during display update
+
+  * fix CVE-2017-13672: vga: OOB read access during display update
+
+  * fix CVE-2017-13711: Slirp: use-after-free when sending response
+
+  * fix CVE-2017-12809: ide: flushing of empty CDROM drives leads to NULL dereference
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 08 Sep 2017 09:31:33 +0200
+
 pve-qemu-kvm (2.9.0-5) stable; urgency=medium
 
   * Fix #1420: fix stop mode backups with virtio-blk

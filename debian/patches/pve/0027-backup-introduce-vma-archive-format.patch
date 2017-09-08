@@ -1,4 +1,4 @@
-From c904f41916fbfa522513267933da3f08ec74215f Mon Sep 17 00:00:00 2001
+From fb4bcaaced8119f2b99d1621fdfe5fce159311f4 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 2 Aug 2017 13:51:02 +0200
 Subject: [PATCH 27/28] backup: introduce vma archive format
@@ -19,10 +19,10 @@ Subject: [PATCH 27/28] backup: introduce vma archive format
  create mode 100644 block/vma.c
 
 diff --git a/MAINTAINERS b/MAINTAINERS
-index c60235eaf6..d95f278eb4 100644
+index 430efb0ab7..6a7d338aad 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
-@@ -1810,6 +1810,12 @@ L: qemu-block@nongnu.org
+@@ -1811,6 +1811,12 @@ L: qemu-block@nongnu.org
  S: Supported
  F: block/vvfat.c
  
@@ -484,7 +484,7 @@ index 0000000000..7151514f94
 +
 +block_init(bdrv_vma_init);
 diff --git a/blockdev.c b/blockdev.c
-index ec5e931029..981276692a 100644
+index 9b6cfafd33..e23eb16fc8 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -31,10 +31,12 @@
@@ -500,7 +500,7 @@ index ec5e931029..981276692a 100644
  #include "block/throttle-groups.h"
  #include "monitor/monitor.h"
  #include "qemu/error-report.h"
-@@ -2956,6 +2958,503 @@ out:
+@@ -2932,6 +2934,503 @@ out:
      aio_context_release(aio_context);
  }
  
@@ -1351,10 +1351,10 @@ index 5e82933ca1..b20020a054 100644
  #
  # Detailed migration status.
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 033457ce86..891afe5eaa 100644
+index 7ce90ec940..b0ffd3de4d 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -2116,7 +2116,7 @@
+@@ -2118,7 +2118,7 @@
              'host_device', 'http', 'https', 'iscsi', 'luks', 'nbd', 'nfs',
              'null-aio', 'null-co', 'parallels', 'qcow', 'qcow2', 'qed',
              'quorum', 'raw', 'rbd', 'replication', 'sheepdog', 'ssh',
@@ -1363,7 +1363,7 @@ index 033457ce86..891afe5eaa 100644
  
  ##
  # @BlockdevOptionsFile:
-@@ -2866,6 +2866,21 @@
+@@ -2895,6 +2895,21 @@
    'data': { '*offset': 'int', '*size': 'int' } }
  
  ##
@@ -1385,7 +1385,7 @@ index 033457ce86..891afe5eaa 100644
  # @BlockdevOptions:
  #
  # Options for creating a block device.  Many options are available for all
-@@ -2927,7 +2942,8 @@
+@@ -2956,7 +2971,8 @@
        'vhdx':       'BlockdevOptionsGenericFormat',
        'vmdk':       'BlockdevOptionsGenericCOWFormat',
        'vpc':        'BlockdevOptionsGenericFormat',

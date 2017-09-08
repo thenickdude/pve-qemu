@@ -1,4 +1,4 @@
-From 3bd6a30a92ecb420bac469ec977fbcc0ad918d1c Mon Sep 17 00:00:00 2001
+From e1031eef2db9f19cd09c21ba36f0d106528d8df0 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Fri, 23 Jun 2017 12:01:43 +0200
 Subject: [PATCH 25/28] qemu-img dd: add osize and read from/to stdin/stdout
@@ -51,10 +51,10 @@ index 8ac78222af..16bee83987 100644
  
  DEF("info", img_info,
 diff --git a/qemu-img.c b/qemu-img.c
-index 4f7f458dd2..b9d1ef7bb8 100644
+index c7804d63ee..ee7816e727 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -4035,10 +4035,12 @@ out:
+@@ -4026,10 +4026,12 @@ out:
  #define C_IF      04
  #define C_OF      010
  #define C_SKIP    020
@@ -67,7 +67,7 @@ index 4f7f458dd2..b9d1ef7bb8 100644
  };
  
  struct DdIo {
-@@ -4117,6 +4119,20 @@ static int img_dd_skip(const char *arg,
+@@ -4108,6 +4110,20 @@ static int img_dd_skip(const char *arg,
      return 0;
  }
  
@@ -88,7 +88,7 @@ index 4f7f458dd2..b9d1ef7bb8 100644
  static int img_dd(int argc, char **argv)
  {
      int ret = 0;
-@@ -4156,6 +4172,7 @@ static int img_dd(int argc, char **argv)
+@@ -4147,6 +4163,7 @@ static int img_dd(int argc, char **argv)
          { "if", img_dd_if, C_IF },
          { "of", img_dd_of, C_OF },
          { "skip", img_dd_skip, C_SKIP },
@@ -96,7 +96,7 @@ index 4f7f458dd2..b9d1ef7bb8 100644
          { NULL, NULL, 0 }
      };
      const struct option long_options[] = {
-@@ -4223,84 +4240,106 @@ static int img_dd(int argc, char **argv)
+@@ -4214,84 +4231,106 @@ static int img_dd(int argc, char **argv)
          arg = NULL;
      }
  
@@ -261,7 +261,7 @@ index 4f7f458dd2..b9d1ef7bb8 100644
      }
  
      if (dd.flags & C_SKIP && (in.offset > INT64_MAX / in.bsz ||
-@@ -4318,11 +4357,18 @@ static int img_dd(int argc, char **argv)
+@@ -4309,11 +4348,18 @@ static int img_dd(int argc, char **argv)
  
      for (out_pos = 0; in_pos < size; block_count++) {
          int in_ret, out_ret;
@@ -283,7 +283,7 @@ index 4f7f458dd2..b9d1ef7bb8 100644
          }
          if (in_ret < 0) {
              error_report("error while reading from input image file: %s",
-@@ -4332,9 +4378,13 @@ static int img_dd(int argc, char **argv)
+@@ -4323,9 +4369,13 @@ static int img_dd(int argc, char **argv)
          }
          in_pos += in_ret;
  

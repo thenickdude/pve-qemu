@@ -1,4 +1,4 @@
-From 926ac2ae6be8a7971e4c24d45345981e3a62d560 Mon Sep 17 00:00:00 2001
+From 5f03cca26a4ba9c08d6f6e19b97b6c6c1f0f236a Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:15:49 +0100
 Subject: [PATCH 01/28] fr-ca keymap corrections

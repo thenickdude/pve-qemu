@@ -1,23 +1,21 @@
-From 1f5a5623052ba8d593e4356f9fda0281e607be76 Mon Sep 17 00:00:00 2001
+From 27d7cf1b94244a56cd0e8a408af3e40a84dace81 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:04:32 +0100
 Subject: [PATCH 10/28] internal snapshot async
 
 ---
  Makefile.objs           |   1 +
- block.c                 |   2 +-
  hmp-commands-info.hx    |  13 ++
  hmp-commands.hx         |  32 +++
  hmp.c                   |  57 ++++++
  hmp.h                   |   5 +
- include/block/block.h   |   1 +
  include/sysemu/sysemu.h |   5 +-
  migration/savevm.c      |  12 +-
  qapi-schema.json        |  68 +++++++
  qemu-options.hx         |  13 ++
  savevm-async.c          | 523 ++++++++++++++++++++++++++++++++++++++++++++++++
  vl.c                    |   8 +
- 13 files changed, 732 insertions(+), 8 deletions(-)
+ 11 files changed, 730 insertions(+), 7 deletions(-)
  create mode 100644 savevm-async.c
 
 diff --git a/Makefile.objs b/Makefile.objs
@@ -32,19 +30,6 @@ index 6167e7b17d..fbfbbb7f70 100644
  
  common-obj-$(CONFIG_SPICE) += spice-qemu-char.o
  
-diff --git a/block.c b/block.c
-index 1fbbb8d606..6ea9ed1c62 100644
---- a/block.c
-+++ b/block.c
-@@ -3091,7 +3091,7 @@ out:
-     bdrv_unref(bs_new);
- }
- 
--static void bdrv_delete(BlockDriverState *bs)
-+void bdrv_delete(BlockDriverState *bs)
- {
-     assert(!bs->job);
-     assert(bdrv_op_blocker_is_empty(bs));
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
 index a53f105c52..5fc57a2210 100644
 --- a/hmp-commands-info.hx
@@ -200,18 +185,6 @@ index 799fd371fa..0497afbf65 100644
  void hmp_sendkey(Monitor *mon, const QDict *qdict);
  void hmp_screendump(Monitor *mon, const QDict *qdict);
  void hmp_nbd_server_start(Monitor *mon, const QDict *qdict);
-diff --git a/include/block/block.h b/include/block/block.h
-index 5ddc0cf21b..7eff87c7dd 100644
---- a/include/block/block.h
-+++ b/include/block/block.h
-@@ -295,6 +295,7 @@ BlockDriverState *bdrv_find_backing_image(BlockDriverState *bs,
- int bdrv_get_backing_file_depth(BlockDriverState *bs);
- void bdrv_refresh_filename(BlockDriverState *bs);
- int bdrv_truncate(BdrvChild *child, int64_t offset);
-+void bdrv_delete(BlockDriverState *bs);
- int64_t bdrv_nb_sectors(BlockDriverState *bs);
- int64_t bdrv_getlength(BlockDriverState *bs);
- int64_t bdrv_get_allocated_file_size(BlockDriverState *bs);
 diff --git a/include/sysemu/sysemu.h b/include/sysemu/sysemu.h
 index 576c7ce640..74623de16c 100644
 --- a/include/sysemu/sysemu.h
@@ -388,7 +361,7 @@ index 1b14ff2476..361700d37c 100644
  #
  # An enumeration of key name.
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 99af8edf5f..10f0e81f9b 100644
+index 48dfffd86a..cbcb27da9a 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
 @@ -3396,6 +3396,19 @@ STEXI
@@ -413,7 +386,7 @@ index 99af8edf5f..10f0e81f9b 100644
      "-daemonize      daemonize QEMU after initializing\n", QEMU_ARCH_ALL)
 diff --git a/savevm-async.c b/savevm-async.c
 new file mode 100644
-index 0000000000..2f4766cf6c
+index 0000000000..5fcb56d373
 --- /dev/null
 +++ b/savevm-async.c
 @@ -0,0 +1,523 @@
@@ -525,7 +498,7 @@ index 0000000000..2f4766cf6c
 +         * note: bdrv_read() need whole blocks, so we round up
 +         */
 +        size_t size = (snap_state.bs_pos + BDRV_SECTOR_SIZE) & BDRV_SECTOR_MASK;
-+        blk_truncate(snap_state.target, size);
++        blk_truncate(snap_state.target, size, NULL);
 +        blk_op_unblock_all(snap_state.target, snap_state.blocker);
 +        error_free(snap_state.blocker);
 +        snap_state.blocker = NULL;
@@ -941,7 +914,7 @@ index 0000000000..2f4766cf6c
 +    return ret;
 +}
 diff --git a/vl.c b/vl.c
-index 868c4893df..19afd47871 100644
+index 46de1b9087..2132a77129 100644
 --- a/vl.c
 +++ b/vl.c
 @@ -2960,6 +2960,7 @@ int main(int argc, char **argv, char **envp)
@@ -952,7 +925,7 @@ index 868c4893df..19afd47871 100644
      MachineClass *machine_class;
      const char *cpu_model;
      const char *vga_model = NULL;
-@@ -3631,6 +3632,9 @@ int main(int argc, char **argv, char **envp)
+@@ -3635,6 +3636,9 @@ int main(int argc, char **argv, char **envp)
              case QEMU_OPTION_loadvm:
                  loadvm = optarg;
                  break;
@@ -962,7 +935,7 @@ index 868c4893df..19afd47871 100644
              case QEMU_OPTION_full_screen:
                  full_screen = 1;
                  break;
-@@ -4689,6 +4693,10 @@ int main(int argc, char **argv, char **envp)
+@@ -4693,6 +4697,10 @@ int main(int argc, char **argv, char **envp)
          if (load_vmstate(loadvm) < 0) {
              autostart = 0;
          }

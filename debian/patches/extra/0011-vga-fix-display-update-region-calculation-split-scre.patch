@@ -1,0 +1,47 @@
+From c93a020a1c6a37398d124f063af23d6acb3eb5cb Mon Sep 17 00:00:00 2001
+From: Gerd Hoffmann <kraxel@redhat.com>
+Date: Fri, 1 Sep 2017 14:57:38 +0200
+Subject: [PATCH 11/13] vga: fix display update region calculation (split
+ screen)
+
+vga display update mis-calculated the region for the dirty bitmap
+snapshot in case split screen mode is used.  This can trigger an
+assert in cpu_physical_memory_snapshot_get_dirty().
+
+Impact:  DoS for privileged guest users.
+
+Fixes: CVE-2017-13673
+Fixes: fec5e8c92becad223df9d972770522f64aafdb72
+Cc: P J P <ppandit@redhat.com>
+Reported-by: David Buchanan <d@vidbuchanan.co.uk>
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+Message-id: 20170828123307.15392-1-kraxel@redhat.com
+---
+ hw/display/vga.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/hw/display/vga.c b/hw/display/vga.c
+index dcc95f88e2..533d8d7895 100644
+--- a/hw/display/vga.c
++++ b/hw/display/vga.c
+@@ -1628,9 +1628,15 @@ static void vga_draw_graphic(VGACommonState *s, int full_update)
+     y1 = 0;
+ 
+     if (!full_update) {
++        ram_addr_t region_start = addr1;
++        ram_addr_t region_end = addr1 + line_offset * height;
+         vga_sync_dirty_bitmap(s);
+-        snap = memory_region_snapshot_and_clear_dirty(&s->vram, addr1,
+-                                                      line_offset * height,
++        if (s->line_compare < height) {
++            /* split screen mode */
++            region_start = 0;
++        }
++        snap = memory_region_snapshot_and_clear_dirty(&s->vram, region_start,
++                                                      region_end - region_start,
+                                                       DIRTY_MEMORY_VGA);
+     }
+ 
+-- 
+2.11.0
+

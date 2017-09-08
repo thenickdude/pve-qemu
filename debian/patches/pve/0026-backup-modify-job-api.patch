@@ -1,4 +1,4 @@
-From 020e2108f7571fac3853c47ba1ea8bafb5eef81e Mon Sep 17 00:00:00 2001
+From 6017af4918c9795a7f98a463426e1e21065b15d5 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:04:57 +0100
 Subject: [PATCH 26/28] backup: modify job api
@@ -49,10 +49,10 @@ index bf3c395eb4..1c41d9e6bf 100644
              error_propagate(errp, local_err);
              backup_job_cleanup(bs);
 diff --git a/blockdev.c b/blockdev.c
-index 4927914ce3..ec5e931029 100644
+index e8a9a65167..9b6cfafd33 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3273,7 +3273,7 @@ static BlockJob *do_drive_backup(DriveBackup *backup, BlockJobTxn *txn,
+@@ -3262,7 +3262,7 @@ static BlockJob *do_drive_backup(DriveBackup *backup, BlockJobTxn *txn,
      job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
                              backup->sync, bmap, backup->compress,
                              backup->on_source_error, backup->on_target_error,
@@ -61,7 +61,7 @@ index 4927914ce3..ec5e931029 100644
      bdrv_unref(target_bs);
      if (local_err != NULL) {
          error_propagate(errp, local_err);
-@@ -3352,7 +3352,7 @@ BlockJob *do_blockdev_backup(BlockdevBackup *backup, BlockJobTxn *txn,
+@@ -3341,7 +3341,7 @@ BlockJob *do_blockdev_backup(BlockdevBackup *backup, BlockJobTxn *txn,
      job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
                              backup->sync, NULL, backup->compress,
                              backup->on_source_error, backup->on_target_error,
@@ -84,10 +84,10 @@ index 6e489327ff..764d41863e 100644
  }
  
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 59400bd848..2b3ecd0575 100644
+index 89d7b458e7..19b84b027f 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
-@@ -878,6 +878,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -879,6 +879,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                              BlockdevOnError on_target_error,
                              int creation_flags,
                              BlockCompletionFunc *cb, void *opaque,
