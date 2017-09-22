@@ -39,3 +39,4 @@ extra/0010-vga-fix-display-update-region-calculation.patch
 extra/0011-vga-fix-display-update-region-calculation-split-scre.patch
 extra/0012-vga-stop-passing-pointers-to-vga_draw_line-functions.patch
 extra/0013-multiboot-validate-multiboot-header-address-values.patch
+extra/0014-virtio-fix-descriptor-counting-in-virtqueue_pop.patch
