@@ -2,61 +2,68 @@ Source: pve-qemu-kvm
 Section: admin
 Priority: extra
 Maintainer: Proxmox Support Team <support@proxmox.com>
-Build-Depends: debhelper (>= 5),
- autotools-dev,
- libpci-dev,
- quilt,
- texinfo,
- texi2html,
- libgnutls28-dev,
- libsdl1.2-dev,
- check,
- libaio-dev,
- uuid-dev,
- librbd-dev (>= 0.48),
- libiscsi-dev (>= 1.12.0),
- libspice-protocol-dev (>= 0.12.5),
- pve-libspice-server-dev (>= 0.12.5-1),
- libusbredirparser-dev (>= 0.6-2),
- glusterfs-common (>= 3.5.2-1),
- libusb-1.0-0-dev (>= 1.0.17-1),
- xfslibs-dev,
- libnuma-dev,
- libjemalloc-dev,
- libjpeg-dev,
- libacl1-dev,
- libcap-dev
+Build-Depends: autotools-dev,
+               check,
+               debhelper (>= 5),
+               glusterfs-common (>= 3.5.2-1),
+               libacl1-dev,
+               libaio-dev,
+               libcap-dev,
+               libgnutls28-dev,
+               libiscsi-dev (>= 1.12.0),
+               libjemalloc-dev,
+               libjpeg-dev,
+               libnuma-dev,
+               libpci-dev,
+               librbd-dev (>= 0.48),
+               libsdl1.2-dev,
+               libspice-protocol-dev (>= 0.12.5),
+               libusb-1.0-0-dev (>= 1.0.17-1),
+               libusbredirparser-dev (>= 0.6-2),
+               pve-libspice-server-dev (>= 0.12.5-1),
+               quilt,
+               texi2html,
+               texinfo,
+               uuid-dev,
+               xfslibs-dev,
 Standards-Version: 3.7.2
 
 Package: pve-qemu-kvm
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},
- iproute2,
- python,
- libsdl1.2debian,
- libaio1,
- libuuid1,
- ceph-common (>= 0.48),
- libiscsi4 (>= 1.12.0) | libiscsi7,
- pve-libspice-server1 (>= 0.12.5-1),
- libusbredirparser1 (>= 0.6-2),
- glusterfs-common (>= 3.5.2-1),
- libusb-1.0-0 (>= 1.0.17-1),
- numactl,
- libjemalloc1,
- libjpeg62-turbo
-Conflicts: qemu, qemu-kvm, qemu-utils, kvm, pve-kvm, pve-qemu-kvm-2.6.18
-Provides: qemu-utils
-Replaces: pve-kvm, pve-qemu-kvm-2.6.18, qemu-utils
+Depends: ceph-common (>= 0.48),
+         glusterfs-common (>= 3.5.2-1),
+         iproute2,
+         libaio1,
+         libiscsi4 (>= 1.12.0) | libiscsi7,
+         libjemalloc1,
+         libjpeg62-turbo,
+         libsdl1.2debian,
+         libusb-1.0-0 (>= 1.0.17-1),
+         libusbredirparser1 (>= 0.6-2),
+         libuuid1,
+         numactl,
+         pve-libspice-server1 (>= 0.12.5-1),
+         python,
+         ${misc:Depends},
+         ${shlibs:Depends},
+Conflicts: kvm,
+           pve-kvm,
+           pve-qemu-kvm-2.6.18,
+           qemu,
+           qemu-kvm,
+           qemu-utils,
+Provides: qemu-utils,
+Replaces: pve-kvm,
+          pve-qemu-kvm-2.6.18,
+          qemu-utils,
 Description: Full virtualization on x86 hardware
  Using KVM, one can run multiple virtual PCs, each running unmodified Linux or
  Windows images. Each virtual machine has private virtualized hardware: a
- network card, disk, graphics adapter, etc. 
+ network card, disk, graphics adapter, etc.
 
 Package: pve-qemu-kvm-dbg
 Architecture: any
 Section: debug
-Depends: pve-qemu-kvm (= ${binary:Version})
+Depends: pve-qemu-kvm (= ${binary:Version}),
 Description: pve qemu debugging symbols
  This package contains the debugging symbols for pve-qemu-kvm.
-
