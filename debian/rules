@@ -86,9 +86,6 @@ install: build
 	# Add here commands to install the package into debian/pve-kvm.
 	$(MAKE) DESTDIR=$(destdir) install
 
-	mv $(destdir)/usr/bin/qemu-system-$(ARCH) $(destdir)/usr/bin/kvm
-	mv $(destdir)/usr/share/man/man1/qemu.1 $(destdir)/usr/share/man/man1/kvm.1
-
 	# we do not need openbios files (sparc/ppc)
 	rm -rf $(destdir)/usr/share/kvm/openbios-*
 	# remove ppc files

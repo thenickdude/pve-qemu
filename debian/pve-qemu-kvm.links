@@ -1,0 +1,11 @@
+usr/bin/qemu-system-x86_64 usr/bin/kvm
+
+# qemu-system-i386 and qemu-system-x86_64 provides the same hardware emulation
+usr/bin/qemu-system-x86_64 usr/bin/qemu-system-i386
+
+# upstream provides a qemu man page,
+# we symlink to kvm for backward compatibility
+# and to qemu-system-{i386,x86_64} to fullfill our 'Provides: qemu-system-x86'
+usr/share/man/man1/qemu.1  usr/share/man/man1/kvm.1
+usr/share/man/man1/qemu.1  usr/share/man/man1/qemu-system-i386.1
+usr/share/man/man1/qemu.1  usr/share/man/man1/qemu-system-x86_64.1
