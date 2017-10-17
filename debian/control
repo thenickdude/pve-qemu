@@ -4,7 +4,7 @@ Priority: extra
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Build-Depends: autotools-dev,
                check,
-               debhelper (>= 10),
+               debhelper (>= 9),
                glusterfs-common (>= 3.5.2-1),
                libacl1-dev,
                libaio-dev,
