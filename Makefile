@@ -9,7 +9,7 @@ BUILDSRC = $(KVMSRC).tmp
 SRCDIR := qemu
 
 ARCH := $(shell dpkg-architecture -qDEB_BUILD_ARCH)
-GITVERSION := $(shell git rev-parse master)
+GITVERSION := $(shell git rev-parse HEAD)
 
 DEB = ${KVMPACKAGE}_${KVMVER}-${KVMPKGREL}_${ARCH}.deb
 DEB_DBG = ${KVMPACKAGE}-dbg_${KVMVER}-${KVMPKGREL}_${ARCH}.deb
