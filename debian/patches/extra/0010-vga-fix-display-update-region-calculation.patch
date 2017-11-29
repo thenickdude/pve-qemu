@@ -1,7 +1,7 @@
-From 616f285a074869fd79bc26509a0bd50e6e04e39d Mon Sep 17 00:00:00 2001
+From acd029e2a9b9ea93997fcb19c6cd71d6dd6c9cb6 Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Tue, 9 May 2017 12:48:39 +0200
-Subject: [PATCH 10/13] vga: fix display update region calculation
+Subject: [PATCH 10/23] vga: fix display update region calculation
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

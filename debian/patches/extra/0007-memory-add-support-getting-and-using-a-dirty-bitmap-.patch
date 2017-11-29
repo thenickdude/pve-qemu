@@ -1,7 +1,7 @@
-From a89da93a2d3ffd3ba9516da89ecfbb0dd5fd51ad Mon Sep 17 00:00:00 2001
+From 2628973e5f8a50f3b308395fa8a33b8f4fdc9024 Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Fri, 21 Apr 2017 11:16:25 +0200
-Subject: [PATCH 07/13] memory: add support getting and using a dirty bitmap
+Subject: [PATCH 07/23] memory: add support getting and using a dirty bitmap
  copy.
 
 This patch adds support for getting and using a local copy of the dirty

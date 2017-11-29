@@ -1,0 +1,32 @@
+From 8b2be8e3f9c1ca9f78b1c87ead13f54fbd98198a Mon Sep 17 00:00:00 2001
+From: "Dr. David Alan Gilbert" <dgilbert@redhat.com>
+Date: Fri, 4 Aug 2017 12:33:29 +0100
+Subject: [PATCH 16/23] vga/migration: Update memory map in post_load
+
+After migration the chain4 alias mapping added by 80763888 (in 2011)
+might be missing, since there's no call to vga_update_memory_access
+in the post_load after the registers are updated.  Add it back.
+
+Signed-off-by: Dr. David Alan Gilbert <dgilbert@redhat.com>
+Reviewed-by: Juan Quintela <quintela@redhat.com>
+Message-id: 20170804113329.13609-1-dgilbert@redhat.com
+Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>
+---
+ hw/display/vga.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/hw/display/vga.c b/hw/display/vga.c
+index 13e4a5d55d..a99d831e04 100644
+--- a/hw/display/vga.c
++++ b/hw/display/vga.c
+@@ -2050,6 +2050,7 @@ static int vga_common_post_load(void *opaque, int version_id)
+     /* force refresh */
+     s->graphic_mode = -1;
+     vbe_update_vgaregs(s);
++    vga_update_memory_access(s);
+     return 0;
+ }
+ 
+-- 
+2.11.0
+

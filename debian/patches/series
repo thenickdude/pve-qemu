@@ -40,3 +40,12 @@ extra/0011-vga-fix-display-update-region-calculation-split-scre.patch
 extra/0012-vga-stop-passing-pointers-to-vga_draw_line-functions.patch
 extra/0013-multiboot-validate-multiboot-header-address-values.patch
 extra/0014-virtio-fix-descriptor-counting-in-virtqueue_pop.patch
+extra/0015-nbd-server-CVE-2017-15119-Reject-options-larger-than.patch
+extra/0016-vga-migration-Update-memory-map-in-post_load.patch
+extra/0017-vga-drop-line_offset-variable.patch
+extra/0018-vga-handle-cirrus-vbe-mode-wraparounds.patch
+extra/0019-vga-add-ram_addr_t-cast.patch
+extra/0020-vga-fix-region-checks-in-wraparound-case.patch
+extra/0021-io-monitor-encoutput-buffer-size-from-websocket-GSou.patch
+extra/0022-9pfs-use-g_malloc0-to-allocate-space-for-xattr.patch
+extra/0023-cirrus-fix-oob-access-in-mode4and5-write-functions.patch

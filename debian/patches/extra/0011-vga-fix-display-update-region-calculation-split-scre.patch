@@ -1,7 +1,7 @@
-From c93a020a1c6a37398d124f063af23d6acb3eb5cb Mon Sep 17 00:00:00 2001
+From b8aa853672ab9e94821a43b6cb2a51d24cb2be8c Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Fri, 1 Sep 2017 14:57:38 +0200
-Subject: [PATCH 11/13] vga: fix display update region calculation (split
+Subject: [PATCH 11/23] vga: fix display update region calculation (split
  screen)
 
 vga display update mis-calculated the region for the dirty bitmap

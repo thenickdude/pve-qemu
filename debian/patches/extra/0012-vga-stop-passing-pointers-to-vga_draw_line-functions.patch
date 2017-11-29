@@ -1,7 +1,7 @@
-From 15c2b7e06a85dd78c7d45b3703639735eee09c01 Mon Sep 17 00:00:00 2001
+From 51b08381408f248b1149c0177a90f61f703b8432 Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Fri, 1 Sep 2017 14:57:39 +0200
-Subject: [PATCH 12/13] vga: stop passing pointers to vga_draw_line* functions
+Subject: [PATCH 12/23] vga: stop passing pointers to vga_draw_line* functions
 
 Instead pass around the address (aka offset into vga memory).
 Add vga_read_* helper functions which apply vbe_size_mask to

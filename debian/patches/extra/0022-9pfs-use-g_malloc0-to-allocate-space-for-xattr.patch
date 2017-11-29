@@ -1,0 +1,43 @@
+From 184640d2552895d967214e90e23e005d6657b145 Mon Sep 17 00:00:00 2001
+From: Prasad J Pandit <pjp@fedoraproject.org>
+Date: Mon, 16 Oct 2017 14:21:59 +0200
+Subject: [PATCH 22/23] 9pfs: use g_malloc0 to allocate space for xattr
+
+9p back-end first queries the size of an extended attribute,
+allocates space for it via g_malloc() and then retrieves its
+value into allocated buffer. Race between querying attribute
+size and retrieving its could lead to memory bytes disclosure.
+Use g_malloc0() to avoid it.
+
+Reported-by: Tuomas Tynkkynen <tuomas.tynkkynen@iki.fi>
+Signed-off-by: Prasad J Pandit <pjp@fedoraproject.org>
+Signed-off-by: Greg Kurz <groug@kaod.org>
+---
+ hw/9pfs/9p.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
+index c80ba67389..aaf9935ef4 100644
+--- a/hw/9pfs/9p.c
++++ b/hw/9pfs/9p.c
+@@ -3220,7 +3220,7 @@ static void coroutine_fn v9fs_xattrwalk(void *opaque)
+         xattr_fidp->fid_type = P9_FID_XATTR;
+         xattr_fidp->fs.xattr.xattrwalk_fid = true;
+         if (size) {
+-            xattr_fidp->fs.xattr.value = g_malloc(size);
++            xattr_fidp->fs.xattr.value = g_malloc0(size);
+             err = v9fs_co_llistxattr(pdu, &xattr_fidp->path,
+                                      xattr_fidp->fs.xattr.value,
+                                      xattr_fidp->fs.xattr.len);
+@@ -3253,7 +3253,7 @@ static void coroutine_fn v9fs_xattrwalk(void *opaque)
+         xattr_fidp->fid_type = P9_FID_XATTR;
+         xattr_fidp->fs.xattr.xattrwalk_fid = true;
+         if (size) {
+-            xattr_fidp->fs.xattr.value = g_malloc(size);
++            xattr_fidp->fs.xattr.value = g_malloc0(size);
+             err = v9fs_co_lgetxattr(pdu, &xattr_fidp->path,
+                                     &name, xattr_fidp->fs.xattr.value,
+                                     xattr_fidp->fs.xattr.len);
+-- 
+2.11.0
+

@@ -1,7 +1,7 @@
-From cef8fb2b8ea711b6686032f86b1caf1815786aaa Mon Sep 17 00:00:00 2001
+From 248536e4a93b254fc38aa369f76e828c9ce9b45e Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Fri, 21 Apr 2017 11:16:26 +0200
-Subject: [PATCH 08/13] vga: add vga_scanline_invalidated helper
+Subject: [PATCH 08/23] vga: add vga_scanline_invalidated helper
 
 Add vga_scanline_invalidated helper to check whenever a scanline was
 invalidated.  Add a sanity check to fix OOB read access for display

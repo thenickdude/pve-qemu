@@ -1,7 +1,7 @@
-From 3884a6e250302f5f3d002ed03c20fb9678ea85e7 Mon Sep 17 00:00:00 2001
+From 8a6382046bb0a71f1deb7b7ca3954662353f3f65 Mon Sep 17 00:00:00 2001
 From: Paolo Bonzini <pbonzini@redhat.com>
 Date: Thu, 1 Jun 2017 17:26:14 +0200
-Subject: [PATCH 03/13] megasas: always store SCSIRequest* into MegasasCmd
+Subject: [PATCH 03/23] megasas: always store SCSIRequest* into MegasasCmd
 
 This ensures that the request is unref'ed properly, and avoids a
 segmentation fault in the new qtest testcase that is added.
