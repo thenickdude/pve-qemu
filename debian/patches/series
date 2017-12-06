@@ -26,6 +26,7 @@ pve/0025-qemu-img-dd-add-osize-and-read-from-to-stdin-stdout.patch
 pve/0026-backup-modify-job-api.patch
 pve/0027-backup-introduce-vma-archive-format.patch
 pve/0028-adding-old-vma-files.patch
+pve/0029-backup-fix-race-in-backup-stop-command.patch
 extra/0001-Revert-target-i386-disable-LINT0-after-reset.patch
 extra/0002-virtio-serial-fix-segfault-on-disconnect.patch
 extra/0003-megasas-always-store-SCSIRequest-into-MegasasCmd.patch
@@ -49,3 +50,4 @@ extra/0020-vga-fix-region-checks-in-wraparound-case.patch
 extra/0021-io-monitor-encoutput-buffer-size-from-websocket-GSou.patch
 extra/0022-9pfs-use-g_malloc0-to-allocate-space-for-xattr.patch
 extra/0023-cirrus-fix-oob-access-in-mode4and5-write-functions.patch
+extra/0024-virtio-check-VirtQueue-Vring-object-is-set.patch

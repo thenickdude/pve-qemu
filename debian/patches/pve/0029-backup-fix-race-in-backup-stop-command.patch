@@ -1,0 +1,253 @@
+From 3cff3cff0dda09201386dff3c86c5e4fdb0b41b7 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Tue, 5 Dec 2017 12:12:15 +0100
+Subject: [PATCH 2/2] backup: fix race in backup-stop command
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+---
+ blockdev.c | 90 +++++++++++++++++++++++++++++++++-----------------------------
+ blockjob.c |  8 +++---
+ 2 files changed, 52 insertions(+), 46 deletions(-)
+
+diff --git a/blockdev.c b/blockdev.c
+index 19a82e8774..d3490936d8 100644
+--- a/blockdev.c
++++ b/blockdev.c
+@@ -2934,31 +2934,6 @@ out:
+     aio_context_release(aio_context);
+ }
+ 
+-void block_job_event_cancelled(BlockJob *job);
+-void block_job_event_completed(BlockJob *job, const char *msg);
+-static void block_job_cb(void *opaque, int ret)
+-{
+-    /* Note that this function may be executed from another AioContext besides
+-     * the QEMU main loop.  If you need to access anything that assumes the
+-     * QEMU global mutex, use a BH or introduce a mutex.
+-     */
+-
+-    BlockDriverState *bs = opaque;
+-    const char *msg = NULL;
+-
+-    assert(bs->job);
+-
+-    if (ret < 0) {
+-        msg = strerror(-ret);
+-    }
+-
+-    if (block_job_is_cancelled(bs->job)) {
+-        block_job_event_cancelled(bs->job);
+-    } else {
+-        block_job_event_completed(bs->job, msg);
+-    }
+-}
+-
+ /* PVE backup related function */
+ 
+ static struct PVEBackupState {
+@@ -2975,6 +2950,8 @@ static struct PVEBackupState {
+     size_t total;
+     size_t transferred;
+     size_t zero_bytes;
++    QemuMutex backup_mutex;
++    bool      backup_mutex_initialized;
+ } backup_state;
+ 
+ typedef struct PVEBackupDevInfo {
+@@ -3055,6 +3032,13 @@ static int pvebackup_dump_cb(void *opaque, BlockBackend *target,
+ 
+ static void pvebackup_cleanup(void)
+ {
++    qemu_mutex_lock(&backup_state.backup_mutex);
++    // Avoid race between block jobs and backup-cancel command:
++    if (!backup_state.vmaw) {
++        qemu_mutex_unlock(&backup_state.backup_mutex);
++        return;
++    }
++
+     backup_state.end_time = time(NULL);
+ 
+     if (backup_state.vmaw) {
+@@ -3064,16 +3048,9 @@ static void pvebackup_cleanup(void)
+         backup_state.vmaw = NULL;
+     }
+ 
+-    if (backup_state.di_list) {
+-        GList *l = backup_state.di_list;
+-        while (l) {
+-            PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
+-            l = g_list_next(l);
+-            g_free(di);
+-        }
+-        g_list_free(backup_state.di_list);
+-        backup_state.di_list = NULL;
+-    }
++    g_list_free(backup_state.di_list);
++    backup_state.di_list = NULL;
++    qemu_mutex_unlock(&backup_state.backup_mutex);
+ }
+ 
+ static void coroutine_fn backup_close_vma_stream(void *opaque)
+@@ -3085,6 +3062,8 @@ static void coroutine_fn backup_close_vma_stream(void *opaque)
+ 
+ static void pvebackup_complete_cb(void *opaque, int ret)
+ {
++    // This always runs in the main loop
++
+     PVEBackupDevInfo *di = opaque;
+ 
+     di->completed = true;
+@@ -3094,8 +3073,6 @@ static void pvebackup_complete_cb(void *opaque, int ret)
+                    ret, strerror(-ret));
+     }
+ 
+-    BlockDriverState *bs = di->bs;
+-
+     di->bs = NULL;
+     di->target = NULL;
+ 
+@@ -3104,7 +3081,11 @@ static void pvebackup_complete_cb(void *opaque, int ret)
+         qemu_coroutine_enter(co);
+     }
+ 
+-    block_job_cb(bs, ret);
++    // remove self from job queue
++    qemu_mutex_lock(&backup_state.backup_mutex);
++    backup_state.di_list = g_list_remove(backup_state.di_list, di);
++    g_free(di);
++    qemu_mutex_unlock(&backup_state.backup_mutex);
+ 
+     if (!backup_state.cancel) {
+         pvebackup_run_next_job();
+@@ -3114,6 +3095,12 @@ static void pvebackup_complete_cb(void *opaque, int ret)
+ static void pvebackup_cancel(void *opaque)
+ {
+     backup_state.cancel = true;
++    qemu_mutex_lock(&backup_state.backup_mutex);
++    // Avoid race between block jobs and backup-cancel command:
++    if (!backup_state.vmaw) {
++        qemu_mutex_unlock(&backup_state.backup_mutex);
++        return;
++    }
+ 
+     if (!backup_state.error) {
+         error_setg(&backup_state.error, "backup cancelled");
+@@ -3131,13 +3118,17 @@ static void pvebackup_cancel(void *opaque)
+         if (!di->completed && di->bs) {
+             BlockJob *job = di->bs->job;
+             if (job) {
++                AioContext *aio_context = blk_get_aio_context(job->blk);
++                aio_context_acquire(aio_context);
+                 if (!di->completed) {
+-                    block_job_cancel_sync(job);
++                    block_job_cancel(job);
+                 }
++                aio_context_release(aio_context);
+             }
+         }
+     }
+ 
++    qemu_mutex_unlock(&backup_state.backup_mutex);
+     pvebackup_cleanup();
+ }
+ 
+@@ -3193,24 +3184,31 @@ static int config_to_vma(const char *file, BackupFormat format,
+ bool block_job_should_pause(BlockJob *job);
+ static void pvebackup_run_next_job(void)
+ {
++    qemu_mutex_lock(&backup_state.backup_mutex);
++
+     GList *l = backup_state.di_list;
+     while (l) {
+         PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
+         l = g_list_next(l);
+         if (!di->completed && di->bs && di->bs->job) {
+             BlockJob *job = di->bs->job;
++            AioContext *aio_context = blk_get_aio_context(job->blk);
++            aio_context_acquire(aio_context);
++            qemu_mutex_unlock(&backup_state.backup_mutex);
+             if (block_job_should_pause(job)) {
+-                bool cancel = backup_state.error || backup_state.cancel;
+-                if (cancel) {
+-                    block_job_cancel(job);
++                if (backup_state.error || backup_state.cancel) {
++                    block_job_cancel_sync(job);
+                 } else {
+                     block_job_resume(job);
+                 }
+             }
++            aio_context_release(aio_context);
+             return;
+         }
+     }
++    qemu_mutex_unlock(&backup_state.backup_mutex);
+ 
++    // no more jobs, run the cleanup
+     pvebackup_cleanup();
+ }
+ 
+@@ -3233,6 +3231,11 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+     UuidInfo *uuid_info;
+     BlockJob *job;
+ 
++    if (!backup_state.backup_mutex_initialized) {
++        qemu_mutex_init(&backup_state.backup_mutex);
++        backup_state.backup_mutex_initialized = true;
++    }
++
+     if (backup_state.di_list) {
+         error_set(errp, ERROR_CLASS_GENERIC_ERROR,
+                   "previous backup not finished");
+@@ -3405,6 +3408,7 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+     uuid_copy(backup_state.uuid, uuid);
+     uuid_unparse_lower(uuid, backup_state.uuid_str);
+ 
++    qemu_mutex_lock(&backup_state.backup_mutex);
+     backup_state.di_list = di_list;
+ 
+     backup_state.total = total;
+@@ -3428,6 +3432,8 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+         block_job_start(job);
+     }
+ 
++    qemu_mutex_unlock(&backup_state.backup_mutex);
++
+     if (!backup_state.error) {
+         pvebackup_run_next_job(); // run one job
+     }
+diff --git a/blockjob.c b/blockjob.c
+index cb3741f6dd..199d5852db 100644
+--- a/blockjob.c
++++ b/blockjob.c
+@@ -37,8 +37,8 @@
+ #include "qemu/timer.h"
+ #include "qapi-event.h"
+ 
+-void block_job_event_cancelled(BlockJob *job);
+-void block_job_event_completed(BlockJob *job, const char *msg);
++static void block_job_event_cancelled(BlockJob *job);
++static void block_job_event_completed(BlockJob *job, const char *msg);
+ 
+ /* Transactional group of block jobs */
+ struct BlockJobTxn {
+@@ -688,7 +688,7 @@ static void block_job_iostatus_set_err(BlockJob *job, int error)
+     }
+ }
+ 
+-void block_job_event_cancelled(BlockJob *job)
++static void block_job_event_cancelled(BlockJob *job)
+ {
+     if (block_job_is_internal(job)) {
+         return;
+@@ -702,7 +702,7 @@ void block_job_event_cancelled(BlockJob *job)
+                                         &error_abort);
+ }
+ 
+-void block_job_event_completed(BlockJob *job, const char *msg)
++static void block_job_event_completed(BlockJob *job, const char *msg)
+ {
+     if (block_job_is_internal(job)) {
+         return;
+-- 
+2.11.0
+
