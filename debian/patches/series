@@ -51,3 +51,5 @@ extra/0021-io-monitor-encoutput-buffer-size-from-websocket-GSou.patch
 extra/0022-9pfs-use-g_malloc0-to-allocate-space-for-xattr.patch
 extra/0023-cirrus-fix-oob-access-in-mode4and5-write-functions.patch
 extra/0024-virtio-check-VirtQueue-Vring-object-is-set.patch
+extra/0025-block-gluster-glfs_lseek-workaround.patch
+extra/0026-gluster-add-support-for-PREALLOC_MODE_FALLOC.patch
