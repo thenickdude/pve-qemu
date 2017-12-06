@@ -1,3 +1,13 @@
+pve-qemu-kvm (2.9.1-5) stable; urgency=medium
+
+  * block/gluster: glfs_lseek() workaround
+    https://bugzilla.redhat.com/show_bug.cgi?id=1425293
+    https://bugzilla.redhat.com/show_bug.cgi?id=1451191
+
+  * gluster: add support for PREALLOC_MODE_FALLOC
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 06 Dec 2017 11:48:43 +0100
+
 pve-qemu-kvm (2.9.1-4) stable; urgency=medium
 
   * fix CVE-2017-17381: virtio: divide by zero exception while updating rings
