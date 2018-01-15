@@ -1,7 +1,7 @@
-From b63830cd6f59a87ef9bdb4f466ce8f4bd2ff5315 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Tue, 10 Oct 2017 16:13:22 +0200
-Subject: [PATCH 18/23] vga: handle cirrus vbe mode wraparounds.
+Subject: [PATCH] vga: handle cirrus vbe mode wraparounds.
 
 Commit "3d90c62548 vga: stop passing pointers to vga_draw_line*
 functions" is incomplete.  It doesn't handle the case that the vga

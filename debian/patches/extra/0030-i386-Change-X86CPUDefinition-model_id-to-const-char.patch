@@ -1,0 +1,85 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eduardo Habkost <ehabkost@redhat.com>
+Date: Tue, 9 Jan 2018 13:45:13 -0200
+Subject: [PATCH] i386: Change X86CPUDefinition::model_id to const char*
+
+It is valid to have a 48-character model ID on CPUID, however the
+definition of X86CPUDefinition::model_id is char[48], which can
+make the compiler drop the null terminator from the string.
+
+If a CPU model happens to have 48 bytes on model_id, "-cpu help"
+will print garbage and the object_property_set_str() call at
+x86_cpu_load_def() will read data outside the model_id array.
+
+We could increase the array size to 49, but this would mean the
+compiler would not issue a warning if a 49-char string is used by
+mistake for model_id.
+
+To make things simpler, simply change model_id to be const char*,
+and validate the string length using an assert() on
+x86_cpu_cpudef_class_init.
+
+Reported-by: "Dr. David Alan Gilbert" <dgilbert@redhat.com>
+Signed-off-by: Eduardo Habkost <ehabkost@redhat.com>
+---
+ target/i386/cpu.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/target/i386/cpu.c b/target/i386/cpu.c
+index 3d53cb4c86..c673521016 100644
+--- a/target/i386/cpu.c
++++ b/target/i386/cpu.c
+@@ -753,7 +753,7 @@ struct X86CPUDefinition {
+     int model;
+     int stepping;
+     FeatureWordArray features;
+-    char model_id[48];
++    const char *model_id;
+ };
+ 
+ static X86CPUDefinition builtin_x86_defs[] = {
+@@ -922,6 +922,7 @@ static X86CPUDefinition builtin_x86_defs[] = {
+         .features[FEAT_1_EDX] =
+             I486_FEATURES,
+         .xlevel = 0,
++        .model_id = "",
+     },
+     {
+         .name = "pentium",
+@@ -933,6 +934,7 @@ static X86CPUDefinition builtin_x86_defs[] = {
+         .features[FEAT_1_EDX] =
+             PENTIUM_FEATURES,
+         .xlevel = 0,
++        .model_id = "",
+     },
+     {
+         .name = "pentium2",
+@@ -944,6 +946,7 @@ static X86CPUDefinition builtin_x86_defs[] = {
+         .features[FEAT_1_EDX] =
+             PENTIUM2_FEATURES,
+         .xlevel = 0,
++        .model_id = "",
+     },
+     {
+         .name = "pentium3",
+@@ -955,6 +958,7 @@ static X86CPUDefinition builtin_x86_defs[] = {
+         .features[FEAT_1_EDX] =
+             PENTIUM3_FEATURES,
+         .xlevel = 0,
++        .model_id = "",
+     },
+     {
+         .name = "athlon",
+@@ -2617,6 +2621,9 @@ static void x86_register_cpudef_type(X86CPUDefinition *def)
+      * they shouldn't be set on the CPU model table.
+      */
+     assert(!(def->features[FEAT_8000_0001_EDX] & CPUID_EXT2_AMD_ALIASES));
++    /* catch mistakes instead of silently truncating model_id when too long */
++    assert(def->model_id && strlen(def->model_id) <= 48);
++
+ 
+     type_register(&ti);
+     g_free(typename);
+-- 
+2.11.0
+

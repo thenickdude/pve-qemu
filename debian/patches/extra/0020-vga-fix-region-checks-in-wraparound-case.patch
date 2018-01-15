@@ -1,7 +1,7 @@
-From 3c51ccd7bb43dd763a1ff3112b8a0cd7e145ca4f Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Mon, 30 Oct 2017 11:28:30 +0100
-Subject: [PATCH 20/23] vga: fix region checks in wraparound case
+Subject: [PATCH] vga: fix region checks in wraparound case
 
 Cc: "Dr. David Alan Gilbert" <dgilbert@redhat.com>
 Signed-off-by: Gerd Hoffmann <kraxel@redhat.com>

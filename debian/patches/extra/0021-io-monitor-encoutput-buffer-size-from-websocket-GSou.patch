@@ -1,8 +1,7 @@
-From 89a1271a7687018cdbf2b7f92cf3d50d079e100e Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: "Daniel P. Berrange" <berrange@redhat.com>
 Date: Mon, 9 Oct 2017 14:43:42 +0100
-Subject: [PATCH 21/23] io: monitor encoutput buffer size from websocket
- GSource
+Subject: [PATCH] io: monitor encoutput buffer size from websocket GSource
 
 The websocket GSource is monitoring the size of the rawoutput
 buffer to determine if the channel can accepts more writes.

@@ -1,7 +1,7 @@
-From ca3e533f0335aa248e10f9f5a715dc5b8ec7e442 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Niels de Vos <ndevos@redhat.com>
 Date: Sun, 28 May 2017 12:01:14 +0530
-Subject: [PATCH 2/2] gluster: add support for PREALLOC_MODE_FALLOC
+Subject: [PATCH] gluster: add support for PREALLOC_MODE_FALLOC
 
 Add missing support for "preallocation=falloc" to the Gluster block
 driver. This change bases its logic on that of block/file-posix.c and

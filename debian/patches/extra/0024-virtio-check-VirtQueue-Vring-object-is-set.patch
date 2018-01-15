@@ -1,7 +1,7 @@
-From 537048fe17ab94242908536adcb638ec274a3f53 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Prasad J Pandit <pjp@fedoraproject.org>
 Date: Wed, 29 Nov 2017 23:14:27 +0530
-Subject: [PATCH 1/2] virtio: check VirtQueue Vring object is set
+Subject: [PATCH] virtio: check VirtQueue Vring object is set
 
 A guest could attempt to use an uninitialised VirtQueue object
 or unset Vring.align leading to a arithmetic exception. Add check

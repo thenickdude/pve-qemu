@@ -1,7 +1,7 @@
-From 7ea086a97a09774c9ac8f0df236a0acb01dfc1ef Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Stefan Hajnoczi <stefanha@redhat.com>
 Date: Fri, 2 Jun 2017 10:54:24 +0100
-Subject: [PATCH 02/23] virtio-serial: fix segfault on disconnect
+Subject: [PATCH] virtio-serial: fix segfault on disconnect
 
 Since commit d4c19cdeeb2f1e474bc426a6da261f1d7346eb5b ("virtio-serial:
 add missing virtio_detach_element() call") the following commands may

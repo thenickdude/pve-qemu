@@ -1,7 +1,7 @@
-From c2835302a557437ef22944902da17686247edd35 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Mon, 4 Jul 2016 15:02:26 +0200
-Subject: [PATCH 01/23] Revert "target-i386: disable LINT0 after reset"
+Subject: [PATCH] Revert "target-i386: disable LINT0 after reset"
 
 This reverts commit b8eb5512fd8a115f164edbbe897cdf8884920ccb.
 ---

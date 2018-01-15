@@ -1,7 +1,7 @@
-From 1c0ba3702859ca6affc1a3f9cad3d35ccc4773ed Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Stefan Hajnoczi <stefanha@redhat.com>
 Date: Wed, 9 Aug 2017 17:02:11 +0100
-Subject: [PATCH 05/23] IDE: Do not flush empty CDROM drives
+Subject: [PATCH] IDE: Do not flush empty CDROM drives
 
 The block backend changed in a way that flushing empty CDROM drives now
 crashes.  Amend IDE to avoid doing so until the root problem can be

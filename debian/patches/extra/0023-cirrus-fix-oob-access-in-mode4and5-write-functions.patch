@@ -1,7 +1,7 @@
-From b162e22e5f0c1081efeec646999616ce1a7e3875 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Wed, 11 Oct 2017 10:43:14 +0200
-Subject: [PATCH 23/23] cirrus: fix oob access in mode4and5 write functions
+Subject: [PATCH] cirrus: fix oob access in mode4and5 write functions
 
 Move dst calculation into the loop, so we apply the mask on each
 interation and will not overflow vga memory.

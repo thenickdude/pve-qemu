@@ -1,7 +1,7 @@
-From 158e47c5a3ebe4b67d35b7c1e8fecad258e735db Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Prasad J Pandit <pjp@fedoraproject.org>
 Date: Thu, 7 Sep 2017 12:02:56 +0530
-Subject: [PATCH 13/23] multiboot: validate multiboot header address values
+Subject: [PATCH] multiboot: validate multiboot header address values
 
 While loading kernel via multiboot-v1 image, (flags & 0x00010000)
 indicates that multiboot header contains valid addresses to load

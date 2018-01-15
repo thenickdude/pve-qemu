@@ -1,7 +1,7 @@
-From 184640d2552895d967214e90e23e005d6657b145 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Prasad J Pandit <pjp@fedoraproject.org>
 Date: Mon, 16 Oct 2017 14:21:59 +0200
-Subject: [PATCH 22/23] 9pfs: use g_malloc0 to allocate space for xattr
+Subject: [PATCH] 9pfs: use g_malloc0 to allocate space for xattr
 
 9p back-end first queries the size of an extended attribute,
 allocates space for it via g_malloc() and then retrieves its

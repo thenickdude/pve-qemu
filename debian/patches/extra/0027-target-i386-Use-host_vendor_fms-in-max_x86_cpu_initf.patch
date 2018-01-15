@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eduardo Habkost <ehabkost@redhat.com>
+Date: Wed, 12 Jul 2017 13:20:56 -0300
+Subject: [PATCH] target/i386: Use host_vendor_fms() in max_x86_cpu_initfn()
+
+The existing code duplicated the logic in host_vendor_fms(), so
+reuse the helper function instead.
+
+Signed-off-by: Eduardo Habkost <ehabkost@redhat.com>
+Message-Id: <20170712162058.10538-3-ehabkost@redhat.com>
+Reviewed-by: Igor Mammedov <imammedo@redhat.com>
+Signed-off-by: Eduardo Habkost <ehabkost@redhat.com>
+---
+ target/i386/cpu.c | 9 ++-------
+ 1 file changed, 2 insertions(+), 7 deletions(-)
+
+diff --git a/target/i386/cpu.c b/target/i386/cpu.c
+index 4b3bfb3802..1affd3bb5b 100644
+--- a/target/i386/cpu.c
++++ b/target/i386/cpu.c
+@@ -1592,13 +1592,8 @@ static void max_x86_cpu_initfn(Object *obj)
+         X86CPUDefinition host_cpudef = { };
+         uint32_t eax = 0, ebx = 0, ecx = 0, edx = 0;
+ 
+-        host_cpuid(0x0, 0, &eax, &ebx, &ecx, &edx);
+-        x86_cpu_vendor_words2str(host_cpudef.vendor, ebx, edx, ecx);
+-
+-        host_cpuid(0x1, 0, &eax, &ebx, &ecx, &edx);
+-        host_cpudef.family = ((eax >> 8) & 0x0F) + ((eax >> 20) & 0xFF);
+-        host_cpudef.model = ((eax >> 4) & 0x0F) | ((eax & 0xF0000) >> 12);
+-        host_cpudef.stepping = eax & 0x0F;
++        host_vendor_fms(host_cpudef.vendor, &host_cpudef.family,
++                        &host_cpudef.model, &host_cpudef.stepping);
+ 
+         cpu_x86_fill_model_id(host_cpudef.model_id);
+ 
+-- 
+2.11.0
+

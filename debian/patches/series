@@ -53,3 +53,11 @@ extra/0023-cirrus-fix-oob-access-in-mode4and5-write-functions.patch
 extra/0024-virtio-check-VirtQueue-Vring-object-is-set.patch
 extra/0025-block-gluster-glfs_lseek-workaround.patch
 extra/0026-gluster-add-support-for-PREALLOC_MODE_FALLOC.patch
+extra/0027-target-i386-Use-host_vendor_fms-in-max_x86_cpu_initf.patch
+extra/0028-target-i386-Define-CPUID_MODEL_ID_SZ-macro.patch
+extra/0029-target-i386-Don-t-use-x86_cpu_load_def-on-max-CPU-mo.patch
+extra/0030-i386-Change-X86CPUDefinition-model_id-to-const-char.patch
+extra/0031-i386-Add-support-for-SPEC_CTRL-MSR.patch
+extra/0032-i386-Add-spec-ctrl-CPUID-bit.patch
+extra/0033-i386-Add-FEAT_8000_0008_EBX-CPUID-feature-word.patch
+extra/0034-i386-Add-new-IBRS-versions-of-Intel-CPU-models.patch

@@ -1,7 +1,7 @@
-From 76d3fb511849efb8bcd8690cd008a46408fac6dd Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Prasad J Pandit <pjp@fedoraproject.org>
 Date: Mon, 17 Jul 2017 17:33:26 +0530
-Subject: [PATCH 04/23] slirp: check len against dhcp options array end
+Subject: [PATCH] slirp: check len against dhcp options array end
 
 While parsing dhcp options string in 'dhcp_decode', if an options'
 length 'len' appeared towards the end of 'bp_vend' array, ensuing

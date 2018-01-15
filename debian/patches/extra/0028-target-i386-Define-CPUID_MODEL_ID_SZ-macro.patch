@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eduardo Habkost <ehabkost@redhat.com>
+Date: Wed, 12 Jul 2017 13:20:57 -0300
+Subject: [PATCH] target/i386: Define CPUID_MODEL_ID_SZ macro
+
+Document cpu_x86_fill_model_id() and define CPUID_MODEL_ID_SZ to
+help callers use the right buffer size.
+
+Signed-off-by: Eduardo Habkost <ehabkost@redhat.com>
+Message-Id: <20170712162058.10538-4-ehabkost@redhat.com>
+Signed-off-by: Eduardo Habkost <ehabkost@redhat.com>
+---
+ target/i386/cpu.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/target/i386/cpu.c b/target/i386/cpu.c
+index 1affd3bb5b..54832dd591 100644
+--- a/target/i386/cpu.c
++++ b/target/i386/cpu.c
+@@ -1541,6 +1541,17 @@ static bool lmce_supported(void)
+     return !!(mce_cap & MCG_LMCE_P);
+ }
+ 
++#define CPUID_MODEL_ID_SZ 48
++
++/**
++ * cpu_x86_fill_model_id:
++ * Get CPUID model ID string from host CPU.
++ *
++ * @str should have at least CPUID_MODEL_ID_SZ bytes
++ *
++ * The function does NOT add a null terminator to the string
++ * automatically.
++ */
+ static int cpu_x86_fill_model_id(char *str)
+ {
+     uint32_t eax = 0, ebx = 0, ecx = 0, edx = 0;
+-- 
+2.11.0
+

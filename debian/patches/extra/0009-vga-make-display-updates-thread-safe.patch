@@ -1,7 +1,7 @@
-From 54b1106d9a24dadae42c4f4c25b4fa2560183f5b Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Gerd Hoffmann <kraxel@redhat.com>
 Date: Fri, 21 Apr 2017 11:16:27 +0200
-Subject: [PATCH 09/23] vga: make display updates thread safe.
+Subject: [PATCH] vga: make display updates thread safe.
 
 The vga code clears the dirty bits *after* reading the framebuffer
 memory.  So if the guest framebuffer updates hits the race window

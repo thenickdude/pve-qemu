@@ -1,7 +1,7 @@
-From 8b2be8e3f9c1ca9f78b1c87ead13f54fbd98198a Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: "Dr. David Alan Gilbert" <dgilbert@redhat.com>
 Date: Fri, 4 Aug 2017 12:33:29 +0100
-Subject: [PATCH 16/23] vga/migration: Update memory map in post_load
+Subject: [PATCH] vga/migration: Update memory map in post_load
 
 After migration the chain4 alias mapping added by 80763888 (in 2011)
 might be missing, since there's no call to vga_update_memory_access
