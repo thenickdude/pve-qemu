@@ -1,6 +1,6 @@
 # also update debian/changelog
 KVMVER=2.9.1
-KVMPKGREL=5
+KVMPKGREL=6
 
 KVMPACKAGE = pve-qemu-kvm
 KVMSRC = qemu
