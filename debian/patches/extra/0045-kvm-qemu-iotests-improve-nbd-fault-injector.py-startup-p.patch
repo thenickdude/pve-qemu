@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Blake <eblake@redhat.com>
+Date: Wed, 27 Sep 2017 17:57:23 +0200
+Subject: [PATCH] qemu-iotests: improve nbd-fault-injector.py startup
+ protocol
+
+RH-Author: Eric Blake <eblake@redhat.com>
+Message-id: <20170927175725.20023-6-eblake@redhat.com>
+Patchwork-id: 76675
+O-Subject: [RHEV-7.4.z qemu-kvm-rhev PATCH 5/7] qemu-iotests: improve nbd-fault-injector.py startup protocol
+Bugzilla: 1495474
+RH-Acked-by: Max Reitz <mreitz@redhat.com>
+RH-Acked-by: Jeffrey Cody <jcody@redhat.com>
+RH-Acked-by: Stefan Hajnoczi <stefanha@redhat.com>
+
+From: Stefan Hajnoczi <stefanha@redhat.com>
+
+Currently 083 waits for the nbd-fault-injector.py server to start up by
+looping until netstat shows the TCP listen socket.
+
+The startup protocol can be simplified by passing a 0 port number to
+nbd-fault-injector.py.  The kernel will allocate a port in bind(2) and
+the final port number can be printed by nbd-fault-injector.py.
+
+This should make it slightly nicer and less TCP-specific to wait for
+server startup.  This patch changes nbd-fault-injector.py, the next one
+will rewrite server startup in 083.
+
+Reviewed-by: Eric Blake <eblake@redhat.com>
+Signed-off-by: Stefan Hajnoczi <stefanha@redhat.com>
+Message-Id: <20170829122745.14309-3-stefanha@redhat.com>
+Signed-off-by: Eric Blake <eblake@redhat.com>
+(cherry picked from commit 6e592fc92234a58c7156c385840633c17dedd24f)
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+---
+ tests/qemu-iotests/nbd-fault-injector.py | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/tests/qemu-iotests/nbd-fault-injector.py b/tests/qemu-iotests/nbd-fault-injector.py
+index 6c07191..1c10dcb 100755
+--- a/tests/qemu-iotests/nbd-fault-injector.py
++++ b/tests/qemu-iotests/nbd-fault-injector.py
+@@ -235,11 +235,15 @@ def open_socket(path):
+         sock = socket.socket()
+         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+         sock.bind((host, int(port)))
++
++        # If given port was 0 the final port number is now available
++        path = '%s:%d' % sock.getsockname()
+     else:
+         sock = socket.socket(socket.AF_UNIX)
+         sock.bind(path)
+     sock.listen(0)
+     print 'Listening on %s' % path
++    sys.stdout.flush() # another process may be waiting, show message now
+     return sock
+ 
+ def usage(args):
+-- 
+1.8.3.1
+

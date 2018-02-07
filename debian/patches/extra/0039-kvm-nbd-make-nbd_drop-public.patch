@@ -1,0 +1,151 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Blake <eblake@redhat.com>
+Date: Wed, 19 Jul 2017 18:02:01 +0200
+Subject: [PATCH] nbd: make nbd_drop public
+
+RH-Author: Eric Blake <eblake@redhat.com>
+Message-id: <20170719180202.23329-4-eblake@redhat.com>
+Patchwork-id: 75814
+O-Subject: [RHEV-7.4.z qemu-kvm-rhev PATCH 3/4] nbd: make nbd_drop public
+Bugzilla: 1467509
+RH-Acked-by: Stefan Hajnoczi <stefanha@redhat.com>
+RH-Acked-by: Paolo Bonzini <pbonzini@redhat.com>
+RH-Acked-by: Jeffrey Cody <jcody@redhat.com>
+
+From: Vladimir Sementsov-Ogievskiy <vsementsov@virtuozzo.com>
+
+Following commit will reuse it for nbd server too.
+
+Reviewed-by: Eric Blake <eblake@redhat.com>
+Signed-off-by: Vladimir Sementsov-Ogievskiy <vsementsov@virtuozzo.com>
+Message-Id: <20170602150150.258222-3-vsementsov@virtuozzo.com>
+Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+(cherry picked from commit 44298024d30ad36439707b89715a76333f58791b)
+
+ Conflicts:
+	nbd/client.c, nbd/nbd_internal.h, nbd/common.c - missing errp
+	addition (e44ed99) and bulk rename (d1fdf25)
+
+Signed-off-by: Eric Blake <eblake@redhat.com>
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+---
+ nbd/client.c       | 32 +++-----------------------------
+ nbd/common.c       | 26 ++++++++++++++++++++++++++
+ nbd/nbd-internal.h |  2 ++
+ 3 files changed, 31 insertions(+), 29 deletions(-)
+
+diff --git a/nbd/client.c b/nbd/client.c
+index 6b74a62..1652f28 100644
+--- a/nbd/client.c
++++ b/nbd/client.c
+@@ -86,32 +86,6 @@ static QTAILQ_HEAD(, NBDExport) exports = QTAILQ_HEAD_INITIALIZER(exports);
+ 
+ */
+ 
+-/* Discard length bytes from channel.  Return -errno on failure and 0 on
+- * success*/
+-static int drop_sync(QIOChannel *ioc, size_t size)
+-{
+-    ssize_t ret = 0;
+-    char small[1024];
+-    char *buffer;
+-
+-    buffer = sizeof(small) >= size ? small : g_malloc(MIN(65536, size));
+-    while (size > 0) {
+-        ssize_t count = MIN(65536, size);
+-        ret = read_sync(ioc, buffer, MIN(65536, size));
+-
+-        if (ret < 0) {
+-            goto cleanup;
+-        }
+-        size -= count;
+-    }
+-
+- cleanup:
+-    if (buffer != small) {
+-        g_free(buffer);
+-    }
+-    return ret;
+-}
+-
+ /* Send an option request.
+  *
+  * The request is for option @opt, with @data containing @len bytes of
+@@ -333,7 +307,7 @@ static int nbd_receive_list(QIOChannel *ioc, const char *want, bool *match,
+         return -1;
+     }
+     if (namelen != strlen(want)) {
+-        if (drop_sync(ioc, len) < 0) {
++        if (nbd_drop(ioc, len) < 0) {
+             error_setg(errp, "failed to skip export name with wrong length");
+             nbd_send_opt_abort(ioc);
+             return -1;
+@@ -349,7 +323,7 @@ static int nbd_receive_list(QIOChannel *ioc, const char *want, bool *match,
+     }
+     name[namelen] = '\0';
+     len -= namelen;
+-    if (drop_sync(ioc, len) < 0) {
++    if (nbd_drop(ioc, len) < 0) {
+         error_setg(errp, "failed to read export description");
+         nbd_send_opt_abort(ioc);
+         return -1;
+@@ -616,7 +590,7 @@ int nbd_receive_negotiate(QIOChannel *ioc, const char *name, uint16_t *flags,
+     }
+ 
+     TRACE("Size is %" PRIu64 ", export flags %" PRIx16, *size, *flags);
+-    if (zeroes && drop_sync(ioc, 124) < 0) {
++    if (zeroes && nbd_drop(ioc, 124) < 0) {
+         error_setg(errp, "Failed to read reserved block");
+         goto fail;
+     }
+diff --git a/nbd/common.c b/nbd/common.c
+index 4db45b3..9a54010 100644
+--- a/nbd/common.c
++++ b/nbd/common.c
+@@ -71,6 +71,32 @@ ssize_t nbd_wr_syncv(QIOChannel *ioc,
+     return done;
+ }
+ 
++/* Discard length bytes from channel.  Return -errno on failure and 0 on
++ * success */
++int nbd_drop(QIOChannel *ioc, size_t size)
++{
++    ssize_t ret = 0;
++    char small[1024];
++    char *buffer;
++
++    buffer = sizeof(small) >= size ? small : g_malloc(MIN(65536, size));
++    while (size > 0) {
++        ssize_t count = MIN(65536, size);
++        ret = read_sync(ioc, buffer, MIN(65536, size));
++
++        if (ret < 0) {
++            goto cleanup;
++        }
++        size -= count;
++    }
++
++ cleanup:
++    if (buffer != small) {
++        g_free(buffer);
++    }
++    return ret;
++}
++
+ 
+ void nbd_tls_handshake(QIOTask *task,
+                        void *opaque)
+diff --git a/nbd/nbd-internal.h b/nbd/nbd-internal.h
+index e6bbc7c..c02378c 100644
+--- a/nbd/nbd-internal.h
++++ b/nbd/nbd-internal.h
+@@ -149,4 +149,6 @@ struct NBDTLSHandshakeData {
+ void nbd_tls_handshake(QIOTask *task,
+                        void *opaque);
+ 
++int nbd_drop(QIOChannel *ioc, size_t size);
++
+ #endif
+-- 
+1.8.3.1
+

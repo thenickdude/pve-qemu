@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Blake <eblake@redhat.com>
+Date: Wed, 27 Sep 2017 17:57:25 +0200
+Subject: [PATCH] block/nbd-client: nbd_co_send_request: fix return code
+
+RH-Author: Eric Blake <eblake@redhat.com>
+Message-id: <20170927175725.20023-8-eblake@redhat.com>
+Patchwork-id: 76673
+O-Subject: [RHEV-7.4.z qemu-kvm-rhev PATCH 7/7] block/nbd-client: nbd_co_send_request: fix return code
+Bugzilla: 1495474
+RH-Acked-by: Max Reitz <mreitz@redhat.com>
+RH-Acked-by: Jeffrey Cody <jcody@redhat.com>
+RH-Acked-by: Stefan Hajnoczi <stefanha@redhat.com>
+
+From: Vladimir Sementsov-Ogievskiy <vsementsov@virtuozzo.com>
+
+It's incorrect to return success rc >= 0 if we skip qio_channel_writev_all()
+call due to s->quit.
+
+Signed-off-by: Vladimir Sementsov-Ogievskiy <vsementsov@virtuozzo.com>
+Reviewed-by: Eric Blake <eblake@redhat.com>
+Message-Id: <20170920124507.18841-4-vsementsov@virtuozzo.com>
+Signed-off-by: Eric Blake <eblake@redhat.com>
+(cherry picked from commit a693437037328a95d815ad5aec37ac2f8e130e58)
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+---
+ block/nbd-client.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/block/nbd-client.c b/block/nbd-client.c
+index 434acf6..76789c1 100644
+--- a/block/nbd-client.c
++++ b/block/nbd-client.c
+@@ -156,6 +156,8 @@ static int nbd_co_send_request(BlockDriverState *bs,
+             if (ret != request->len) {
+                 rc = -EIO;
+             }
++        } else if (rc >= 0) {
++            rc = -EIO;
+         }
+         qio_channel_set_cork(s->ioc, false);
+     } else {
+-- 
+1.8.3.1
+

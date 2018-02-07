@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Blake <eblake@redhat.com>
+Date: Wed, 27 Sep 2017 17:57:20 +0200
+Subject: [PATCH] fix build failure in nbd_read_reply_entry()
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+RH-Author: Eric Blake <eblake@redhat.com>
+Message-id: <20170927175725.20023-3-eblake@redhat.com>
+Patchwork-id: 76668
+O-Subject: [RHEV-7.4.z qemu-kvm-rhev PATCH 2/7] fix build failure in nbd_read_reply_entry()
+Bugzilla: 1495474
+RH-Acked-by: Max Reitz <mreitz@redhat.com>
+RH-Acked-by: Jeffrey Cody <jcody@redhat.com>
+RH-Acked-by: Stefan Hajnoczi <stefanha@redhat.com>
+
+From: Igor Mammedov <imammedo@redhat.com>
+
+travis builds fail at HEAD at rc3 master with
+
+  block/nbd-client.c: In function ‘nbd_read_reply_entry’:
+  block/nbd-client.c:110:8: error: ‘ret’ may be used uninitialized in this function [-Werror=uninitialized]
+
+fix it by initializing 'ret' to 0
+
+Signed-off-by: Igor Mammedov <imammedo@redhat.com>
+Reviewed-by: Eric Blake <eblake@redhat.com>
+Signed-off-by: Peter Maydell <peter.maydell@linaro.org>
+(cherry picked from commit d0a180131c6655487b47ea72e7da0a909a479a3c)
+Signed-off-by: Eric Blake <eblake@redhat.com>
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+
+Conflicts:
+	block/nbd-client.c - context
+---
+ block/nbd-client.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/block/nbd-client.c b/block/nbd-client.c
+index 701b4ce..256dabe 100644
+--- a/block/nbd-client.c
++++ b/block/nbd-client.c
+@@ -69,7 +69,7 @@ static coroutine_fn void nbd_read_reply_entry(void *opaque)
+ {
+     NBDClientSession *s = opaque;
+     uint64_t i;
+-    int ret;
++    int ret = 0;
+ 
+     while (!s->quit) {
+         assert(s->reply.handle == 0);
+-- 
+1.8.3.1
+

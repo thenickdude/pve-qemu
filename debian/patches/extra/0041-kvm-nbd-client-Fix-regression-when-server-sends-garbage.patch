@@ -1,0 +1,153 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Blake <eblake@redhat.com>
+Date: Wed, 27 Sep 2017 17:57:19 +0200
+Subject: [PATCH] nbd-client: Fix regression when server sends garbage
+
+RH-Author: Eric Blake <eblake@redhat.com>
+Message-id: <20170927175725.20023-2-eblake@redhat.com>
+Patchwork-id: 76672
+O-Subject: [RHEV-7.4.z qemu-kvm-rhev PATCH 1/7] nbd-client: Fix regression when server sends garbage
+Bugzilla: 1495474
+RH-Acked-by: Max Reitz <mreitz@redhat.com>
+RH-Acked-by: Jeffrey Cody <jcody@redhat.com>
+RH-Acked-by: Stefan Hajnoczi <stefanha@redhat.com>
+
+When we switched NBD to use coroutines for qemu 2.9 (in particular,
+commit a12a712a), we introduced a regression: if a server sends us
+garbage (such as a corrupted magic number), we quit the read loop
+but do not stop sending further queued commands, resulting in the
+client hanging when it never reads the response to those additional
+commands.  In qemu 2.8, we properly detected that the server is no
+longer reliable, and cancelled all existing pending commands with
+EIO, then tore down the socket so that all further command attempts
+get EPIPE.
+
+Restore the proper behavior of quitting (almost) all communication
+with a broken server: Once we know we are out of sync or otherwise
+can't trust the server, we must assume that any further incoming
+data is unreliable and therefore end all pending commands with EIO,
+and quit trying to send any further commands.  As an exception, we
+still (try to) send NBD_CMD_DISC to let the server know we are going
+away (in part, because it is easier to do that than to further
+refactor nbd_teardown_connection, and in part because it is the
+only command where we do not have to wait for a reply).
+
+Based on a patch by Vladimir Sementsov-Ogievskiy.
+
+A malicious server can be created with the following hack,
+followed by setting NBD_SERVER_DEBUG to a non-zero value in the
+environment when running qemu-nbd:
+
+| --- a/nbd/server.c
+| +++ b/nbd/server.c
+| @@ -919,6 +919,17 @@ static int nbd_send_reply(QIOChannel *ioc, NBDReply *reply, Error **errp)
+|      stl_be_p(buf + 4, reply->error);
+|      stq_be_p(buf + 8, reply->handle);
+|
+| +    static int debug;
+| +    static int count;
+| +    if (!count++) {
+| +        const char *str = getenv("NBD_SERVER_DEBUG");
+| +        if (str) {
+| +            debug = atoi(str);
+| +        }
+| +    }
+| +    if (debug && !(count % debug)) {
+| +        buf[0] = 0;
+| +    }
+|      return nbd_write(ioc, buf, sizeof(buf), errp);
+|  }
+
+Reported-by: Vladimir Sementsov-Ogievskiy <vsementsov@virtuozzo.com>
+Signed-off-by: Eric Blake <eblake@redhat.com>
+Message-Id: <20170814213426.24681-1-eblake@redhat.com>
+Reviewed-by: Stefan Hajnoczi <stefanha@redhat.com>
+(cherry picked from commit 72b6ffc76653214b69a94a7b1643ff80df134486)
+Signed-off-by: Eric Blake <eblake@redhat.com>
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+
+Conflicts:
+	block/nbd-client.c
+---
+ block/nbd-client.c | 17 +++++++++++++----
+ block/nbd-client.h |  1 +
+ 2 files changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/block/nbd-client.c b/block/nbd-client.c
+index 282679b..701b4ce 100644
+--- a/block/nbd-client.c
++++ b/block/nbd-client.c
+@@ -71,7 +71,7 @@ static coroutine_fn void nbd_read_reply_entry(void *opaque)
+     uint64_t i;
+     int ret;
+ 
+-    for (;;) {
++    while (!s->quit) {
+         assert(s->reply.handle == 0);
+         ret = nbd_receive_reply(s->ioc, &s->reply);
+         if (ret <= 0) {
+@@ -102,6 +102,9 @@ static coroutine_fn void nbd_read_reply_entry(void *opaque)
+         qemu_coroutine_yield();
+     }
+ 
++    if (ret < 0) {
++        s->quit = true;
++    }
+     nbd_recv_coroutines_enter_all(s);
+     s->read_reply_co = NULL;
+ }
+@@ -130,6 +133,10 @@ static int nbd_co_send_request(BlockDriverState *bs,
+     assert(i < MAX_NBD_REQUESTS);
+     request->handle = INDEX_TO_HANDLE(s, i);
+ 
++    if (s->quit) {
++        qemu_co_mutex_unlock(&s->send_mutex);
++        return -EIO;
++    }
+     if (!s->ioc) {
+         qemu_co_mutex_unlock(&s->send_mutex);
+         return -EPIPE;
+@@ -138,7 +145,7 @@ static int nbd_co_send_request(BlockDriverState *bs,
+     if (qiov) {
+         qio_channel_set_cork(s->ioc, true);
+         rc = nbd_send_request(s->ioc, request);
+-        if (rc >= 0) {
++        if (rc >= 0 && !s->quit) {
+             ret = nbd_wr_syncv(s->ioc, qiov->iov, qiov->niov, request->len,
+                                false);
+             if (ret != request->len) {
+@@ -149,6 +156,9 @@ static int nbd_co_send_request(BlockDriverState *bs,
+     } else {
+         rc = nbd_send_request(s->ioc, request);
+     }
++    if (rc < 0) {
++        s->quit = true;
++    }
+     qemu_co_mutex_unlock(&s->send_mutex);
+     return rc;
+ }
+@@ -163,8 +173,7 @@ static void nbd_co_receive_reply(NBDClientSession *s,
+     /* Wait until we're woken up by nbd_read_reply_entry.  */
+     qemu_coroutine_yield();
+     *reply = s->reply;
+-    if (reply->handle != request->handle ||
+-        !s->ioc) {
++    if (reply->handle != request->handle || !s->ioc || s->quit) {
+         reply->error = EIO;
+     } else {
+         if (qiov && reply->error == 0) {
+diff --git a/block/nbd-client.h b/block/nbd-client.h
+index 891ba44..9774a8e 100644
+--- a/block/nbd-client.h
++++ b/block/nbd-client.h
+@@ -30,6 +30,7 @@ typedef struct NBDClientSession {
+ 
+     Coroutine *recv_coroutine[MAX_NBD_REQUESTS];
+     NBDReply reply;
++    bool quit;
+ } NBDClientSession;
+ 
+ NBDClientSession *nbd_get_client_session(BlockDriverState *bs);
+-- 
+1.8.3.1
+

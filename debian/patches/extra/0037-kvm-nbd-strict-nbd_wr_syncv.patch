@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Blake <eblake@redhat.com>
+Date: Wed, 19 Jul 2017 18:01:59 +0200
+Subject: [PATCH] nbd: strict nbd_wr_syncv
+
+RH-Author: Eric Blake <eblake@redhat.com>
+Message-id: <20170719180202.23329-2-eblake@redhat.com>
+Patchwork-id: 75817
+O-Subject: [RHEV-7.4.z qemu-kvm-rhev PATCH 1/4] nbd: strict nbd_wr_syncv
+Bugzilla: 1467509
+RH-Acked-by: Stefan Hajnoczi <stefanha@redhat.com>
+RH-Acked-by: Paolo Bonzini <pbonzini@redhat.com>
+RH-Acked-by: Jeffrey Cody <jcody@redhat.com>
+
+From: Vladimir Sementsov-Ogievskiy <vsementsov@virtuozzo.com>
+
+nbd_wr_syncv is called either from coroutine or from client negotiation
+code, when socket is in blocking mode. So, -EAGAIN is impossible.
+
+Furthermore, EAGAIN is confusing, as, what to read/write again? With
+EAGAIN as a return code we don't know how much data is already
+read or written by the function, so in case of EAGAIN the whole
+communication is broken.
+
+Signed-off-by: Vladimir Sementsov-Ogievskiy <vsementsov@virtuozzo.com>
+Message-Id: <20170516094533.6160-2-vsementsov@virtuozzo.com>
+Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+(cherry picked from commit f250a42ddaee042ad2eb02022a3ebd18fcf987de)
+Signed-off-by: Eric Blake <eblake@redhat.com>
+Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
+---
+ nbd/common.c | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
+
+diff --git a/nbd/common.c b/nbd/common.c
+index dccbb8e..4db45b3 100644
+--- a/nbd/common.c
++++ b/nbd/common.c
+@@ -20,6 +20,10 @@
+ #include "qapi/error.h"
+ #include "nbd-internal.h"
+ 
++/* nbd_wr_syncv
++ * The function may be called from coroutine or from non-coroutine context.
++ * When called from non-coroutine context @ioc must be in blocking mode.
++ */
+ ssize_t nbd_wr_syncv(QIOChannel *ioc,
+                      struct iovec *iov,
+                      size_t niov,
+@@ -42,11 +46,8 @@ ssize_t nbd_wr_syncv(QIOChannel *ioc,
+             len = qio_channel_writev(ioc, local_iov, nlocal_iov, &local_err);
+         }
+         if (len == QIO_CHANNEL_ERR_BLOCK) {
+-            if (qemu_in_coroutine()) {
+-                qio_channel_yield(ioc, do_read ? G_IO_IN : G_IO_OUT);
+-            } else {
+-                return -EAGAIN;
+-            }
++            assert(qemu_in_coroutine());
++            qio_channel_yield(ioc, do_read ? G_IO_IN : G_IO_OUT);
+             continue;
+         }
+         if (len < 0) {
+-- 
+1.8.3.1
+
