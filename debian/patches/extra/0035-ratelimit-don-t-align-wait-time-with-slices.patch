@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Tue, 6 Feb 2018 11:34:34 +0100
+Subject: [PATCH] ratelimit: don't align wait time with slices
+
+It is possible for rate limited writes to keep overshooting a slice's
+quota by a tiny amount causing the slice-aligned waiting period to
+effectively halve the rate.
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+---
+ include/qemu/ratelimit.h | 11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
+
+diff --git a/include/qemu/ratelimit.h b/include/qemu/ratelimit.h
+index 8da1232574..324ff04fe2 100644
+--- a/include/qemu/ratelimit.h
++++ b/include/qemu/ratelimit.h
+@@ -35,7 +35,7 @@ typedef struct {
+ static inline int64_t ratelimit_calculate_delay(RateLimit *limit, uint64_t n)
+ {
+     int64_t now = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
+-    uint64_t delay_slices;
++    double delay_slices;
+ 
+     assert(limit->slice_quota && limit->slice_ns);
+ 
+@@ -54,12 +54,11 @@ static inline int64_t ratelimit_calculate_delay(RateLimit *limit, uint64_t n)
+         return 0;
+     }
+ 
+-    /* Quota exceeded. Calculate the next time slice we may start
+-     * sending data again. */
+-    delay_slices = (limit->dispatched + limit->slice_quota - 1) /
+-        limit->slice_quota;
++    /* Quota exceeded. Wait based on the excess amount and then start a new
++     * slice. */
++    delay_slices = (double)limit->dispatched / limit->slice_quota;
+     limit->slice_end_time = limit->slice_start_time +
+-        delay_slices * limit->slice_ns;
++        (uint64_t)(delay_slices * limit->slice_ns);
+     return limit->slice_end_time - now;
+ }
+ 
+-- 
+2.11.0
+

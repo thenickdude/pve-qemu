@@ -61,3 +61,4 @@ extra/0031-i386-Add-support-for-SPEC_CTRL-MSR.patch
 extra/0032-i386-Add-spec-ctrl-CPUID-bit.patch
 extra/0033-i386-Add-FEAT_8000_0008_EBX-CPUID-feature-word.patch
 extra/0034-i386-Add-new-IBRS-versions-of-Intel-CPU-models.patch
+extra/0035-ratelimit-don-t-align-wait-time-with-slices.patch
