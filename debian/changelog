@@ -1,3 +1,9 @@
+pve-qemu-kvm (2.9.1-8) stable; urgency=medium
+
+  * merge stable fixed for drive mirroring via nbd
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 08 Feb 2018 10:15:11 +0100
+
 pve-qemu-kvm (2.9.1-7) stable; urgency=medium
 
   * fix #1642: merge: ratelimit: don't align wait time with slices
