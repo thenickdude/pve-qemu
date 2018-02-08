@@ -1,3 +1,9 @@
+pve-qemu-kvm (2.9.1-7) stable; urgency=medium
+
+  * fix #1642: merge: ratelimit: don't align wait time with slices
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 07 Feb 2018 16:45:07 +0100
+
 pve-qemu-kvm (2.9.1-6) stable; urgency=medium
 
   * merge patches for SPEC_CTRL MSR, spec-ctrl CPUID bit and -IBRS CPU models
