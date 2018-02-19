@@ -1,3 +1,11 @@
+pve-qemu-kvm (2.9.1-9) stable; urgency=medium
+
+  * add EPYC and EPYC-IPBP cpu models
+
+  * add throttling options to vma extract for throttling restore operations
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 19 Feb 2018 10:42:18 +0100
+
 pve-qemu-kvm (2.9.1-8) stable; urgency=medium
 
   * merge stable fixed for drive mirroring via nbd
