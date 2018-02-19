@@ -45,7 +45,7 @@ config.status: configure
 	--disable-smartcard --audio-drv-list="alsa" --enable-spice \
 	--enable-usb-redir --enable-glusterfs --enable-libusb --disable-gtk \
 	--enable-xfsctl --enable-numa --disable-strip --enable-jemalloc \
-	--enable-virtfs --disable-libnfs --disable-fdt \
+	--enable-virtfs --disable-libnfs \
 	--disable-guest-agent --disable-guest-agent-msi
 
 build: patch build-stamp
