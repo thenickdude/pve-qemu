@@ -1,7 +1,7 @@
-From 8d4dc658bad2438d6225d261aae8647088b853a1 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Alexandre Derumier <aderumier@odiso.com>
 Date: Tue, 29 Sep 2015 15:37:44 +0200
-Subject: [PATCH 13/28] smm_available = false
+Subject: [PATCH] smm_available = false
 
 Signed-off-by: Alexandre Derumier <aderumier@odiso.com>
 ---

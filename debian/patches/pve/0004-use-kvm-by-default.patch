@@ -1,7 +1,7 @@
-From f1e0cc0d0f287a8072a0f69fe1a10a0cf1cd6b49 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:27:05 +0100
-Subject: [PATCH 04/28] use kvm by default
+Subject: [PATCH] use kvm by default
 
 ---
  accel.c | 4 ++--

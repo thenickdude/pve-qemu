@@ -1,8 +1,8 @@
-From 24fea0d7356b39d70dde9eb683183ed5c67a4ac9 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Alexandre Derumier <aderumier@odiso.com>
 Date: Tue, 26 Jul 2016 16:51:00 +0200
-Subject: [PATCH 19/28] block: rbd: disable rbd_cache_writethrough_until_flush
- with cache=unsafe
+Subject: [PATCH] block: rbd: disable rbd_cache_writethrough_until_flush with
+ cache=unsafe
 
 Signed-off-by: Alexandre Derumier <aderumier@odiso.com>
 ---

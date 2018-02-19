@@ -1,7 +1,7 @@
-From 99ae84628c46f29cfce39c753801f91efe102a8c Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:18:46 +0100
-Subject: [PATCH 03/28] qemu-img: return success on info without snapshots
+Subject: [PATCH] qemu-img: return success on info without snapshots
 
 ---
  qemu-img.c | 3 ++-

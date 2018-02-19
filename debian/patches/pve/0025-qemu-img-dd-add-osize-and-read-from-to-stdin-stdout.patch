@@ -1,7 +1,7 @@
-From e1031eef2db9f19cd09c21ba36f0d106528d8df0 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Fri, 23 Jun 2017 12:01:43 +0200
-Subject: [PATCH 25/28] qemu-img dd: add osize and read from/to stdin/stdout
+Subject: [PATCH] qemu-img dd: add osize and read from/to stdin/stdout
 
 Neither convert nor dd were previously able to write to or
 read from a pipe. Particularly serializing an image file

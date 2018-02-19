@@ -1,7 +1,7 @@
-From 6017af4918c9795a7f98a463426e1e21065b15d5 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 15:04:57 +0100
-Subject: [PATCH 26/28] backup: modify job api
+Subject: [PATCH] backup: modify job api
 
 Introduce a pause_count parameter to start a backup in
 paused mode. This way backups of multiple drives can be

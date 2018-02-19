@@ -1,7 +1,7 @@
-From 4c989793d0df71e8f90da8c8f883d42a8aa92191 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:50:05 +0100
-Subject: [PATCH 14/28] use whitespace between VERSION and PKGVERSION
+Subject: [PATCH] use whitespace between VERSION and PKGVERSION
 
 Our kvm version parser expects a white space or comma after
 the version string, see PVE::QemuServer::kvm_user_version()

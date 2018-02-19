@@ -1,7 +1,7 @@
-From 981ee6783da6e4d5905fcc972950296187a55c0d Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Mon, 11 Jan 2016 10:40:31 +0100
-Subject: [PATCH 17/28] vnc: PVE VNC authentication
+Subject: [PATCH] vnc: PVE VNC authentication
 
 ---
  crypto/tlscreds.c         |  47 +++++++++++

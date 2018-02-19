@@ -1,7 +1,7 @@
-From 27d7cf1b94244a56cd0e8a408af3e40a84dace81 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 16:04:32 +0100
-Subject: [PATCH 10/28] internal snapshot async
+Subject: [PATCH] internal snapshot async
 
 ---
  Makefile.objs           |   1 +

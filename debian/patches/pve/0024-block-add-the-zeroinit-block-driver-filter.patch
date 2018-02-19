@@ -1,7 +1,7 @@
-From 728c38cd3035da76df02cf955c0452c3401eb3f3 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Thu, 17 Mar 2016 11:33:37 +0100
-Subject: [PATCH 24/28] block: add the zeroinit block driver filter
+Subject: [PATCH] block: add the zeroinit block driver filter
 
 ---
  block/Makefile.objs |   1 +

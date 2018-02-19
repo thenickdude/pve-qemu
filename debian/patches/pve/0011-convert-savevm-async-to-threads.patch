@@ -1,7 +1,7 @@
-From bed6817c14a520409f4ffee05e635c988c8b5994 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Tue, 8 Nov 2016 11:13:06 +0100
-Subject: [PATCH 11/28] convert savevm-async to threads
+Subject: [PATCH] convert savevm-async to threads
 
 ---
  savevm-async.c | 144 +++++++++++++++++++++++++++++++++++----------------------

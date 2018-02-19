@@ -1,13 +1,13 @@
-From fb4bcaaced8119f2b99d1621fdfe5fce159311f4 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 2 Aug 2017 13:51:02 +0200
-Subject: [PATCH 27/28] backup: introduce vma archive format
+Subject: [PATCH] backup: introduce vma archive format
 
 ---
  MAINTAINERS          |   6 +
  block/Makefile.objs  |   3 +
  block/vma.c          | 424 +++++++++++++++++++++++++++++++++++++++++++
- blockdev.c           | 499 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ blockdev.c           | 498 +++++++++++++++++++++++++++++++++++++++++++++++++++
  configure            |  30 ++++
  hmp-commands-info.hx |  13 ++
  hmp-commands.hx      |  31 ++++
@@ -15,7 +15,7 @@ Subject: [PATCH 27/28] backup: introduce vma archive format
  hmp.h                |   3 +
  qapi-schema.json     |  91 ++++++++++
  qapi/block-core.json |  20 ++-
- 11 files changed, 1181 insertions(+), 2 deletions(-)
+ 11 files changed, 1180 insertions(+), 2 deletions(-)
  create mode 100644 block/vma.c
 
 diff --git a/MAINTAINERS b/MAINTAINERS
@@ -484,7 +484,7 @@ index 0000000000..7151514f94
 +
 +block_init(bdrv_vma_init);
 diff --git a/blockdev.c b/blockdev.c
-index 9b6cfafd33..e23eb16fc8 100644
+index 9b6cfafd33..534c00f5da 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -31,10 +31,12 @@
@@ -500,7 +500,7 @@ index 9b6cfafd33..e23eb16fc8 100644
  #include "block/throttle-groups.h"
  #include "monitor/monitor.h"
  #include "qemu/error-report.h"
-@@ -2932,6 +2934,503 @@ out:
+@@ -2932,6 +2934,502 @@ out:
      aio_context_release(aio_context);
  }
  
@@ -665,7 +665,6 @@ index 9b6cfafd33..e23eb16fc8 100644
 +static void pvebackup_run_next_job(void)
 +{
 +    bool cancel = backup_state.error || backup_state.cancel;
-+fprintf(stderr, "run next job: %zu\n", backup_state.next_job);
 +    GList *next = g_list_nth(backup_state.di_list, backup_state.next_job);
 +    while (next) {
 +        PVEBackupDevInfo *di = (PVEBackupDevInfo *)next->data;

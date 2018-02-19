@@ -1,7 +1,7 @@
-From 3cff3cff0dda09201386dff3c86c5e4fdb0b41b7 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Tue, 5 Dec 2017 12:12:15 +0100
-Subject: [PATCH 2/2] backup: fix race in backup-stop command
+Subject: [PATCH] backup: fix race in backup-stop command
 
 Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
 ---

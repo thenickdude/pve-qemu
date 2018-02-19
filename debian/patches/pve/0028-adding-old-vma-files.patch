@@ -1,21 +1,21 @@
-From bda9612a0dc8b39b73c8e99a149f2aa967a056a3 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Mon, 7 Aug 2017 08:51:16 +0200
-Subject: [PATCH 28/28] adding old vma files
+Subject: [PATCH] adding old vma files
 
 ---
  Makefile                  |   3 +-
  Makefile.objs             |   1 +
  block/backup.c            | 132 ++++---
  block/replication.c       |   1 +
- blockdev.c                | 250 +++++++++-----
+ blockdev.c                | 249 +++++++++-----
  blockjob.c                |  11 +-
  include/block/block_int.h |   4 +
  vma-reader.c              | 857 ++++++++++++++++++++++++++++++++++++++++++++++
  vma-writer.c              | 771 +++++++++++++++++++++++++++++++++++++++++
  vma.c                     | 757 ++++++++++++++++++++++++++++++++++++++++
  vma.h                     | 149 ++++++++
- 11 files changed, 2802 insertions(+), 134 deletions(-)
+ 11 files changed, 2802 insertions(+), 133 deletions(-)
  create mode 100644 vma-reader.c
  create mode 100644 vma-writer.c
  create mode 100644 vma.c
@@ -295,7 +295,7 @@ index 1c41d9e6bf..60c6524417 100644
          if (local_err) {
              error_propagate(errp, local_err);
 diff --git a/blockdev.c b/blockdev.c
-index e23eb16fc8..19a82e8774 100644
+index 534c00f5da..19a82e8774 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -31,7 +31,6 @@
@@ -550,7 +550,7 @@ index e23eb16fc8..19a82e8774 100644
                  g_free(cdata);
                  g_free(basename);
                  return 1;
-@@ -3089,35 +3187,37 @@ static int config_to_vma(const char *file, BackupFormat format,
+@@ -3089,34 +3187,37 @@ static int config_to_vma(const char *file, BackupFormat format,
          g_free(basename);
          g_free(cdata);
  
@@ -562,7 +562,6 @@ index e23eb16fc8..19a82e8774 100644
  static void pvebackup_run_next_job(void)
  {
 -    bool cancel = backup_state.error || backup_state.cancel;
--fprintf(stderr, "run next job: %zu\n", backup_state.next_job);
 -    GList *next = g_list_nth(backup_state.di_list, backup_state.next_job);
 -    while (next) {
 -        PVEBackupDevInfo *di = (PVEBackupDevInfo *)next->data;
@@ -601,7 +600,7 @@ index e23eb16fc8..19a82e8774 100644
                      bool has_devlist, const char *devlist,
                      bool has_speed, int64_t speed, Error **errp)
  {
-@@ -3125,14 +3225,15 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3124,14 +3225,15 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      BlockDriverState *bs = NULL;
      const char *backup_dir = NULL;
      Error *local_err = NULL;
@@ -619,7 +618,7 @@ index e23eb16fc8..19a82e8774 100644
          error_set(errp, ERROR_CLASS_GENERIC_ERROR,
                    "previous backup not finished");
          return NULL;
-@@ -3207,40 +3308,28 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3206,40 +3308,28 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
          total += size;
      }
  
@@ -668,7 +667,7 @@ index e23eb16fc8..19a82e8774 100644
                  goto err;
              }
          }
-@@ -3281,15 +3370,15 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3280,15 +3370,15 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
  
      /* add configuration file to archive */
      if (has_config_file) {
@@ -688,7 +687,7 @@ index e23eb16fc8..19a82e8774 100644
        }
      }
      /* initialize global backup_state now */
-@@ -3311,11 +3400,12 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3310,11 +3400,12 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      }
      backup_state.backup_file = g_strdup(backup_file);
  
@@ -704,7 +703,7 @@ index e23eb16fc8..19a82e8774 100644
  
      backup_state.total = total;
      backup_state.transferred = 0;
-@@ -3326,21 +3416,16 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3325,21 +3416,16 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      while (l) {
          PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
          l = g_list_next(l);
@@ -729,7 +728,7 @@ index e23eb16fc8..19a82e8774 100644
      }
  
      if (!backup_state.error) {
-@@ -3374,9 +3459,10 @@ err:
+@@ -3373,9 +3459,10 @@ err:
          g_strfreev(devs);
      }
  
@@ -743,7 +742,7 @@ index e23eb16fc8..19a82e8774 100644
      }
  
      if (backup_dir) {
-@@ -3761,7 +3847,7 @@ static BlockJob *do_drive_backup(DriveBackup *backup, BlockJobTxn *txn,
+@@ -3760,7 +3847,7 @@ static BlockJob *do_drive_backup(DriveBackup *backup, BlockJobTxn *txn,
      job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
                              backup->sync, bmap, backup->compress,
                              backup->on_source_error, backup->on_target_error,
@@ -752,7 +751,7 @@ index e23eb16fc8..19a82e8774 100644
      bdrv_unref(target_bs);
      if (local_err != NULL) {
          error_propagate(errp, local_err);
-@@ -3840,7 +3926,7 @@ BlockJob *do_blockdev_backup(BlockdevBackup *backup, BlockJobTxn *txn,
+@@ -3839,7 +3926,7 @@ BlockJob *do_blockdev_backup(BlockdevBackup *backup, BlockJobTxn *txn,
      job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
                              backup->sync, NULL, backup->compress,
                              backup->on_source_error, backup->on_target_error,
