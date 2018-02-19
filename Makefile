@@ -33,7 +33,7 @@ $(DEB): keycodemapdb | submodule
 	cp -a debian $(BUILDSRC)/debian
 	rm -rf $(BUILDSRC)/ui/keycodemapdb
 	cp -a keycodemapdb $(BUILDSRC)/ui/
-	echo "git clone git://git.proxmox.com/git/pve-qemu-kvm.git\\ngit checkout $(GITVERSION)" > $(BUILDSRC)/debian/SOURCE
+	echo "git clone git://git.proxmox.com/git/pve-qemu.git\\ngit checkout $(GITVERSION)" > $(BUILDSRC)/debian/SOURCE
 	# set package version
 	sed -i 's/^pkgversion="".*/pkgversion="${KVMPACKAGE}_${KVMVER}-${KVMPKGREL}"/' $(BUILDSRC)/configure
 	cd $(BUILDSRC); dpkg-buildpackage -b -rfakeroot -us -uc
