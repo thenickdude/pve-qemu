@@ -27,6 +27,7 @@ pve/0026-backup-modify-job-api.patch
 pve/0027-backup-introduce-vma-archive-format.patch
 pve/0028-adding-old-vma-files.patch
 pve/0029-backup-fix-race-in-backup-stop-command.patch
+pve/0030-vma-add-throttling-options-to-drive-mapping-fifo-pro.patch
 extra/0001-Revert-target-i386-disable-LINT0-after-reset.patch
 extra/0002-virtio-serial-fix-segfault-on-disconnect.patch
 extra/0003-megasas-always-store-SCSIRequest-into-MegasasCmd.patch

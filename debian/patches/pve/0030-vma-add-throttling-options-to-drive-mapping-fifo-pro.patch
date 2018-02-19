@@ -1,0 +1,165 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Thu, 15 Feb 2018 11:07:56 +0100
+Subject: [PATCH] vma: add throttling options to drive mapping fifo protocol
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+---
+ vma.c | 82 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------
+ 1 file changed, 73 insertions(+), 9 deletions(-)
+
+diff --git a/vma.c b/vma.c
+index 04915427c8..91ae14cdc3 100644
+--- a/vma.c
++++ b/vma.c
+@@ -18,7 +18,9 @@
+ #include "qemu-common.h"
+ #include "qemu/error-report.h"
+ #include "qemu/main-loop.h"
++#include "qemu/cutils.h"
+ #include "qapi/qmp/qstring.h"
++#include "qapi/qmp/qint.h"
+ #include "sysemu/char.h" /* qstring_from_str */
+ #include "sysemu/block-backend.h"
+ 
+@@ -133,9 +135,39 @@ typedef struct RestoreMap {
+     char *devname;
+     char *path;
+     char *format;
++    uint64_t throttling_bps;
++    char *throttling_group;
+     bool write_zero;
+ } RestoreMap;
+ 
++static bool try_parse_option(char **line, const char *optname, char **out, const char *inbuf) {
++    size_t optlen = strlen(optname);
++    if (strncmp(*line, optname, optlen) != 0 || (*line)[optlen] != '=') {
++        return false;
++    }
++    if (*out) {
++        g_error("read map failed - duplicate value for option '%s'", optname);
++    }
++    char *value = (*line) + optlen + 1; /* including a '=' */
++    char *colon = strchr(value, ':');
++    if (!colon) {
++        g_error("read map failed - option '%s' not terminated ('%s')",
++                optname, inbuf);
++    }
++    *line = colon+1;
++    *out = g_strndup(value, colon - value);
++    return true;
++}
++
++static uint64_t verify_u64(const char *text) {
++    uint64_t value;
++    const char *endptr = NULL;
++    if (qemu_strtou64(text, &endptr, 0, &value) != 0 || !endptr || *endptr) {
++        g_error("read map failed - not a number: %s", text);
++    }
++    return value;
++}
++
+ static int extract_content(int argc, char **argv)
+ {
+     int c, ret = 0;
+@@ -209,6 +241,9 @@ static int extract_content(int argc, char **argv)
+         while (1) {
+             char inbuf[8192];
+             char *line = fgets(inbuf, sizeof(inbuf), map);
++            char *format = NULL;
++            char *bps = NULL;
++            char *group = NULL;
+             if (!line || line[0] == '\0' || !strcmp(line, "done\n")) {
+                 break;
+             }
+@@ -220,15 +255,19 @@ static int extract_content(int argc, char **argv)
+                 }
+             }
+ 
+-            char *format = NULL;
+-            if (strncmp(line, "format=", sizeof("format=")-1) == 0) {
+-                format = line + sizeof("format=")-1;
+-                char *colon = strchr(format, ':');
+-                if (!colon) {
+-                    g_error("read map failed - found only a format ('%s')", inbuf);
++            while (1) {
++                if (!try_parse_option(&line, "format", &format, inbuf) &&
++                    !try_parse_option(&line, "throttling.bps", &bps, inbuf) &&
++                    !try_parse_option(&line, "throttling.group", &group, inbuf))
++                {
++                    break;
+                 }
+-                format = g_strndup(format, colon - format);
+-                line = colon+1;
++            }
++
++            uint64_t bps_value = 0;
++            if (bps) {
++                bps_value = verify_u64(bps);
++                g_free(bps);
+             }
+ 
+             const char *path;
+@@ -254,6 +293,8 @@ static int extract_content(int argc, char **argv)
+             map->devname = g_strdup(devname);
+             map->path = g_strdup(path);
+             map->format = format;
++            map->throttling_bps = bps_value;
++            map->throttling_group = group;
+             map->write_zero = write_zero;
+ 
+             g_hash_table_insert(devmap, map->devname, map);
+@@ -281,6 +322,8 @@ static int extract_content(int argc, char **argv)
+         } else if (di) {
+             char *devfn = NULL;
+             const char *format = NULL;
++            uint64_t throttling_bps = 0;
++            const char *throttling_group = NULL;
+             int flags = BDRV_O_RDWR | BDRV_O_NO_FLUSH;
+             bool write_zero = true;
+ 
+@@ -292,6 +335,8 @@ static int extract_content(int argc, char **argv)
+                 }
+                 devfn = map->path;
+                 format = map->format;
++                throttling_bps = map->throttling_bps;
++                throttling_group = map->throttling_group;
+                 write_zero = map->write_zero;
+             } else {
+                 devfn = g_strdup_printf("%s/tmp-disk-%s.raw",
+@@ -328,12 +373,31 @@ static int extract_content(int argc, char **argv)
+ 		qdict_put(options, "driver", qstring_from_str("raw"));
+ 	    }
+ 
+-
+ 	    if (errp || !(blk = blk_new_open(devfn, NULL, options, flags, &errp))) {
+                 g_error("can't open file %s - %s", devfn,
+                         error_get_pretty(errp));
+             }
+ 
++            if (throttling_group) {
++                blk_io_limits_enable(blk, throttling_group);
++            }
++
++            if (throttling_bps) {
++                if (!throttling_group) {
++                    blk_io_limits_enable(blk, devfn);
++                }
++
++                ThrottleConfig cfg;
++                throttle_config_init(&cfg);
++                cfg.buckets[THROTTLE_BPS_WRITE].avg = throttling_bps;
++                Error *err = NULL;
++                if (!throttle_is_valid(&cfg, &err)) {
++                    error_report_err(err);
++                    g_error("failed to apply throttling");
++                }
++                blk_set_io_limits(blk, &cfg);
++            }
++
+             if (vma_reader_register_bs(vmar, i, blk, write_zero, &errp) < 0) {
+                 g_error("%s", error_get_pretty(errp));
+             }
+-- 
+2.11.0
+
