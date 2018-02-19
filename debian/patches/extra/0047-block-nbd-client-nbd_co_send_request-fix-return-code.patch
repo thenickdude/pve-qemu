@@ -28,7 +28,7 @@ Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
  1 file changed, 2 insertions(+)
 
 diff --git a/block/nbd-client.c b/block/nbd-client.c
-index 434acf6..76789c1 100644
+index 434acf647f..76789c1829 100644
 --- a/block/nbd-client.c
 +++ b/block/nbd-client.c
 @@ -156,6 +156,8 @@ static int nbd_co_send_request(BlockDriverState *bs,
@@ -41,5 +41,5 @@ index 434acf6..76789c1 100644
          qio_channel_set_cork(s->ioc, false);
      } else {
 -- 
-1.8.3.1
+2.11.0
 

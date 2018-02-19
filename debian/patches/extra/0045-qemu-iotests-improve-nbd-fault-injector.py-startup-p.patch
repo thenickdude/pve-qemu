@@ -1,8 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Eric Blake <eblake@redhat.com>
 Date: Wed, 27 Sep 2017 17:57:23 +0200
-Subject: [PATCH] qemu-iotests: improve nbd-fault-injector.py startup
- protocol
+Subject: [PATCH] qemu-iotests: improve nbd-fault-injector.py startup protocol
 
 RH-Author: Eric Blake <eblake@redhat.com>
 Message-id: <20170927175725.20023-6-eblake@redhat.com>
@@ -37,7 +36,7 @@ Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
  1 file changed, 4 insertions(+)
 
 diff --git a/tests/qemu-iotests/nbd-fault-injector.py b/tests/qemu-iotests/nbd-fault-injector.py
-index 6c07191..1c10dcb 100755
+index 6c07191a5a..1c10dcb51c 100755
 --- a/tests/qemu-iotests/nbd-fault-injector.py
 +++ b/tests/qemu-iotests/nbd-fault-injector.py
 @@ -235,11 +235,15 @@ def open_socket(path):
@@ -57,5 +56,5 @@ index 6c07191..1c10dcb 100755
  
  def usage(args):
 -- 
-1.8.3.1
+2.11.0
 

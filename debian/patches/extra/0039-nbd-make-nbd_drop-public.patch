@@ -35,7 +35,7 @@ Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
  3 files changed, 31 insertions(+), 29 deletions(-)
 
 diff --git a/nbd/client.c b/nbd/client.c
-index 6b74a62..1652f28 100644
+index 6b74a628f1..1652f28e9f 100644
 --- a/nbd/client.c
 +++ b/nbd/client.c
 @@ -86,32 +86,6 @@ static QTAILQ_HEAD(, NBDExport) exports = QTAILQ_HEAD_INITIALIZER(exports);
@@ -99,7 +99,7 @@ index 6b74a62..1652f28 100644
          goto fail;
      }
 diff --git a/nbd/common.c b/nbd/common.c
-index 4db45b3..9a54010 100644
+index 4db45b3ede..9a54010c25 100644
 --- a/nbd/common.c
 +++ b/nbd/common.c
 @@ -71,6 +71,32 @@ ssize_t nbd_wr_syncv(QIOChannel *ioc,
@@ -136,7 +136,7 @@ index 4db45b3..9a54010 100644
  void nbd_tls_handshake(QIOTask *task,
                         void *opaque)
 diff --git a/nbd/nbd-internal.h b/nbd/nbd-internal.h
-index e6bbc7c..c02378c 100644
+index e6bbc7c4b4..c02378c553 100644
 --- a/nbd/nbd-internal.h
 +++ b/nbd/nbd-internal.h
 @@ -149,4 +149,6 @@ struct NBDTLSHandshakeData {
@@ -147,5 +147,5 @@ index e6bbc7c..c02378c 100644
 +
  #endif
 -- 
-1.8.3.1
+2.11.0
 

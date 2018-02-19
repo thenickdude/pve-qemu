@@ -1,18 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Eric Blake <eblake@redhat.com>
-Date: Wed, 19 Jul 2017 18:02:00 +0200
-Subject: [PATCH] nbd: read_sync and friends: return 0 on success
-
-RH-Author: Eric Blake <eblake@redhat.com>
-Message-id: <20170719180202.23329-3-eblake@redhat.com>
-Patchwork-id: 75818
-O-Subject: [RHEV-7.4.z qemu-kvm-rhev PATCH 2/4] nbd: read_sync and friends: return 0 on success
-Bugzilla: 1467509
-RH-Acked-by: Stefan Hajnoczi <stefanha@redhat.com>
-RH-Acked-by: Paolo Bonzini <pbonzini@redhat.com>
-RH-Acked-by: Jeffrey Cody <jcody@redhat.com>
-
 From: Vladimir Sementsov-Ogievskiy <vsementsov@virtuozzo.com>
+Date: Tue, 16 May 2017 12:45:30 +0300
+Subject: [PATCH] nbd: read_sync and friends: return 0 on success
 
 functions read_sync, drop_sync, write_sync, and also
 nbd_negotiate_write, nbd_negotiate_read, nbd_negotiate_drop_sync
@@ -52,9 +41,6 @@ separate helper for this case - read_sync_eof.
 Signed-off-by: Vladimir Sementsov-Ogievskiy <vsementsov@virtuozzo.com>
 Message-Id: <20170516094533.6160-3-vsementsov@virtuozzo.com>
 Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
-(cherry picked from commit f5d406fe86bb28da85824b6581e58980cc1a07f3)
-Signed-off-by: Eric Blake <eblake@redhat.com>
-Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
 ---
  nbd/client.c       | 63 ++++++++++++++++------------------------
  nbd/nbd-internal.h | 34 +++++++++++++++++++---
@@ -62,7 +48,7 @@ Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
  3 files changed, 88 insertions(+), 93 deletions(-)
 
 diff --git a/nbd/client.c b/nbd/client.c
-index a58fb02..6b74a62 100644
+index a58fb02cb4..6b74a628f1 100644
 --- a/nbd/client.c
 +++ b/nbd/client.c
 @@ -86,9 +86,9 @@ static QTAILQ_HEAD(, NBDExport) exports = QTAILQ_HEAD_INITIALIZER(exports);
@@ -280,7 +266,7 @@ index a58fb02..6b74a62 100644
          return ret;
      }
 diff --git a/nbd/nbd-internal.h b/nbd/nbd-internal.h
-index f43d990..e6bbc7c 100644
+index f43d990a05..e6bbc7c4b4 100644
 --- a/nbd/nbd-internal.h
 +++ b/nbd/nbd-internal.h
 @@ -94,7 +94,13 @@
@@ -335,7 +321,7 @@ index f43d990..e6bbc7c 100644
  
  struct NBDTLSHandshakeData {
 diff --git a/nbd/server.c b/nbd/server.c
-index a98bb21..b44cbe6 100644
+index 4d6da8ac06..c2a5909ad6 100644
 --- a/nbd/server.c
 +++ b/nbd/server.c
 @@ -112,7 +112,7 @@ static gboolean nbd_negotiate_continue(QIOChannel *ioc,
@@ -508,7 +494,7 @@ index a98bb21..b44cbe6 100644
              LOG("read failed");
              return -EINVAL;
          }
-@@ -513,7 +510,7 @@ static int nbd_negotiate_options(NBDClient *client)
+@@ -519,7 +516,7 @@ static int nbd_negotiate_options(NBDClient *client)
                  return -EINVAL;
  
              default:
@@ -517,7 +503,7 @@ index a98bb21..b44cbe6 100644
                      return -EIO;
                  }
                  ret = nbd_negotiate_send_rep_err(client->ioc,
-@@ -551,7 +548,7 @@ static int nbd_negotiate_options(NBDClient *client)
+@@ -557,7 +554,7 @@ static int nbd_negotiate_options(NBDClient *client)
                  return nbd_negotiate_handle_export_name(client, length);
  
              case NBD_OPT_STARTTLS:
@@ -526,7 +512,7 @@ index a98bb21..b44cbe6 100644
                      return -EIO;
                  }
                  if (client->tlscreds) {
-@@ -570,7 +567,7 @@ static int nbd_negotiate_options(NBDClient *client)
+@@ -576,7 +573,7 @@ static int nbd_negotiate_options(NBDClient *client)
                  }
                  break;
              default:
@@ -535,7 +521,7 @@ index a98bb21..b44cbe6 100644
                      return -EIO;
                  }
                  ret = nbd_negotiate_send_rep_err(client->ioc,
-@@ -659,12 +656,12 @@ static coroutine_fn int nbd_negotiate(NBDClientNewData *data)
+@@ -665,12 +662,12 @@ static coroutine_fn int nbd_negotiate(NBDClientNewData *data)
              TRACE("TLS cannot be enabled with oldstyle protocol");
              goto fail;
          }
@@ -550,7 +536,7 @@ index a98bb21..b44cbe6 100644
              LOG("write failed");
              goto fail;
          }
-@@ -679,7 +676,7 @@ static coroutine_fn int nbd_negotiate(NBDClientNewData *data)
+@@ -685,7 +682,7 @@ static coroutine_fn int nbd_negotiate(NBDClientNewData *data)
          stq_be_p(buf + 18, client->exp->size);
          stw_be_p(buf + 26, client->exp->nbdflags | myflags);
          len = client->no_zeroes ? 10 : sizeof(buf) - 18;
@@ -559,7 +545,7 @@ index a98bb21..b44cbe6 100644
              LOG("write failed");
              goto fail;
          }
-@@ -702,11 +699,6 @@ static ssize_t nbd_receive_request(QIOChannel *ioc, NBDRequest *request)
+@@ -708,11 +705,6 @@ static ssize_t nbd_receive_request(QIOChannel *ioc, NBDRequest *request)
          return ret;
      }
  
@@ -571,7 +557,7 @@ index a98bb21..b44cbe6 100644
      /* Request
         [ 0 ..  3]   magic   (NBD_REQUEST_MAGIC)
         [ 4 ..  5]   flags   (NBD_CMD_FLAG_FUA, ...)
-@@ -737,7 +729,6 @@ static ssize_t nbd_receive_request(QIOChannel *ioc, NBDRequest *request)
+@@ -743,7 +735,6 @@ static ssize_t nbd_receive_request(QIOChannel *ioc, NBDRequest *request)
  static ssize_t nbd_send_reply(QIOChannel *ioc, NBDReply *reply)
  {
      uint8_t buf[NBD_REPLY_SIZE];
@@ -579,7 +565,7 @@ index a98bb21..b44cbe6 100644
  
      reply->error = system_errno_to_nbd_errno(reply->error);
  
-@@ -754,16 +745,7 @@ static ssize_t nbd_send_reply(QIOChannel *ioc, NBDReply *reply)
+@@ -760,16 +751,7 @@ static ssize_t nbd_send_reply(QIOChannel *ioc, NBDReply *reply)
      stl_be_p(buf + 4, reply->error);
      stq_be_p(buf + 8, reply->handle);
  
@@ -597,7 +583,7 @@ index a98bb21..b44cbe6 100644
  }
  
  #define MAX_NBD_REQUESTS 16
-@@ -1067,7 +1049,7 @@ static ssize_t nbd_co_send_reply(NBDRequestData *req, NBDReply *reply,
+@@ -1073,7 +1055,7 @@ static ssize_t nbd_co_send_reply(NBDRequestData *req, NBDReply *reply,
          rc = nbd_send_reply(client->ioc, reply);
          if (rc >= 0) {
              ret = write_sync(client->ioc, req->data, len);
@@ -606,7 +592,7 @@ index a98bb21..b44cbe6 100644
                  rc = -EIO;
              }
          }
-@@ -1141,7 +1123,7 @@ static ssize_t nbd_co_receive_request(NBDRequestData *req,
+@@ -1147,7 +1129,7 @@ static ssize_t nbd_co_receive_request(NBDRequestData *req,
      if (request->type == NBD_CMD_WRITE) {
          TRACE("Reading %" PRIu32 " byte(s)", request->len);
  
@@ -616,5 +602,5 @@ index a98bb21..b44cbe6 100644
              rc = -EIO;
              goto out;
 -- 
-1.8.3.1
+2.11.0
 

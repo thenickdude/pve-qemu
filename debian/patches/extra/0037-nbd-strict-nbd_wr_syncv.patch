@@ -1,18 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Eric Blake <eblake@redhat.com>
-Date: Wed, 19 Jul 2017 18:01:59 +0200
-Subject: [PATCH] nbd: strict nbd_wr_syncv
-
-RH-Author: Eric Blake <eblake@redhat.com>
-Message-id: <20170719180202.23329-2-eblake@redhat.com>
-Patchwork-id: 75817
-O-Subject: [RHEV-7.4.z qemu-kvm-rhev PATCH 1/4] nbd: strict nbd_wr_syncv
-Bugzilla: 1467509
-RH-Acked-by: Stefan Hajnoczi <stefanha@redhat.com>
-RH-Acked-by: Paolo Bonzini <pbonzini@redhat.com>
-RH-Acked-by: Jeffrey Cody <jcody@redhat.com>
-
 From: Vladimir Sementsov-Ogievskiy <vsementsov@virtuozzo.com>
+Date: Tue, 16 May 2017 12:45:29 +0300
+Subject: [PATCH] nbd: strict nbd_wr_syncv
 
 nbd_wr_syncv is called either from coroutine or from client negotiation
 code, when socket is in blocking mode. So, -EAGAIN is impossible.
@@ -25,15 +14,12 @@ communication is broken.
 Signed-off-by: Vladimir Sementsov-Ogievskiy <vsementsov@virtuozzo.com>
 Message-Id: <20170516094533.6160-2-vsementsov@virtuozzo.com>
 Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
-(cherry picked from commit f250a42ddaee042ad2eb02022a3ebd18fcf987de)
-Signed-off-by: Eric Blake <eblake@redhat.com>
-Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
 ---
  nbd/common.c | 11 ++++++-----
  1 file changed, 6 insertions(+), 5 deletions(-)
 
 diff --git a/nbd/common.c b/nbd/common.c
-index dccbb8e..4db45b3 100644
+index dccbb8e9de..4db45b3ede 100644
 --- a/nbd/common.c
 +++ b/nbd/common.c
 @@ -20,6 +20,10 @@
@@ -62,5 +48,5 @@ index dccbb8e..4db45b3 100644
          }
          if (len < 0) {
 -- 
-1.8.3.1
+2.11.0
 

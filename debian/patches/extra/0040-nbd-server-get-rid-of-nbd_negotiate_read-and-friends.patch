@@ -45,7 +45,7 @@ Signed-off-by: Eric Blake <eblake@redhat.com>
  1 file changed, 21 insertions(+), 85 deletions(-)
 
 diff --git a/nbd/server.c b/nbd/server.c
-index b44cbe6..8e3b8e5 100644
+index c2a5909ad6..ddf93d4717 100644
 --- a/nbd/server.c
 +++ b/nbd/server.c
 @@ -104,69 +104,6 @@ struct NBDClient {
@@ -236,7 +236,7 @@ index b44cbe6..8e3b8e5 100644
              LOG("read failed");
              return -EINVAL;
          }
-@@ -510,7 +446,7 @@ static int nbd_negotiate_options(NBDClient *client)
+@@ -516,7 +452,7 @@ static int nbd_negotiate_options(NBDClient *client)
                  return -EINVAL;
  
              default:
@@ -245,7 +245,7 @@ index b44cbe6..8e3b8e5 100644
                      return -EIO;
                  }
                  ret = nbd_negotiate_send_rep_err(client->ioc,
-@@ -548,7 +484,7 @@ static int nbd_negotiate_options(NBDClient *client)
+@@ -554,7 +490,7 @@ static int nbd_negotiate_options(NBDClient *client)
                  return nbd_negotiate_handle_export_name(client, length);
  
              case NBD_OPT_STARTTLS:
@@ -254,7 +254,7 @@ index b44cbe6..8e3b8e5 100644
                      return -EIO;
                  }
                  if (client->tlscreds) {
-@@ -567,7 +503,7 @@ static int nbd_negotiate_options(NBDClient *client)
+@@ -573,7 +509,7 @@ static int nbd_negotiate_options(NBDClient *client)
                  }
                  break;
              default:
@@ -263,7 +263,7 @@ index b44cbe6..8e3b8e5 100644
                      return -EIO;
                  }
                  ret = nbd_negotiate_send_rep_err(client->ioc,
-@@ -656,12 +592,12 @@ static coroutine_fn int nbd_negotiate(NBDClientNewData *data)
+@@ -662,12 +598,12 @@ static coroutine_fn int nbd_negotiate(NBDClientNewData *data)
              TRACE("TLS cannot be enabled with oldstyle protocol");
              goto fail;
          }
@@ -278,7 +278,7 @@ index b44cbe6..8e3b8e5 100644
              LOG("write failed");
              goto fail;
          }
-@@ -676,7 +612,7 @@ static coroutine_fn int nbd_negotiate(NBDClientNewData *data)
+@@ -682,7 +618,7 @@ static coroutine_fn int nbd_negotiate(NBDClientNewData *data)
          stq_be_p(buf + 18, client->exp->size);
          stw_be_p(buf + 26, client->exp->nbdflags | myflags);
          len = client->no_zeroes ? 10 : sizeof(buf) - 18;
@@ -288,5 +288,5 @@ index b44cbe6..8e3b8e5 100644
              goto fail;
          }
 -- 
-1.8.3.1
+2.11.0
 

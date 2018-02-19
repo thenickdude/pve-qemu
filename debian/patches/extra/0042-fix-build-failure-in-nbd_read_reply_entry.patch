@@ -38,7 +38,7 @@ Conflicts:
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/block/nbd-client.c b/block/nbd-client.c
-index 701b4ce..256dabe 100644
+index 701b4ce2eb..256dabeeef 100644
 --- a/block/nbd-client.c
 +++ b/block/nbd-client.c
 @@ -69,7 +69,7 @@ static coroutine_fn void nbd_read_reply_entry(void *opaque)
@@ -51,5 +51,5 @@ index 701b4ce..256dabe 100644
      while (!s->quit) {
          assert(s->reply.handle == 0);
 -- 
-1.8.3.1
+2.11.0
 

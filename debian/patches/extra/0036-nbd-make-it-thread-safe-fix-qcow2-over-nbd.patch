@@ -1,18 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Eric Blake <eblake@redhat.com>
-Date: Sun, 11 Jun 2017 03:30:07 +0200
-Subject: [PATCH] nbd: make it thread-safe, fix qcow2 over nbd
-
-RH-Author: Eric Blake <eblake@redhat.com>
-Message-id: <20170611033007.399-1-eblake@redhat.com>
-Patchwork-id: 75581
-O-Subject: [RHEV-7.4 qemu-kvm-rhev PATCH] nbd: make it thread-safe, fix qcow2 over nbd
-Bugzilla: 1454582
-RH-Acked-by: Laurent Vivier <lvivier@redhat.com>
-RH-Acked-by: Max Reitz <mreitz@redhat.com>
-RH-Acked-by: Jeffrey Cody <jcody@redhat.com>
-
 From: Paolo Bonzini <pbonzini@redhat.com>
+Date: Thu, 1 Jun 2017 12:44:56 +0200
+Subject: [PATCH] nbd: make it thread-safe, fix qcow2 over nbd
 
 NBD is not thread safe, because it accesses s->in_flight without
 a CoMutex.  Fixing this will be required for multiqueue.
@@ -28,16 +17,12 @@ served over NBD (i.e. qemu-nbd --format=raw, and QEMU's -drive option
 has -format=qcow2).  This patch fixes that issue too.
 
 Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
-(cherry picked from commit 6bdcc018a6ed760b9dfe43539124e420aed83092)
-Signed-off-by: Eric Blake <eblake@redhat.com>
-Upstream-status: v6 pull request https://lists.gnu.org/archive/html/qemu-devel/2017-06/msg01841.html
-Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
 ---
  block/nbd-client.c | 30 +++++++++---------------------
  1 file changed, 9 insertions(+), 21 deletions(-)
 
 diff --git a/block/nbd-client.c b/block/nbd-client.c
-index 1e2952f..43e0292 100644
+index 56eb0e2e16..282679b4f8 100644
 --- a/block/nbd-client.c
 +++ b/block/nbd-client.c
 @@ -114,6 +114,10 @@ static int nbd_co_send_request(BlockDriverState *bs,
@@ -132,5 +117,5 @@ index 1e2952f..43e0292 100644
      if (ret < 0) {
          reply.error = -ret;
 -- 
-1.8.3.1
+2.11.0
 

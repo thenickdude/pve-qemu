@@ -74,7 +74,7 @@ Conflicts:
  2 files changed, 14 insertions(+), 4 deletions(-)
 
 diff --git a/block/nbd-client.c b/block/nbd-client.c
-index 282679b..701b4ce 100644
+index 282679b4f8..701b4ce2eb 100644
 --- a/block/nbd-client.c
 +++ b/block/nbd-client.c
 @@ -71,7 +71,7 @@ static coroutine_fn void nbd_read_reply_entry(void *opaque)
@@ -137,7 +137,7 @@ index 282679b..701b4ce 100644
      } else {
          if (qiov && reply->error == 0) {
 diff --git a/block/nbd-client.h b/block/nbd-client.h
-index 891ba44..9774a8e 100644
+index 891ba44a20..9774a8ebbb 100644
 --- a/block/nbd-client.h
 +++ b/block/nbd-client.h
 @@ -30,6 +30,7 @@ typedef struct NBDClientSession {
@@ -149,5 +149,5 @@ index 891ba44..9774a8e 100644
  
  NBDClientSession *nbd_get_client_session(BlockDriverState *bs);
 -- 
-1.8.3.1
+2.11.0
 

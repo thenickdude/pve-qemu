@@ -47,7 +47,7 @@ Signed-off-by: Eric Blake <eblake@redhat.com>
  3 files changed, 212 insertions(+), 71 deletions(-)
 
 diff --git a/tests/qemu-iotests/083 b/tests/qemu-iotests/083
-index bff9360..0306f11 100755
+index bff9360048..0306f112da 100755
 --- a/tests/qemu-iotests/083
 +++ b/tests/qemu-iotests/083
 @@ -27,6 +27,14 @@ echo "QA output created by $seq"
@@ -224,7 +224,7 @@ index bff9360..0306f11 100755
  
  # success, all done
 diff --git a/tests/qemu-iotests/083.out b/tests/qemu-iotests/083.out
-index 0c13888..7419722 100644
+index 0c13888ba1..7419722cd7 100644
 --- a/tests/qemu-iotests/083.out
 +++ b/tests/qemu-iotests/083.out
 @@ -1,43 +1,43 @@
@@ -434,10 +434,10 @@ index 0c13888..7419722 100644
  === Check disconnect after neg-classic ===
  
 diff --git a/tests/qemu-iotests/common.filter b/tests/qemu-iotests/common.filter
-index c9a2d5c..f06d4dc 100644
+index 104001358b..65ec315f25 100644
 --- a/tests/qemu-iotests/common.filter
 +++ b/tests/qemu-iotests/common.filter
-@@ -154,9 +154,9 @@ _filter_nbd()
+@@ -153,9 +153,9 @@ _filter_nbd()
      #
      # Filter out the TCP port number since this changes between runs.
      sed -e '/nbd\/.*\.c:/d' \
@@ -450,5 +450,5 @@ index c9a2d5c..f06d4dc 100644
  
  # make sure this script returns success
 -- 
-1.8.3.1
+2.11.0
 

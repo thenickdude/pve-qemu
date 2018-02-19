@@ -50,7 +50,7 @@ Signed-off-by: Miroslav Rezanina <mrezanin@redhat.com>
  2 files changed, 28 insertions(+), 14 deletions(-)
 
 diff --git a/block/nbd-client.c b/block/nbd-client.c
-index 256dabe..f7bca3f 100644
+index 256dabeeef..f7bca3f996 100644
 --- a/block/nbd-client.c
 +++ b/block/nbd-client.c
 @@ -38,8 +38,10 @@ static void nbd_recv_coroutines_enter_all(NBDClientSession *s)
@@ -155,7 +155,7 @@ index 256dabe..f7bca3f 100644
      /* Kick the read_reply_co to get the next reply.  */
      if (s->read_reply_co) {
 diff --git a/block/nbd-client.h b/block/nbd-client.h
-index 9774a8e..f97792f 100644
+index 9774a8ebbb..f97792ff49 100644
 --- a/block/nbd-client.h
 +++ b/block/nbd-client.h
 @@ -17,6 +17,11 @@
@@ -180,5 +180,5 @@ index 9774a8e..f97792f 100644
      bool quit;
  } NBDClientSession;
 -- 
-1.8.3.1
+2.11.0
 
