@@ -4,21 +4,22 @@ Date: Mon, 11 Jan 2016 10:40:31 +0100
 Subject: [PATCH] vnc: PVE VNC authentication
 
 ---
- crypto/tlscreds.c         |  47 +++++++++++
+ crypto/tlscreds.c         |  47 ++++++++++++
  crypto/tlscredspriv.h     |   2 +
- crypto/tlscredsx509.c     |  13 +--
+ crypto/tlscredsx509.c     |  13 ++--
  crypto/tlssession.c       |   1 +
  include/crypto/tlscreds.h |   1 +
  include/ui/console.h      |   1 +
+ qapi-schema.json          |   1 +
  qemu-options.hx           |   3 +
- ui/vnc-auth-vencrypt.c    | 197 ++++++++++++++++++++++++++++++++++++++--------
- ui/vnc.c                  | 140 +++++++++++++++++++++++++++++++-
+ ui/vnc-auth-vencrypt.c    | 182 ++++++++++++++++++++++++++++++++++++++--------
+ ui/vnc.c                  | 140 ++++++++++++++++++++++++++++++++++-
  ui/vnc.h                  |   4 +
  vl.c                      |   9 +++
- 11 files changed, 377 insertions(+), 41 deletions(-)
+ 12 files changed, 364 insertions(+), 40 deletions(-)
 
 diff --git a/crypto/tlscreds.c b/crypto/tlscreds.c
-index a8965531b6..e9ae13ce47 100644
+index 3cd41035bb..e982da3451 100644
 --- a/crypto/tlscreds.c
 +++ b/crypto/tlscreds.c
 @@ -158,6 +158,33 @@ qcrypto_tls_creds_prop_get_verify(Object *obj,
@@ -75,7 +76,7 @@ index a8965531b6..e9ae13ce47 100644
 +                            NULL);
 +    object_property_add_enum(obj, "endpoint",
 +                             "QCryptoTLSCredsEndpoint",
-+                             QCryptoTLSCredsEndpoint_lookup,
++                             &QCryptoTLSCredsEndpoint_lookup,
 +                             qcrypto_tls_creds_prop_get_endpoint,
 +                             qcrypto_tls_creds_prop_set_endpoint,
 +                             NULL);
@@ -168,10 +169,10 @@ index ad47d88be7..f86d379f26 100644
  
  
 diff --git a/include/ui/console.h b/include/ui/console.h
-index d759338816..69f010e1db 100644
+index 580dfc57ee..383e5c88bd 100644
 --- a/include/ui/console.h
 +++ b/include/ui/console.h
-@@ -462,6 +462,7 @@ static inline void cocoa_display_init(DisplayState *ds, int full_screen)
+@@ -466,6 +466,7 @@ static inline void cocoa_display_init(DisplayState *ds, int full_screen)
  #endif
  
  /* vnc.c */
@@ -179,11 +180,23 @@ index d759338816..69f010e1db 100644
  void vnc_display_init(const char *id);
  void vnc_display_open(const char *id, Error **errp);
  void vnc_display_add_client(const char *id, int csock, bool skipauth);
+diff --git a/qapi-schema.json b/qapi-schema.json
+index 348b527681..d2155cb00f 100644
+--- a/qapi-schema.json
++++ b/qapi-schema.json
+@@ -56,6 +56,7 @@
+ { 'pragma': {
+     # Commands allowed to return a non-dictionary:
+     'returns-whitelist': [
++        'get_link_status',
+         'human-monitor-command',
+         'qom-get',
+         'query-migrate-cache-size',
 diff --git a/qemu-options.hx b/qemu-options.hx
-index cbcb27da9a..0b1957c034 100644
+index 7c054af8f9..07129d55bc 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -513,6 +513,9 @@ STEXI
+@@ -583,6 +583,9 @@ STEXI
  @table @option
  ETEXI
  
@@ -194,13 +207,13 @@ index cbcb27da9a..0b1957c034 100644
      "-fda/-fdb file  use 'file' as floppy disk 0/1 image\n", QEMU_ARCH_ALL)
  DEF("fdb", HAS_ARG, QEMU_OPTION_fdb, "", QEMU_ARCH_ALL)
 diff --git a/ui/vnc-auth-vencrypt.c b/ui/vnc-auth-vencrypt.c
-index ffaab57550..594ca737a9 100644
+index 7833631275..c42acd3714 100644
 --- a/ui/vnc-auth-vencrypt.c
 +++ b/ui/vnc-auth-vencrypt.c
-@@ -28,6 +28,108 @@
- #include "vnc.h"
+@@ -29,6 +29,108 @@
  #include "qapi/error.h"
  #include "qemu/main-loop.h"
+ #include "trace.h"
 +#include "io/channel-socket.h"
 +
 +static int protocol_client_auth_plain(VncState *vs, uint8_t *data, size_t len)
@@ -228,7 +241,7 @@ index ffaab57550..594ca737a9 100644
 +
 +	VNC_DEBUG("AUTH PLAIN username: %s pw: %s\n", username, passwd);
 +
-+	if (pve_auth_verify(clientip->u.inet.data->host, username, passwd) == 0) {
++	if (pve_auth_verify(clientip->u.inet.host, username, passwd) == 0) {
 +		vnc_write_u32(vs, 0); /* Accept auth completion */
 +		start_client_init(vs);
 +		qapi_free_SocketAddress(clientip);
@@ -323,21 +336,20 @@ index ffaab57550..594ca737a9 100644
 +
      case VNC_AUTH_VENCRYPT_TLSVNC:
      case VNC_AUTH_VENCRYPT_X509VNC:
-        VNC_DEBUG("Start TLS auth VNC\n");
-@@ -88,45 +201,64 @@ static int protocol_client_vencrypt_auth(VncState *vs, uint8_t *data, size_t len
- {
+        start_auth_vnc(vs);
+@@ -90,45 +203,51 @@ static int protocol_client_vencrypt_auth(VncState *vs, uint8_t *data, size_t len
      int auth = read_u32(data, 0);
  
+     trace_vnc_auth_vencrypt_subauth(vs, auth);
 -    if (auth != vs->subauth) {
 +    if (auth != vs->subauth && auth != VNC_AUTH_VENCRYPT_PLAIN) {
-         VNC_DEBUG("Rejecting auth %d\n", auth);
+         trace_vnc_auth_fail(vs, vs->auth, "Unsupported sub-auth version", "");
          vnc_write_u8(vs, 0); /* Reject auth */
          vnc_flush(vs);
          vnc_client_error(vs);
      } else {
 -        Error *err = NULL;
 -        QIOChannelTLS *tls;
--        VNC_DEBUG("Accepting auth %d, setting up TLS for handshake\n", auth);
 -        vnc_write_u8(vs, 1); /* Accept auth */
 -        vnc_flush(vs);
 -
@@ -352,7 +364,6 @@ index ffaab57550..594ca737a9 100644
 +        {
 +            Error *err = NULL;
 +            QIOChannelTLS *tls;
-+            VNC_DEBUG("Accepting auth %d, setting up TLS for handshake\n", auth);
 +            vnc_write_u8(vs, 1); /* Accept auth */
 +            vnc_flush(vs);
  
@@ -362,7 +373,8 @@ index ffaab57550..594ca737a9 100644
 -            vs->vd->tlsaclname,
 -            &err);
 -        if (!tls) {
--            VNC_DEBUG("Failed to setup TLS %s\n", error_get_pretty(err));
+-            trace_vnc_auth_fail(vs, vs->auth, "TLS setup failed",
+-                                error_get_pretty(err));
 -            error_free(err);
 -            vnc_client_error(vs);
 -            return 0;
@@ -371,46 +383,34 @@ index ffaab57550..594ca737a9 100644
 +                g_source_remove(vs->ioc_tag);
 +                vs->ioc_tag = 0;
 +            }
- 
--        qio_channel_set_name(QIO_CHANNEL(tls), "vnc-server-tls");
--        VNC_DEBUG("Start TLS VeNCrypt handshake process\n");
--        object_unref(OBJECT(vs->ioc));
--        vs->ioc = QIO_CHANNEL(tls);
--        vs->tls = qio_channel_tls_get_session(tls);
 +            tls = qio_channel_tls_new_server(
 +                vs->ioc,
 +                vs->vd->tlscreds,
 +                vs->vd->tlsaclname,
 +                &err);
 +            if (!tls) {
-+                VNC_DEBUG("Failed to setup TLS %s\n", error_get_pretty(err));
++                trace_vnc_auth_fail(vs, vs->auth, "TLS setup failed",
++                                    error_get_pretty(err));
 +                error_free(err);
 +                vnc_client_error(vs);
 +                return 0;
-+                vs->tls = qcrypto_tls_session_new(vs->vd->tlscreds,
-+                                                  NULL,
-+                                                  vs->vd->tlsaclname,
-+                                                  QCRYPTO_TLS_CREDS_ENDPOINT_SERVER,
-+                                                  &err);
-+                if (!vs->tls) {
-+                    VNC_DEBUG("Failed to setup TLS %s\n",
-+                              error_get_pretty(err));
-+                    error_free(err);
-+                    vnc_client_error(vs);
-+                    return 0;
-+                }
 +            }
+ 
+-        qio_channel_set_name(QIO_CHANNEL(tls), "vnc-server-tls");
+-        object_unref(OBJECT(vs->ioc));
+-        vs->ioc = QIO_CHANNEL(tls);
+-        trace_vnc_client_io_wrap(vs, vs->ioc, "tls");
+-        vs->tls = qio_channel_tls_get_session(tls);
 +            qio_channel_set_name(QIO_CHANNEL(tls), "vnc-server-tls");
++            object_unref(OBJECT(vs->ioc));
++            vs->ioc = QIO_CHANNEL(tls);
++            trace_vnc_client_io_wrap(vs, vs->ioc, "tls");
++            vs->tls = qio_channel_tls_get_session(tls);
  
 -        qio_channel_tls_handshake(tls,
 -                                  vnc_tls_handshake_done,
 -                                  vs,
 -                                  NULL);
-+            VNC_DEBUG("Start TLS VeNCrypt handshake process\n");
-+            object_unref(OBJECT(vs->ioc));
-+            vs->ioc = QIO_CHANNEL(tls);
-+            vs->tls = qio_channel_tls_get_session(tls);
-+
 +            qio_channel_tls_handshake(tls,
 +                                      vnc_tls_handshake_done,
 +                                      vs,
@@ -419,12 +419,9 @@ index ffaab57550..594ca737a9 100644
      }
      return 0;
  }
-@@ -140,10 +272,11 @@ static int protocol_client_vencrypt_init(VncState *vs, uint8_t *data, size_t len
-         vnc_flush(vs);
+@@ -144,8 +263,9 @@ static int protocol_client_vencrypt_init(VncState *vs, uint8_t *data, size_t len
          vnc_client_error(vs);
      } else {
--        VNC_DEBUG("Sending allowed auth %d\n", vs->subauth);
-+        VNC_DEBUG("Sending allowed auths %d %d\n", vs->subauth, VNC_AUTH_VENCRYPT_PLAIN);
          vnc_write_u8(vs, 0); /* Accept version */
 -        vnc_write_u8(vs, 1); /* Number of sub-auths */
 +        vnc_write_u8(vs, 2); /* Number of sub-auths */
@@ -434,10 +431,10 @@ index ffaab57550..594ca737a9 100644
          vnc_read_when(vs, protocol_client_vencrypt_auth, 4);
      }
 diff --git a/ui/vnc.c b/ui/vnc.c
-index a345bf0d78..42db7e386b 100644
+index 4494cb1dd4..1589cbe1b3 100644
 --- a/ui/vnc.c
 +++ b/ui/vnc.c
-@@ -56,6 +56,125 @@ static const struct timeval VNC_REFRESH_LOSSY = { 2, 0 };
+@@ -55,6 +55,125 @@ static const struct timeval VNC_REFRESH_LOSSY = { 2, 0 };
  #include "vnc_keysym.h"
  #include "crypto/cipher.h"
  
@@ -563,7 +560,7 @@ index a345bf0d78..42db7e386b 100644
  static QTAILQ_HEAD(, VncDisplay) vnc_displays =
      QTAILQ_HEAD_INITIALIZER(vnc_displays);
  
-@@ -3356,10 +3475,16 @@ vnc_display_setup_auth(int *auth,
+@@ -3507,10 +3626,16 @@ vnc_display_setup_auth(int *auth,
          if (password) {
              if (is_x509) {
                  VNC_DEBUG("Initializing VNC server with x509 password auth\n");
@@ -582,7 +579,7 @@ index a345bf0d78..42db7e386b 100644
              }
  
          } else if (sasl) {
-@@ -3393,6 +3518,7 @@ vnc_display_create_creds(bool x509,
+@@ -3544,6 +3669,7 @@ vnc_display_create_creds(bool x509,
                           bool x509verify,
                           const char *dir,
                           const char *id,
@@ -590,7 +587,7 @@ index a345bf0d78..42db7e386b 100644
                           Error **errp)
  {
      gchar *credsid = g_strdup_printf("tlsvnc%s", id);
-@@ -3408,6 +3534,7 @@ vnc_display_create_creds(bool x509,
+@@ -3559,6 +3685,7 @@ vnc_display_create_creds(bool x509,
                                        "endpoint", "server",
                                        "dir", dir,
                                        "verify-peer", x509verify ? "yes" : "no",
@@ -598,7 +595,7 @@ index a345bf0d78..42db7e386b 100644
                                        NULL);
      } else {
          creds = object_new_with_props(TYPE_QCRYPTO_TLS_CREDS_ANON,
-@@ -3415,6 +3542,7 @@ vnc_display_create_creds(bool x509,
+@@ -3566,6 +3693,7 @@ vnc_display_create_creds(bool x509,
                                        credsid,
                                        &err,
                                        "endpoint", "server",
@@ -606,7 +603,7 @@ index a345bf0d78..42db7e386b 100644
                                        NULL);
      }
  
-@@ -3879,12 +4007,17 @@ void vnc_display_open(const char *id, Error **errp)
+@@ -4032,12 +4160,17 @@ void vnc_display_open(const char *id, Error **errp)
          }
      } else {
          const char *path;
@@ -625,7 +622,7 @@ index a345bf0d78..42db7e386b 100644
              } else {
                  path = qemu_opt_get(opts, "x509verify");
                  if (path) {
-@@ -3896,6 +4029,7 @@ void vnc_display_open(const char *id, Error **errp)
+@@ -4049,6 +4182,7 @@ void vnc_display_open(const char *id, Error **errp)
                                                      x509verify,
                                                      path,
                                                      vd->id,
@@ -634,10 +631,10 @@ index a345bf0d78..42db7e386b 100644
              if (!vd->tlscreds) {
                  goto fail;
 diff --git a/ui/vnc.h b/ui/vnc.h
-index 694cf32ca9..78d622ab84 100644
+index bbda0540a7..8cc6367ed3 100644
 --- a/ui/vnc.h
 +++ b/ui/vnc.h
-@@ -284,6 +284,8 @@ struct VncState
+@@ -290,6 +290,8 @@ struct VncState
      int auth;
      int subauth; /* Used by VeNCrypt */
      char challenge[VNC_AUTH_CHALLENGE_SIZE];
@@ -646,7 +643,7 @@ index 694cf32ca9..78d622ab84 100644
      QCryptoTLSSession *tls; /* Borrowed pointer from channel, don't free */
  #ifdef CONFIG_VNC_SASL
      VncStateSASL sasl;
-@@ -577,4 +579,6 @@ int vnc_zrle_send_framebuffer_update(VncState *vs, int x, int y, int w, int h);
+@@ -595,4 +597,6 @@ int vnc_zrle_send_framebuffer_update(VncState *vs, int x, int y, int w, int h);
  int vnc_zywrle_send_framebuffer_update(VncState *vs, int x, int y, int w, int h);
  void vnc_zrle_clear(VncState *vs);
  
@@ -654,10 +651,10 @@ index 694cf32ca9..78d622ab84 100644
 +
  #endif /* QEMU_VNC_H */
 diff --git a/vl.c b/vl.c
-index 5d888cd179..1000a4a259 100644
+index 75fde82180..255d989009 100644
 --- a/vl.c
 +++ b/vl.c
-@@ -2947,6 +2947,7 @@ static int qemu_read_default_config_file(void)
+@@ -3096,6 +3096,7 @@ static void register_global_properties(MachineState *ms)
  int main(int argc, char **argv, char **envp)
  {
      int i;
@@ -665,7 +662,7 @@ index 5d888cd179..1000a4a259 100644
      int snapshot, linux_boot;
      const char *initrd_filename;
      const char *kernel_filename, *kernel_cmdline;
-@@ -3778,6 +3779,14 @@ int main(int argc, char **argv, char **envp)
+@@ -3922,6 +3923,14 @@ int main(int argc, char **argv, char **envp)
                      exit(1);
                  }
                  break;

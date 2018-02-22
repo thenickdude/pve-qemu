@@ -9,7 +9,7 @@ This reverts commit b8eb5512fd8a115f164edbbe897cdf8884920ccb.
  1 file changed, 9 insertions(+)
 
 diff --git a/hw/intc/apic_common.c b/hw/intc/apic_common.c
-index 1ef56f8d10..31fb73e9fb 100644
+index 78903ea909..cdfbec5e47 100644
 --- a/hw/intc/apic_common.c
 +++ b/hw/intc/apic_common.c
 @@ -257,6 +257,15 @@ static void apic_reset_common(DeviceState *dev)

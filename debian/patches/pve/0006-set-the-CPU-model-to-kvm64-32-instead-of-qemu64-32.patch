@@ -4,25 +4,25 @@ Date: Wed, 9 Dec 2015 14:30:21 +0100
 Subject: [PATCH] set the CPU model to kvm64/32 instead of qemu64/32
 
 ---
- hw/i386/pc.c | 4 ++--
+ target/i386/cpu.h | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/hw/i386/pc.c b/hw/i386/pc.c
-index 610050eb4f..e96901435a 100644
---- a/hw/i386/pc.c
-+++ b/hw/i386/pc.c
-@@ -1151,9 +1151,9 @@ void pc_cpus_init(PCMachineState *pcms)
-     /* init CPUs */
-     if (machine->cpu_model == NULL) {
- #ifdef TARGET_X86_64
--        machine->cpu_model = "qemu64";
-+        machine->cpu_model = "kvm64";
- #else
--        machine->cpu_model = "qemu32";
-+        machine->cpu_model = "kvm32";
- #endif
-     }
+diff --git a/target/i386/cpu.h b/target/i386/cpu.h
+index f3d0ebb673..660e42977b 100644
+--- a/target/i386/cpu.h
++++ b/target/i386/cpu.h
+@@ -1521,9 +1521,9 @@ uint64_t cpu_get_tsc(CPUX86State *env);
+ #define X86_CPU_TYPE_NAME(name) (name X86_CPU_TYPE_SUFFIX)
  
+ #ifdef TARGET_X86_64
+-#define TARGET_DEFAULT_CPU_TYPE X86_CPU_TYPE_NAME("qemu64")
++#define TARGET_DEFAULT_CPU_TYPE X86_CPU_TYPE_NAME("kvm64")
+ #else
+-#define TARGET_DEFAULT_CPU_TYPE X86_CPU_TYPE_NAME("qemu32")
++#define TARGET_DEFAULT_CPU_TYPE X86_CPU_TYPE_NAME("kvm32")
+ #endif
+ 
+ #define cpu_signal_handler cpu_x86_signal_handler
 -- 
 2.11.0
 

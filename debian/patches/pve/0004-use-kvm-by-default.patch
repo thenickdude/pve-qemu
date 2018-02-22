@@ -4,24 +4,24 @@ Date: Wed, 9 Dec 2015 14:27:05 +0100
 Subject: [PATCH] use kvm by default
 
 ---
- accel.c | 4 ++--
+ accel/accel.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/accel.c b/accel.c
-index 664bb88422..ddb23a3f1d 100644
---- a/accel.c
-+++ b/accel.c
-@@ -87,8 +87,8 @@ void configure_accelerator(MachineState *ms)
+diff --git a/accel/accel.c b/accel/accel.c
+index 8ae40e1e13..df21981026 100644
+--- a/accel/accel.c
++++ b/accel/accel.c
+@@ -79,8 +79,8 @@ void configure_accelerator(MachineState *ms)
  
-     p = qemu_opt_get(qemu_get_machine_opts(), "accel");
-     if (p == NULL) {
+     accel = qemu_opt_get(qemu_get_machine_opts(), "accel");
+     if (accel == NULL) {
 -        /* Use the default "accelerator", tcg */
--        p = "tcg";
+-        accel = "tcg";
 +        /* Use the default "accelerator", kvm */
-+        p = "kvm";
++        accel = "kvm";
      }
  
-     while (!accel_initialised && *p != '\0') {
+     p = accel;
 -- 
 2.11.0
 

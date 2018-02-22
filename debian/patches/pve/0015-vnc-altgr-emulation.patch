@@ -8,10 +8,10 @@ Subject: [PATCH] vnc: altgr emulation
  1 file changed, 25 insertions(+), 1 deletion(-)
 
 diff --git a/ui/vnc.c b/ui/vnc.c
-index b0314441c4..f30687884b 100644
+index 06abe7360e..03f8f61b2e 100644
 --- a/ui/vnc.c
 +++ b/ui/vnc.c
-@@ -1631,6 +1631,10 @@ static void kbd_leds(void *opaque, int ledstate)
+@@ -1775,6 +1775,10 @@ static void kbd_leds(void *opaque, int ledstate)
  
  static void do_key_event(VncState *vs, int down, int keycode, int sym)
  {
@@ -22,7 +22,7 @@ index b0314441c4..f30687884b 100644
      /* QEMU console switch */
      switch(keycode) {
      case 0x2a:                          /* Left Shift */
-@@ -1711,8 +1715,27 @@ static void do_key_event(VncState *vs, int down, int keycode, int sym)
+@@ -1855,8 +1859,27 @@ static void do_key_event(VncState *vs, int down, int keycode, int sym)
      }
  
      if (qemu_console_is_graphic(NULL)) {
@@ -50,7 +50,7 @@ index b0314441c4..f30687884b 100644
      } else {
          bool numlock = vs->modifiers_state[0x45];
          bool control = (vs->modifiers_state[0x1d] ||
-@@ -1852,7 +1875,8 @@ static void key_event(VncState *vs, int down, uint32_t sym)
+@@ -1996,7 +2019,8 @@ static void key_event(VncState *vs, int down, uint32_t sym)
          lsym = lsym - 'A' + 'a';
      }
  

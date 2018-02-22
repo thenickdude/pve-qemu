@@ -1,6 +1,6 @@
 # also update debian/changelog
-KVMVER=2.9.1
-KVMPKGREL=9
+KVMVER=2.11.1
+KVMPKGREL=1
 
 KVMPACKAGE = pve-qemu-kvm
 KVMSRC = qemu
@@ -25,17 +25,30 @@ submodule:
 .PHONY: deb kvm
 deb kvm: $(DEBS)
 $(DEB_DBG): $(DEB)
-$(DEB): | submodule
+$(DEB): keycodemapdb | submodule
 	rm -f *.deb
 	rm -rf $(BUILDSRC)
 	mkdir $(BUILDSRC)
 	cp -a $(KVMSRC)/* $(BUILDSRC)/
 	cp -a debian $(BUILDSRC)/debian
+	rm -rf $(BUILDSRC)/ui/keycodemapdb
+	cp -a keycodemapdb $(BUILDSRC)/ui/
 	echo "git clone git://git.proxmox.com/git/pve-qemu-kvm.git\\ngit checkout $(GITVERSION)" > $(BUILDSRC)/debian/SOURCE
 	# set package version
 	sed -i 's/^pkgversion="".*/pkgversion="${KVMPACKAGE}_${KVMVER}-${KVMPKGREL}"/' $(BUILDSRC)/configure
 	cd $(BUILDSRC); dpkg-buildpackage -b -rfakeroot -us -uc
 	lintian $(DEBS) || true
+
+.PHONY: update
+update:
+	cd $(KVMSRC) && git submodule deinit ui/keycodemapdb || true
+	rm -rf $(KVMSRC)/ui/keycodemapdb
+	mkdir $(KVMSRC)/ui/keycodemapdb
+	cd $(KVMSRC) && git submodule update --init ui/keycodemapdb
+	rm -rf keycodemapdb
+	mkdir keycodemapdb
+	cp -R $(KVMSRC)/ui/keycodemapdb/* keycodemapdb/
+	git add keycodemapdb
 
 .PHONY: upload
 upload: $(DEBS)

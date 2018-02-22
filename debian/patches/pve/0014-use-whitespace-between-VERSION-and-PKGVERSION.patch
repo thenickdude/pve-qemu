@@ -10,10 +10,10 @@ the version string, see PVE::QemuServer::kvm_user_version()
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/vl.c b/vl.c
-index 2132a77129..5d888cd179 100644
+index 1bfbe95b22..75fde82180 100644
 --- a/vl.c
 +++ b/vl.c
-@@ -1909,7 +1909,7 @@ static void main_loop(void)
+@@ -2006,7 +2006,7 @@ static void main_loop(void)
  
  static void version(void)
  {

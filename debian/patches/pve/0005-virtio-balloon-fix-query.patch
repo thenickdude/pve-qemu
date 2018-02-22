@@ -8,14 +8,14 @@ command.
 ---
  hmp.c                      | 30 +++++++++++++++++++++++++++++-
  hw/virtio/virtio-balloon.c | 33 +++++++++++++++++++++++++++++++--
- qapi-schema.json           | 23 +++++++++++++++++++++--
- 3 files changed, 81 insertions(+), 5 deletions(-)
+ qapi-schema.json           | 22 +++++++++++++++++++++-
+ 3 files changed, 81 insertions(+), 4 deletions(-)
 
 diff --git a/hmp.c b/hmp.c
-index edb8970461..904542d026 100644
+index 35a7041824..4e1d571003 100644
 --- a/hmp.c
 +++ b/hmp.c
-@@ -723,7 +723,35 @@ void hmp_info_balloon(Monitor *mon, const QDict *qdict)
+@@ -789,7 +789,35 @@ void hmp_info_balloon(Monitor *mon, const QDict *qdict)
          return;
      }
  
@@ -53,10 +53,10 @@ index edb8970461..904542d026 100644
      qapi_free_BalloonInfo(info);
  }
 diff --git a/hw/virtio/virtio-balloon.c b/hw/virtio/virtio-balloon.c
-index a705e0ec55..158e13e795 100644
+index 37cde38982..1feaf77223 100644
 --- a/hw/virtio/virtio-balloon.c
 +++ b/hw/virtio/virtio-balloon.c
-@@ -379,8 +379,37 @@ static uint64_t virtio_balloon_get_features(VirtIODevice *vdev, uint64_t f,
+@@ -380,8 +380,37 @@ static uint64_t virtio_balloon_get_features(VirtIODevice *vdev, uint64_t f,
  static void virtio_balloon_stat(void *opaque, BalloonInfo *info)
  {
      VirtIOBalloon *dev = opaque;
@@ -97,14 +97,13 @@ index a705e0ec55..158e13e795 100644
  
  static void virtio_balloon_to_target(void *opaque, ram_addr_t target)
 diff --git a/qapi-schema.json b/qapi-schema.json
-index 250e4dc49b..f38b85bf6a 100644
+index 18457954a8..ebc22fe5a6 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
-@@ -1900,10 +1900,29 @@
+@@ -623,10 +623,30 @@
  #
  # @actual: the number of bytes the balloon currently contains
  #
--# Since: 0.14.0
 +# @last_update: time when stats got updated from guest
 +#
 +# @mem_swapped_in: number of pages swapped in within the guest
@@ -112,7 +111,7 @@ index 250e4dc49b..f38b85bf6a 100644
 +# @mem_swapped_out: number of pages swapped out within the guest
 +#
 +# @major_page_faults: number of major page faults within the guest
- #
++#
 +# @minor_page_faults: number of minor page faults within the guest
 +# 
 +# @free_mem: amount of memory (in bytes) free in the guest
@@ -120,8 +119,9 @@ index 250e4dc49b..f38b85bf6a 100644
 +# @total_mem: amount of memory (in bytes) visible to the guest
 +#
 +# @max_mem: amount of memory (in bytes) assigned to the guest
-+# 
-+# Since: 0.14.0
++#
+ # Since: 0.14.0
+ #
  ##
 -{ 'struct': 'BalloonInfo', 'data': {'actual': 'int' } }
 +{ 'struct': 'BalloonInfo',

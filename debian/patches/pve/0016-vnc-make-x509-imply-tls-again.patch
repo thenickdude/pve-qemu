@@ -8,10 +8,10 @@ Subject: [PATCH] vnc: make x509 imply tls again
  1 file changed, 2 insertions(+), 3 deletions(-)
 
 diff --git a/ui/vnc.c b/ui/vnc.c
-index f30687884b..a345bf0d78 100644
+index 03f8f61b2e..4494cb1dd4 100644
 --- a/ui/vnc.c
 +++ b/ui/vnc.c
-@@ -3881,9 +3881,8 @@ void vnc_display_open(const char *id, Error **errp)
+@@ -4034,9 +4034,8 @@ void vnc_display_open(const char *id, Error **errp)
          const char *path;
          bool tls = false, x509 = false, x509verify = false;
          tls  = qemu_opt_get_bool(opts, "tls", false);

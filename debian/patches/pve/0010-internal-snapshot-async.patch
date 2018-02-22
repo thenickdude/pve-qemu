@@ -4,37 +4,45 @@ Date: Wed, 9 Dec 2015 16:04:32 +0100
 Subject: [PATCH] internal snapshot async
 
 ---
- Makefile.objs           |   1 +
- hmp-commands-info.hx    |  13 ++
- hmp-commands.hx         |  32 +++
- hmp.c                   |  57 ++++++
- hmp.h                   |   5 +
- include/sysemu/sysemu.h |   5 +-
- migration/savevm.c      |  12 +-
- qapi-schema.json        |  68 +++++++
- qemu-options.hx         |  13 ++
- savevm-async.c          | 523 ++++++++++++++++++++++++++++++++++++++++++++++++
- vl.c                    |   8 +
- 11 files changed, 730 insertions(+), 7 deletions(-)
+ Makefile.objs                |   2 +-
+ hmp-commands-info.hx         |  13 ++
+ hmp-commands.hx              |  32 +++
+ hmp.c                        |  57 +++++
+ hmp.h                        |   5 +
+ include/migration/snapshot.h |   1 +
+ qapi-schema.json             |  32 +++
+ qapi/migration.json          |  34 +++
+ qemu-options.hx              |  13 ++
+ savevm-async.c               | 524 +++++++++++++++++++++++++++++++++++++++++++
+ vl.c                         |  10 +
+ 11 files changed, 722 insertions(+), 1 deletion(-)
  create mode 100644 savevm-async.c
 
 diff --git a/Makefile.objs b/Makefile.objs
-index 6167e7b17d..fbfbbb7f70 100644
+index 285c6f3c15..686247b556 100644
 --- a/Makefile.objs
 +++ b/Makefile.objs
-@@ -50,6 +50,7 @@ common-obj-$(CONFIG_LINUX) += fsdev/
+@@ -41,6 +41,7 @@ io-obj-y = io/
+ ifeq ($(CONFIG_SOFTMMU),y)
+ common-obj-y = blockdev.o blockdev-nbd.o block/
+ common-obj-y += bootdevice.o iothread.o
++common-obj-y += savevm-async.o
+ common-obj-y += net/
+ common-obj-y += qdev-monitor.o device-hotplug.o
+ common-obj-$(CONFIG_WIN32) += os-win32.o
+@@ -49,7 +50,6 @@ common-obj-$(CONFIG_POSIX) += os-posix.o
+ common-obj-$(CONFIG_LINUX) += fsdev/
  
  common-obj-y += migration/
- common-obj-y += page_cache.o #aio.o
-+common-obj-y += savevm-async.o
- 
- common-obj-$(CONFIG_SPICE) += spice-qemu-char.o
+-
+ common-obj-y += audio/
+ common-obj-y += hw/
  
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index a53f105c52..5fc57a2210 100644
+index 54c3e5eac6..3bf69a193c 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
-@@ -560,6 +560,19 @@ Show current migration xbzrle cache size.
+@@ -566,6 +566,19 @@ Show current migration xbzrle cache size.
  ETEXI
  
      {
@@ -55,10 +63,10 @@ index a53f105c52..5fc57a2210 100644
          .args_type  = "",
          .params     = "",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 88192817b2..58940a762b 100644
+index 4afd57cf5f..b35bc6ab6c 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
-@@ -1777,3 +1777,35 @@ ETEXI
+@@ -1873,3 +1873,35 @@ ETEXI
  STEXI
  @end table
  ETEXI
@@ -95,11 +103,11 @@ index 88192817b2..58940a762b 100644
 +        .cmd = hmp_savevm_end,
 +    },
 diff --git a/hmp.c b/hmp.c
-index 904542d026..f725d061e6 100644
+index 4e1d571003..b9ade681f0 100644
 --- a/hmp.c
 +++ b/hmp.c
-@@ -2207,6 +2207,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
-     qapi_free_MemoryDeviceInfoList(info_list);
+@@ -2486,6 +2486,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
+     hmp_handle_error(mon, &err);
  }
  
 +void hmp_savevm_start(Monitor *mon, const QDict *qdict)
@@ -163,7 +171,7 @@ index 904542d026..f725d061e6 100644
  {
      IOThreadInfoList *info_list = qmp_query_iothreads(NULL);
 diff --git a/hmp.h b/hmp.h
-index 799fd371fa..0497afbf65 100644
+index a6f56b1f29..45ada581b6 100644
 --- a/hmp.h
 +++ b/hmp.h
 @@ -26,6 +26,7 @@ void hmp_info_status(Monitor *mon, const QDict *qdict);
@@ -174,7 +182,7 @@ index 799fd371fa..0497afbf65 100644
  void hmp_info_migrate(Monitor *mon, const QDict *qdict);
  void hmp_info_migrate_capabilities(Monitor *mon, const QDict *qdict);
  void hmp_info_migrate_parameters(Monitor *mon, const QDict *qdict);
-@@ -92,6 +93,10 @@ void hmp_netdev_add(Monitor *mon, const QDict *qdict);
+@@ -97,6 +98,10 @@ void hmp_netdev_add(Monitor *mon, const QDict *qdict);
  void hmp_netdev_del(Monitor *mon, const QDict *qdict);
  void hmp_getfd(Monitor *mon, const QDict *qdict);
  void hmp_closefd(Monitor *mon, const QDict *qdict);
@@ -185,97 +193,65 @@ index 799fd371fa..0497afbf65 100644
  void hmp_sendkey(Monitor *mon, const QDict *qdict);
  void hmp_screendump(Monitor *mon, const QDict *qdict);
  void hmp_nbd_server_start(Monitor *mon, const QDict *qdict);
-diff --git a/include/sysemu/sysemu.h b/include/sysemu/sysemu.h
-index 576c7ce640..74623de16c 100644
---- a/include/sysemu/sysemu.h
-+++ b/include/sysemu/sysemu.h
-@@ -78,6 +78,7 @@ void qemu_remove_machine_init_done_notifier(Notifier *notify);
- void hmp_savevm(Monitor *mon, const QDict *qdict);
- int save_vmstate(Monitor *mon, const char *name);
- int load_vmstate(const char *name);
-+int load_state_from_blockdev(const char *filename);
- void hmp_delvm(Monitor *mon, const QDict *qdict);
- void hmp_info_snapshots(Monitor *mon, const QDict *qdict);
+diff --git a/include/migration/snapshot.h b/include/migration/snapshot.h
+index c85b6ec75b..4411b7121d 100644
+--- a/include/migration/snapshot.h
++++ b/include/migration/snapshot.h
+@@ -17,5 +17,6 @@
  
-@@ -105,13 +106,13 @@ enum qemu_vm_cmd {
- #define MAX_VM_CMD_PACKAGED_SIZE (1ul << 24)
+ int save_snapshot(const char *name, Error **errp);
+ int load_snapshot(const char *name, Error **errp);
++int load_snapshot_from_blockdev(const char *filename, Error **errp);
  
- bool qemu_savevm_state_blocked(Error **errp);
--void qemu_savevm_state_begin(QEMUFile *f,
-+int qemu_savevm_state_begin(QEMUFile *f,
-                              const MigrationParams *params);
- void qemu_savevm_state_header(QEMUFile *f);
- int qemu_savevm_state_iterate(QEMUFile *f, bool postcopy);
- void qemu_savevm_state_cleanup(void);
- void qemu_savevm_state_complete_postcopy(QEMUFile *f);
--void qemu_savevm_state_complete_precopy(QEMUFile *f, bool iterable_only);
-+int qemu_savevm_state_complete_precopy(QEMUFile *f, bool iterable_only);
- void qemu_savevm_state_pending(QEMUFile *f, uint64_t max_size,
-                                uint64_t *res_non_postcopiable,
-                                uint64_t *res_postcopiable);
-diff --git a/migration/savevm.c b/migration/savevm.c
-index 3b19a4a274..feb0dc6834 100644
---- a/migration/savevm.c
-+++ b/migration/savevm.c
-@@ -970,11 +970,11 @@ void qemu_savevm_state_header(QEMUFile *f)
- 
- }
- 
--void qemu_savevm_state_begin(QEMUFile *f,
-+int qemu_savevm_state_begin(QEMUFile *f,
-                              const MigrationParams *params)
- {
-     SaveStateEntry *se;
--    int ret;
-+    int ret = 0;
- 
-     trace_savevm_state_begin();
-     QTAILQ_FOREACH(se, &savevm_state.handlers, entry) {
-@@ -1002,6 +1002,7 @@ void qemu_savevm_state_begin(QEMUFile *f,
-             break;
-         }
-     }
-+    return ret;
- }
- 
- /*
-@@ -1105,7 +1106,7 @@ void qemu_savevm_state_complete_postcopy(QEMUFile *f)
-     qemu_fflush(f);
- }
- 
--void qemu_savevm_state_complete_precopy(QEMUFile *f, bool iterable_only)
-+int qemu_savevm_state_complete_precopy(QEMUFile *f, bool iterable_only)
- {
-     QJSON *vmdesc;
-     int vmdesc_len;
-@@ -1139,12 +1140,12 @@ void qemu_savevm_state_complete_precopy(QEMUFile *f, bool iterable_only)
-         save_section_footer(f, se);
-         if (ret < 0) {
-             qemu_file_set_error(f, ret);
--            return;
-+            return ret;
-         }
-     }
- 
-     if (iterable_only) {
--        return;
-+        return ret;
-     }
- 
-     vmdesc = qjson_new();
-@@ -1191,6 +1192,7 @@ void qemu_savevm_state_complete_precopy(QEMUFile *f, bool iterable_only)
-     qjson_destroy(vmdesc);
- 
-     qemu_fflush(f);
-+    return qemu_file_get_error(f);
- }
- 
- /* Give an estimate of the amount left to be transferred,
+ #endif
 diff --git a/qapi-schema.json b/qapi-schema.json
-index 1b14ff2476..361700d37c 100644
+index 8f436ba1f3..348b527681 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
-@@ -723,6 +723,40 @@
+@@ -2439,6 +2439,38 @@
+ { 'command': 'query-target', 'returns': 'TargetInfo' }
+ 
+ ##
++# @savevm-start:
++#
++# Prepare for snapshot and halt VM. Save VM state to statefile.
++#
++##
++{ 'command': 'savevm-start', 'data': { '*statefile': 'str' } }
++
++##
++# @snapshot-drive:
++#
++# Create an internal drive snapshot.
++#
++##
++{ 'command': 'snapshot-drive', 'data': { 'device': 'str', 'name': 'str' } }
++
++##
++# @delete-drive-snapshot:
++#
++# Delete a drive snapshot.
++#
++##
++{ 'command': 'delete-drive-snapshot', 'data': { 'device': 'str', 'name': 'str' } }
++
++##
++# @savevm-end:
++#
++# Resume VM after a snapshot.
++#
++##
++{ 'command': 'savevm-end' }
++
++##
+ # @AcpiTableOptions:
+ #
+ # Specify an ACPI table on the command line to load.
+diff --git a/qapi/migration.json b/qapi/migration.json
+index 03f57c9616..9ae55b81a2 100644
+--- a/qapi/migration.json
++++ b/qapi/migration.json
+@@ -170,6 +170,40 @@
             '*error-desc': 'str'} }
  
  ##
@@ -316,55 +292,11 @@ index 1b14ff2476..361700d37c 100644
  # @query-migrate:
  #
  # Returns information about current migration process. If migration
-@@ -4735,9 +4769,43 @@
- #
- # Since: 1.2.0
- ##
-+
- { 'command': 'query-target', 'returns': 'TargetInfo' }
- 
- ##
-+# @savevm-start:
-+#
-+# Prepare for snapshot and halt VM. Save VM state to statefile.
-+#
-+##
-+{ 'command': 'savevm-start', 'data': { '*statefile': 'str' } }
-+
-+##
-+# @snapshot-drive:
-+#
-+# Create an internal drive snapshot.
-+#
-+##
-+{ 'command': 'snapshot-drive', 'data': { 'device': 'str', 'name': 'str' } }
-+
-+##
-+# @delete-drive-snapshot:
-+#
-+# Delete a drive snapshot.
-+#
-+##
-+{ 'command': 'delete-drive-snapshot', 'data': { 'device': 'str', 'name': 'str' } }
-+
-+##
-+# @savevm-end:
-+#
-+# Resume VM after a snapshot.
-+#
-+##
-+{ 'command': 'savevm-end' }
-+
-+
-+##
- # @QKeyCode:
- #
- # An enumeration of key name.
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 48dfffd86a..cbcb27da9a 100644
+index 57f2c6a75f..7c054af8f9 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -3396,6 +3396,19 @@ STEXI
+@@ -3698,6 +3698,19 @@ STEXI
  Start right away with a saved state (@code{loadvm} in monitor)
  ETEXI
  
@@ -386,28 +318,23 @@ index 48dfffd86a..cbcb27da9a 100644
      "-daemonize      daemonize QEMU after initializing\n", QEMU_ARCH_ALL)
 diff --git a/savevm-async.c b/savevm-async.c
 new file mode 100644
-index 0000000000..5fcb56d373
+index 0000000000..897134ab5a
 --- /dev/null
 +++ b/savevm-async.c
-@@ -0,0 +1,523 @@
+@@ -0,0 +1,524 @@
 +#include "qemu/osdep.h"
-+#include "qemu-common.h"
++#include "migration/migration.h"
++#include "migration/savevm.h"
++#include "migration/snapshot.h"
++#include "migration/global_state.h"
++#include "migration/ram.h"
++#include "migration/qemu-file.h"
 +#include "qapi/qmp/qerror.h"
-+#include "qemu/error-report.h"
 +#include "sysemu/sysemu.h"
 +#include "qmp-commands.h"
-+#include "qemu-options.h"
-+#include "migration/qemu-file.h"
-+#include "qom/qom-qobject.h"
-+#include "migration/migration.h"
-+#include "block/snapshot.h"
-+#include "block/qapi.h"
 +#include "block/block.h"
-+#include "qemu/timer.h"
 +#include "sysemu/block-backend.h"
 +#include "qapi/qmp/qstring.h"
-+#include "qemu/rcu.h"
-+#include "qemu/thread.h"
 +#include "qemu/cutils.h"
 +
 +/* #define DEBUG_SAVEVM_STATE */
@@ -498,7 +425,7 @@ index 0000000000..5fcb56d373
 +         * note: bdrv_read() need whole blocks, so we round up
 +         */
 +        size_t size = (snap_state.bs_pos + BDRV_SECTOR_SIZE) & BDRV_SECTOR_MASK;
-+        blk_truncate(snap_state.target, size, NULL);
++        blk_truncate(snap_state.target, size, PREALLOC_MODE_OFF, NULL);
 +        blk_op_unblock_all(snap_state.target, snap_state.blocker);
 +        error_free(snap_state.blocker);
 +        snap_state.blocker = NULL;
@@ -578,20 +505,17 @@ index 0000000000..5fcb56d373
 +{
 +    int ret;
 +    int64_t maxlen;
-+    MigrationParams params = {
-+        .blk = 0,
-+        .shared = 0
-+    };
 +
 +    snap_state.state = SAVE_STATE_ACTIVE;
 +
 +    qemu_mutex_unlock_iothread();
 +    qemu_savevm_state_header(snap_state.file);
-+    ret = qemu_savevm_state_begin(snap_state.file, &params);
++    qemu_savevm_state_setup(snap_state.file);
++    ret = qemu_file_get_error(snap_state.file);
 +    qemu_mutex_lock_iothread();
 +
 +    if (ret < 0) {
-+        save_snapshot_error("qemu_savevm_state_begin failed");
++        save_snapshot_error("qemu_savevm_state_setup failed");
 +        return;
 +    }
 +
@@ -613,7 +537,16 @@ index 0000000000..5fcb56d373
 +            if (store_and_stop())
 +                break;
 +            DPRINTF("savevm inerate finished\n");
-+            qemu_savevm_state_complete_precopy(snap_state.file, false);
++            /* upstream made the return value here inconsistent
++             * (-1 instead of 'ret' in one case and 0 after flush which can
++             * still set a file error...)
++             */
++            (void)qemu_savevm_state_complete_precopy(snap_state.file, false, false);
++            ret = qemu_file_get_error(snap_state.file);
++            if (ret < 0) {
++                    save_snapshot_error("qemu_savevm_state_iterate error %d", ret);
++                    break;
++            }
 +            DPRINTF("save complete\n");
 +            save_snapshot_completed();
 +            break;
@@ -867,7 +800,7 @@ index 0000000000..5fcb56d373
 +    .get_buffer = loadstate_get_buffer,
 +};
 +
-+int load_state_from_blockdev(const char *filename)
++int load_snapshot_from_blockdev(const char *filename, Error **errp)
 +{
 +    BlockBackend *be;
 +    Error *local_err = NULL;
@@ -879,7 +812,7 @@ index 0000000000..5fcb56d373
 +    be = blk_new_open(filename, NULL, NULL, 0, &local_err);
 +
 +    if (!be) {
-+        error_report("Could not open VM state file");
++        error_setg(errp, "Could not open VM state file");
 +        goto the_end;
 +    }
 +
@@ -889,17 +822,17 @@ index 0000000000..5fcb56d373
 +    /* restore the VM state */
 +    f = qemu_fopen_ops(be, &loadstate_file_ops);
 +    if (!f) {
-+        error_report("Could not open VM state file");
++        error_setg(errp, "Could not open VM state file");
 +        goto the_end;
 +    }
 +
-+    qemu_system_reset(VMRESET_SILENT);
++    qemu_system_reset(SHUTDOWN_CAUSE_NONE);
 +    ret = qemu_loadvm_state(f);
 +
 +    qemu_fclose(f);
 +    migration_incoming_state_destroy();
 +    if (ret < 0) {
-+        error_report("Error %d while loading VM state", ret);
++        error_setg_errno(errp, -ret, "Error while loading VM state");
 +        goto the_end;
 +    }
 +
@@ -914,10 +847,10 @@ index 0000000000..5fcb56d373
 +    return ret;
 +}
 diff --git a/vl.c b/vl.c
-index 46de1b9087..2132a77129 100644
+index 2e0fe15978..1bfbe95b22 100644
 --- a/vl.c
 +++ b/vl.c
-@@ -2960,6 +2960,7 @@ int main(int argc, char **argv, char **envp)
+@@ -3109,6 +3109,7 @@ int main(int argc, char **argv, char **envp)
      int optind;
      const char *optarg;
      const char *loadvm = NULL;
@@ -925,7 +858,7 @@ index 46de1b9087..2132a77129 100644
      MachineClass *machine_class;
      const char *cpu_model;
      const char *vga_model = NULL;
-@@ -3635,6 +3636,9 @@ int main(int argc, char **argv, char **envp)
+@@ -3785,6 +3786,9 @@ int main(int argc, char **argv, char **envp)
              case QEMU_OPTION_loadvm:
                  loadvm = optarg;
                  break;
@@ -935,12 +868,14 @@ index 46de1b9087..2132a77129 100644
              case QEMU_OPTION_full_screen:
                  full_screen = 1;
                  break;
-@@ -4693,6 +4697,10 @@ int main(int argc, char **argv, char **envp)
-         if (load_vmstate(loadvm) < 0) {
+@@ -4891,6 +4895,12 @@ int main(int argc, char **argv, char **envp)
+             error_report_err(local_err);
              autostart = 0;
          }
 +    } else if (loadstate) {
-+        if (load_state_from_blockdev(loadstate) < 0) {
++        Error *local_err = NULL;
++        if (load_snapshot_from_blockdev(loadstate, &local_err) < 0) {
++            error_report_err(local_err);
 +            autostart = 0;
 +        }
      }

@@ -10,10 +10,10 @@ provide '*is-current' in MachineInfo struct
  2 files changed, 8 insertions(+), 1 deletion(-)
 
 diff --git a/qapi-schema.json b/qapi-schema.json
-index f38b85bf6a..51e150c6c1 100644
+index ebc22fe5a6..8f436ba1f3 100644
 --- a/qapi-schema.json
 +++ b/qapi-schema.json
-@@ -4242,6 +4242,8 @@
+@@ -1914,6 +1914,8 @@
  #
  # @is-default: whether the machine is default
  #
@@ -22,7 +22,7 @@ index f38b85bf6a..51e150c6c1 100644
  # @cpu-max: maximum number of CPUs supported by the machine type
  #           (since 1.5.0)
  #
-@@ -4251,7 +4253,7 @@
+@@ -1923,7 +1925,7 @@
  ##
  { 'struct': 'MachineInfo',
    'data': { 'name': 'str', '*alias': 'str',
@@ -32,10 +32,10 @@ index f38b85bf6a..51e150c6c1 100644
  
  ##
 diff --git a/vl.c b/vl.c
-index b719cc432e..46de1b9087 100644
+index 1ad1c04637..2e0fe15978 100644
 --- a/vl.c
 +++ b/vl.c
-@@ -1518,6 +1518,11 @@ MachineInfoList *qmp_query_machines(Error **errp)
+@@ -1604,6 +1604,11 @@ MachineInfoList *qmp_query_machines(Error **errp)
          info->cpu_max = !mc->max_cpus ? 1 : mc->max_cpus;
          info->hotpluggable_cpus = mc->has_hotpluggable_cpus;
  

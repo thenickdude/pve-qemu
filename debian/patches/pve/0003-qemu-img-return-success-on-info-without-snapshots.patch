@@ -8,12 +8,12 @@ Subject: [PATCH] qemu-img: return success on info without snapshots
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/qemu-img.c b/qemu-img.c
-index e4a2686f56..c7804d63ee 100644
+index 68b375f998..f8a39dd195 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -2596,7 +2596,8 @@ static int img_info(int argc, char **argv)
- 
-     list = collect_image_info_list(image_opts, filename, fmt, chain);
+@@ -2594,7 +2594,8 @@ static int img_info(int argc, char **argv)
+     list = collect_image_info_list(image_opts, filename, fmt, chain,
+                                    force_share);
      if (!list) {
 -        return 1;
 + 	// return success if snapshot does not exists

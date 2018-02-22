@@ -5,15 +5,15 @@ Subject: [PATCH] qapi: modify spice query
 
 Provide the last ticket in the SpiceInfo struct optionally.
 ---
- qapi-schema.json | 3 +++
- ui/spice-core.c  | 5 +++++
+ qapi/ui.json    | 3 +++
+ ui/spice-core.c | 5 +++++
  2 files changed, 8 insertions(+)
 
-diff --git a/qapi-schema.json b/qapi-schema.json
-index 51e150c6c1..1b14ff2476 100644
---- a/qapi-schema.json
-+++ b/qapi-schema.json
-@@ -1841,11 +1841,14 @@
+diff --git a/qapi/ui.json b/qapi/ui.json
+index 07b468f625..78c906ddcf 100644
+--- a/qapi/ui.json
++++ b/qapi/ui.json
+@@ -199,11 +199,14 @@
  #
  # @channels: a list of @SpiceChannel for each active spice channel
  #
@@ -29,10 +29,10 @@ index 51e150c6c1..1b14ff2476 100644
  
  ##
 diff --git a/ui/spice-core.c b/ui/spice-core.c
-index 804abc5c0f..4a417310d3 100644
+index ea04dc69b5..05f5958b14 100644
 --- a/ui/spice-core.c
 +++ b/ui/spice-core.c
-@@ -552,6 +552,11 @@ SpiceInfo *qmp_query_spice(Error **errp)
+@@ -551,6 +551,11 @@ SpiceInfo *qmp_query_spice(Error **errp)
      micro = SPICE_SERVER_VERSION & 0xff;
      info->compiled_version = g_strdup_printf("%d.%d.%d", major, minor, micro);
  
