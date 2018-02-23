@@ -26,5 +26,6 @@ pve/0025-backup-modify-job-api.patch
 pve/0026-backup-introduce-vma-archive-format.patch
 pve/0027-adding-old-vma-files.patch
 pve/0028-vma-add-throttling-options-to-drive-mapping-fifo-pro.patch
+pve/0029-qemu-img-dd-add-isize-parameter.patch
 extra/0001-Revert-target-i386-disable-LINT0-after-reset.patch
 extra/0002-ratelimit-don-t-align-wait-time-with-slices.patch
