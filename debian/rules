@@ -20,10 +20,6 @@ ARCH ?= $(shell dpkg-architecture -qDEB_HOST_GNU_CPU)
 PACKAGE=pve-qemu-kvm
 destdir := $(CURDIR)/debian/$(PACKAGE)
 
-ifneq "$(wildcard /usr/share/quilt/quilt.make)" ""
-include /usr/share/quilt/quilt.make
-endif
-
 CFLAGS = -Wall
 
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
@@ -48,7 +44,7 @@ config.status: configure
 	--enable-virtfs --disable-libnfs \
 	--disable-guest-agent --disable-guest-agent-msi
 
-build: patch build-stamp
+build: build-stamp
 
 build-stamp:  config.status
 	dh_testdir
@@ -60,7 +56,7 @@ build-stamp:  config.status
 
 	touch $@
 
-clean: unpatch
+clean:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp
