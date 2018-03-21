@@ -1,3 +1,9 @@
+pve-qemu-kvm (2.11.1-4) stable; urgency=medium
+
+  * merge patch for qemu-img dd to add -n option to skip creation of target
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 21 Mar 2018 15:35:36 +0100
+
 pve-qemu-kvm (2.11.1-3) stable; urgency=medium
 
   * merge patch for qemu-img dd to add isize parameter
