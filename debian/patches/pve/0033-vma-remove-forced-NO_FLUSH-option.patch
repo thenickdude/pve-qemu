@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Tue, 27 Mar 2018 10:49:03 +0200
+Subject: [PATCH] vma: remove forced NO_FLUSH option
+
+This one's rbd specific and in no way a sane choice for all
+types storages. Instead, we want to honor the cache option
+passed along.
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+---
+ vma.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/vma.c b/vma.c
+index e0271060af..463d9f5412 100644
+--- a/vma.c
++++ b/vma.c
+@@ -328,7 +328,7 @@ static int extract_content(int argc, char **argv)
+             uint64_t throttling_bps = 0;
+             const char *throttling_group = NULL;
+             const char *cache = NULL;
+-            int flags = BDRV_O_RDWR | BDRV_O_NO_FLUSH;
++            int flags = BDRV_O_RDWR;
+             bool write_zero = true;
+ 
+             if (readmap) {
+-- 
+2.11.0
+

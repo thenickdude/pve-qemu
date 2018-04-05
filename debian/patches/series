@@ -28,5 +28,8 @@ pve/0027-adding-old-vma-files.patch
 pve/0028-vma-add-throttling-options-to-drive-mapping-fifo-pro.patch
 pve/0029-qemu-img-dd-add-isize-parameter.patch
 pve/0030-qemu-img-dd-add-n-skip_create.patch
+pve/0031-vma-add-cache-option-to-device-map.patch
+pve/0032-rbd-fix-cache-mode-behavior.patch
+pve/0033-vma-remove-forced-NO_FLUSH-option.patch
 extra/0001-Revert-target-i386-disable-LINT0-after-reset.patch
 extra/0002-ratelimit-don-t-align-wait-time-with-slices.patch
