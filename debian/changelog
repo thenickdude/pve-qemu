@@ -1,3 +1,11 @@
+pve-qemu-kvm (2.11.1-5) stable; urgency=medium
+
+  * vma: add cache mode option to disk mapping and don't enforce no-flush
+
+  * rbd: always set rbd_cache_writethrough_until_flush to false
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 05 Apr 2018 11:03:24 +0200
+
 pve-qemu-kvm (2.11.1-4) stable; urgency=medium
 
   * merge patch for qemu-img dd to add -n option to skip creation of target
