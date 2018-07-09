@@ -742,7 +742,7 @@ index 1dbbdafd31..2ed3e41437 100644
                              BlockJobTxn *txn, Error **errp);
 diff --git a/vma-reader.c b/vma-reader.c
 new file mode 100644
-index 0000000000..2000889bd3
+index 0000000000..2b1d1cdab3
 --- /dev/null
 +++ b/vma-reader.c
 @@ -0,0 +1,857 @@
@@ -1360,7 +1360,7 @@ index 0000000000..2000889bd3
 +            }
 +
 +            if (end_sector <= sector_num) {
-+                error_setg(errp, "got wrong block address - write bejond end");
++                error_setg(errp, "got wrong block address - write beyond end");
 +                return -1;
 +            }
 +
@@ -1396,7 +1396,7 @@ index 0000000000..2000889bd3
 +
 +                    if (end_sector <= sector_num) {
 +                        error_setg(errp, "got wrong block address - "
-+                                   "write bejond end");
++                                   "write beyond end");
 +                        return -1;
 +                    }
 +

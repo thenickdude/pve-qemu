@@ -8,10 +8,10 @@ Subject: [PATCH] set the CPU model to kvm64/32 instead of qemu64/32
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/target/i386/cpu.h b/target/i386/cpu.h
-index f3d0ebb673..660e42977b 100644
+index 3cc1136535..922a4b8edd 100644
 --- a/target/i386/cpu.h
 +++ b/target/i386/cpu.h
-@@ -1521,9 +1521,9 @@ uint64_t cpu_get_tsc(CPUX86State *env);
+@@ -1524,9 +1524,9 @@ uint64_t cpu_get_tsc(CPUX86State *env);
  #define X86_CPU_TYPE_NAME(name) (name X86_CPU_TYPE_SUFFIX)
  
  #ifdef TARGET_X86_64

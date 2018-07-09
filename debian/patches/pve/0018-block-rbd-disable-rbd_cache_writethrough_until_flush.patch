@@ -10,10 +10,10 @@ Signed-off-by: Alexandre Derumier <aderumier@odiso.com>
  1 file changed, 4 insertions(+)
 
 diff --git a/block/rbd.c b/block/rbd.c
-index a76a5e8755..a33738a254 100644
+index 2de434dfdd..c4732a4b12 100644
 --- a/block/rbd.c
 +++ b/block/rbd.c
-@@ -642,6 +642,10 @@ static int qemu_rbd_open(BlockDriverState *bs, QDict *options, int flags,
+@@ -643,6 +643,10 @@ static int qemu_rbd_open(BlockDriverState *bs, QDict *options, int flags,
          rados_conf_set(s->cluster, "rbd_cache", "true");
      }
  

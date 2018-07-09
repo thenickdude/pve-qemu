@@ -19,10 +19,10 @@ Subject: [PATCH] backup: introduce vma archive format
  create mode 100644 block/vma.c
 
 diff --git a/MAINTAINERS b/MAINTAINERS
-index 0255113470..581d80d144 100644
+index a8e01de523..f688556e0d 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
-@@ -1950,6 +1950,12 @@ L: qemu-block@nongnu.org
+@@ -1956,6 +1956,12 @@ L: qemu-block@nongnu.org
  S: Supported
  F: block/vvfat.c
  
@@ -1056,7 +1056,7 @@ index c1b6b6a810..2de9f8f4dd 100644
      assert(job->pause_count > 0);
      job->pause_count--;
 diff --git a/configure b/configure
-index 0c6e7572db..3a28a0a092 100755
+index ceec276693..387fb5ad6d 100755
 --- a/configure
 +++ b/configure
 @@ -422,6 +422,7 @@ tcmalloc="no"
@@ -1067,7 +1067,7 @@ index 0c6e7572db..3a28a0a092 100755
  
  supported_cpu="no"
  supported_os="no"
-@@ -1313,6 +1314,10 @@ for opt do
+@@ -1315,6 +1316,10 @@ for opt do
    ;;
    --disable-git-update) git_update=no
    ;;
@@ -1078,7 +1078,7 @@ index 0c6e7572db..3a28a0a092 100755
    *)
        echo "ERROR: unknown option $opt"
        echo "Try '$0 --help' for more information"
-@@ -1561,6 +1566,7 @@ disabled with --disable-FEATURE, default is enabled if available:
+@@ -1563,6 +1568,7 @@ disabled with --disable-FEATURE, default is enabled if available:
    crypto-afalg    Linux AF_ALG crypto backend driver
    vhost-user      vhost-user support
    capstone        capstone disassembler support
@@ -1086,7 +1086,7 @@ index 0c6e7572db..3a28a0a092 100755
  
  NOTE: The object files are built at the place where configure is launched
  EOF
-@@ -3890,6 +3896,23 @@ EOF
+@@ -3893,6 +3899,23 @@ EOF
  fi
  
  ##########################################
@@ -1110,7 +1110,7 @@ index 0c6e7572db..3a28a0a092 100755
  # signalfd probe
  signalfd="no"
  cat > $TMPC << EOF
-@@ -5555,6 +5578,7 @@ echo "avx2 optimization $avx2_opt"
+@@ -5558,6 +5581,7 @@ echo "avx2 optimization $avx2_opt"
  echo "replication support $replication"
  echo "VxHS block device $vxhs"
  echo "capstone          $capstone"
@@ -1118,7 +1118,7 @@ index 0c6e7572db..3a28a0a092 100755
  
  if test "$sdl_too_old" = "yes"; then
  echo "-> Your SDL version is too old - please upgrade to have SDL support"
-@@ -5998,6 +6022,12 @@ if test "$libusb" = "yes" ; then
+@@ -6001,6 +6025,12 @@ if test "$libusb" = "yes" ; then
    echo "LIBUSB_LIBS=$libusb_libs" >> $config_host_mak
  fi
  

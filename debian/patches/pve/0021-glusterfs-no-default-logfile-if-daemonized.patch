@@ -8,7 +8,7 @@ Subject: [PATCH] glusterfs: no default logfile if daemonized
  1 file changed, 11 insertions(+), 4 deletions(-)
 
 diff --git a/block/gluster.c b/block/gluster.c
-index 0f4265a3a4..8fab26481c 100644
+index d09f4f2283..4e398af5c1 100644
 --- a/block/gluster.c
 +++ b/block/gluster.c
 @@ -32,7 +32,7 @@
@@ -20,7 +20,7 @@ index 0f4265a3a4..8fab26481c 100644
  
  #define GERR_INDEX_HINT "hint: check in 'server' array index '%d'\n"
  
-@@ -396,6 +396,7 @@ static struct glfs *qemu_gluster_glfs_init(BlockdevOptionsGluster *gconf,
+@@ -401,6 +401,7 @@ static struct glfs *qemu_gluster_glfs_init(BlockdevOptionsGluster *gconf,
      int old_errno;
      SocketAddressList *server;
      unsigned long long port;
@@ -28,7 +28,7 @@ index 0f4265a3a4..8fab26481c 100644
  
      glfs = glfs_find_preopened(gconf->volume);
      if (glfs) {
-@@ -438,9 +439,15 @@ static struct glfs *qemu_gluster_glfs_init(BlockdevOptionsGluster *gconf,
+@@ -443,9 +444,15 @@ static struct glfs *qemu_gluster_glfs_init(BlockdevOptionsGluster *gconf,
          }
      }
  

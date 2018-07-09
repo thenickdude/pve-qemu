@@ -13,7 +13,7 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/block/file-posix.c b/block/file-posix.c
-index 36ee89e940..4bff572d07 100644
+index 275953fdc6..b639206879 100644
 --- a/block/file-posix.c
 +++ b/block/file-posix.c
 @@ -405,7 +405,7 @@ static QemuOptsList raw_runtime_opts = {

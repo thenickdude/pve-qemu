@@ -16,10 +16,10 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  1 file changed, 2 deletions(-)
 
 diff --git a/block/rbd.c b/block/rbd.c
-index a33738a254..7930ef3368 100644
+index c4732a4b12..0374f3db27 100644
 --- a/block/rbd.c
 +++ b/block/rbd.c
-@@ -642,9 +642,7 @@ static int qemu_rbd_open(BlockDriverState *bs, QDict *options, int flags,
+@@ -643,9 +643,7 @@ static int qemu_rbd_open(BlockDriverState *bs, QDict *options, int flags,
          rados_conf_set(s->cluster, "rbd_cache", "true");
      }
  
