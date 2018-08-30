@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Mon, 24 Oct 2016 09:32:36 +0200
+Subject: [PATCH] PVE: [Config] glusterfs: no default logfile if daemonized
+
+---
+ block/gluster.c | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/block/gluster.c b/block/gluster.c
+index 4fd55a9cc5..20d99aa1c3 100644
+--- a/block/gluster.c
++++ b/block/gluster.c
+@@ -36,7 +36,7 @@
+ #define GLUSTER_DEBUG_DEFAULT       4
+ #define GLUSTER_DEBUG_MAX           9
+ #define GLUSTER_OPT_LOGFILE         "logfile"
+-#define GLUSTER_LOGFILE_DEFAULT     "-" /* handled in libgfapi as /dev/stderr */
++#define GLUSTER_LOGFILE_DEFAULT     NULL
+ 
+ #define GERR_INDEX_HINT "hint: check in 'server' array index '%d'\n"
+ 
+@@ -405,6 +405,7 @@ static struct glfs *qemu_gluster_glfs_init(BlockdevOptionsGluster *gconf,
+     int old_errno;
+     SocketAddressList *server;
+     unsigned long long port;
++    const char *logfile;
+ 
+     glfs = glfs_find_preopened(gconf->volume);
+     if (glfs) {
+@@ -447,9 +448,15 @@ static struct glfs *qemu_gluster_glfs_init(BlockdevOptionsGluster *gconf,
+         }
+     }
+ 
+-    ret = glfs_set_logging(glfs, gconf->logfile, gconf->debug);
+-    if (ret < 0) {
+-        goto out;
++    logfile = gconf->logfile;
++    if (!logfile && !is_daemonized()) {
++        logfile = "-";
++    }
++    if (logfile) {
++        ret = glfs_set_logging(glfs, logfile, gconf->debug);
++        if (ret < 0) {
++            goto out;
++        }
+     }
+ 
+     ret = glfs_init(glfs);
+-- 
+2.11.0
+

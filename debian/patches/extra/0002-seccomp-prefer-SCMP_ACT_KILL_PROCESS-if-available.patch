@@ -1,0 +1,90 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Marc-Andr=C3=A9=20Lureau?= <marcandre.lureau@redhat.com>
+Date: Wed, 22 Aug 2018 19:02:48 +0200
+Subject: [PATCH] seccomp: prefer SCMP_ACT_KILL_PROCESS if available
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The upcoming libseccomp release should have SCMP_ACT_KILL_PROCESS
+action (https://github.com/seccomp/libseccomp/issues/96).
+
+SCMP_ACT_KILL_PROCESS is preferable to immediately terminate the
+offending process, rather than having the SIGSYS handler running.
+
+Use SECCOMP_GET_ACTION_AVAIL to check availability of kernel support,
+as libseccomp will fallback on SCMP_ACT_KILL otherwise, and we still
+prefer SCMP_ACT_TRAP.
+
+Signed-off-by: Marc-André Lureau <marcandre.lureau@redhat.com>
+Reviewed-by: Daniel P. Berrangé <berrange@redhat.com>
+Acked-by: Eduardo Otubo <otubo@redhat.com>
+---
+ qemu-seccomp.c | 31 ++++++++++++++++++++++++++++++-
+ 1 file changed, 30 insertions(+), 1 deletion(-)
+
+diff --git a/qemu-seccomp.c b/qemu-seccomp.c
+index b117a92559..f0c833f3ca 100644
+--- a/qemu-seccomp.c
++++ b/qemu-seccomp.c
+@@ -20,6 +20,7 @@
+ #include <sys/prctl.h>
+ #include <seccomp.h>
+ #include "sysemu/seccomp.h"
++#include <linux/seccomp.h>
+ 
+ /* For some architectures (notably ARM) cacheflush is not supported until
+  * libseccomp 2.2.3, but configure enforces that we are using a more recent
+@@ -107,12 +108,40 @@ static const struct QemuSeccompSyscall blacklist[] = {
+     { SCMP_SYS(sched_get_priority_min), QEMU_SECCOMP_SET_RESOURCECTL },
+ };
+ 
++static inline __attribute__((unused)) int
++qemu_seccomp(unsigned int operation, unsigned int flags, void *args)
++{
++#ifdef __NR_seccomp
++    return syscall(__NR_seccomp, operation, flags, args);
++#else
++    errno = ENOSYS;
++    return -1;
++#endif
++}
++
++static uint32_t qemu_seccomp_get_kill_action(void)
++{
++#if defined(SECCOMP_GET_ACTION_AVAIL) && defined(SCMP_ACT_KILL_PROCESS) && \
++    defined(SECCOMP_RET_KILL_PROCESS)
++    {
++        uint32_t action = SECCOMP_RET_KILL_PROCESS;
++
++        if (qemu_seccomp(SECCOMP_GET_ACTION_AVAIL, 0, &action) == 0) {
++            return SCMP_ACT_KILL_PROCESS;
++        }
++    }
++#endif
++
++    return SCMP_ACT_TRAP;
++}
++
+ 
+ static int seccomp_start(uint32_t seccomp_opts)
+ {
+     int rc = 0;
+     unsigned int i = 0;
+     scmp_filter_ctx ctx;
++    uint32_t action = qemu_seccomp_get_kill_action();
+ 
+     ctx = seccomp_init(SCMP_ACT_ALLOW);
+     if (ctx == NULL) {
+@@ -125,7 +154,7 @@ static int seccomp_start(uint32_t seccomp_opts)
+             continue;
+         }
+ 
+-        rc = seccomp_rule_add_array(ctx, SCMP_ACT_TRAP, blacklist[i].num,
++        rc = seccomp_rule_add_array(ctx, action, blacklist[i].num,
+                                     blacklist[i].narg, blacklist[i].arg_cmp);
+         if (rc < 0) {
+             goto seccomp_return;
+-- 
+2.11.0
+

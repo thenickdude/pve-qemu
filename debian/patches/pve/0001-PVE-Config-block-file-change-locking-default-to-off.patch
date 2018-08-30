@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 29 Nov 2017 11:11:46 +0100
+Subject: [PATCH] PVE: [Config] block/file: change locking default to off
+
+'auto' only checks whether the system generally supports OFD
+locks but not whether the storage the file resides on
+supports any locking, causing issues with NFS.
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+---
+ block/file-posix.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/block/file-posix.c b/block/file-posix.c
+index fe83cbf0eb..431a9dddc6 100644
+--- a/block/file-posix.c
++++ b/block/file-posix.c
+@@ -421,7 +421,7 @@ static QemuOptsList raw_runtime_opts = {
+         {
+             .name = "locking",
+             .type = QEMU_OPT_STRING,
+-            .help = "file locking mode (on/off/auto, default: auto)",
++            .help = "file locking mode (on/off/auto, default: off)",
+         },
+         {
+             .name = "pr-manager",
+@@ -503,7 +503,7 @@ static int raw_open_common(BlockDriverState *bs, QDict *options,
+         s->use_lock = false;
+         break;
+     case ON_OFF_AUTO_AUTO:
+-        s->use_lock = qemu_has_ofd_lock();
++        s->use_lock = false;
+         break;
+     default:
+         abort();
+-- 
+2.11.0
+
