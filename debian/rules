@@ -33,7 +33,7 @@ config.status: configure
 	# Add here commands to configure the package.
 
 	# guest-agent is only required for guest systems
-	./configure --with-confsuffix="/kvm" --target-list=$(ARCH)-softmmu \
+	./configure --with-confsuffix="/kvm" --target-list=$(ARCH)-softmmu,aarch64-softmmu \
 	--prefix=/usr --datadir=/usr/share \
 	--docdir=/usr/share/doc/pve-qemu-kvm \
 	--sysconfdir=/etc --localstatedir=/var --disable-xen --enable-gnutls \

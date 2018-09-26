@@ -26,6 +26,7 @@ Build-Depends: autotools-dev,
                texinfo,
                uuid-dev,
                xfslibs-dev,
+	       libfdt-dev,
 Standards-Version: 3.7.2
 
 Package: pve-qemu-kvm
@@ -53,12 +54,15 @@ Conflicts: kvm,
            qemu-kvm,
            qemu-system-common,
            qemu-system-x86,
+           qemu-system-arm,
            qemu-utils,
 Provides: qemu-system-x86,
+          qemu-system-arm,
           qemu-utils,
 Replaces: pve-kvm,
           pve-qemu-kvm-2.6.18,
           qemu-system-x86,
+          qemu-system-arm,
           qemu-utils,
 Description: Full virtualization on x86 hardware
  Using KVM, one can run multiple virtual PCs, each running unmodified Linux or
