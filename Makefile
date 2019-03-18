@@ -36,7 +36,7 @@ $(DEB): keycodemapdb | submodule
 	echo "git clone git://git.proxmox.com/git/pve-qemu.git\\ngit checkout $(GITVERSION)" > $(BUILDSRC)/debian/SOURCE
 	# set package version
 	sed -i 's/^pkgversion="".*/pkgversion="${KVMPACKAGE}_${KVMVER}-${KVMPKGREL}"/' $(BUILDSRC)/configure
-	cd $(BUILDSRC); dpkg-buildpackage -b -rfakeroot -us -uc
+	cd $(BUILDSRC); dpkg-buildpackage -b -rfakeroot -us -uc -j
 	lintian $(DEBS) || true
 
 .PHONY: update
