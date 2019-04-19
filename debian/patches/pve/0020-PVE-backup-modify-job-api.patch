@@ -16,7 +16,7 @@ having been started at the same point in time.
  5 files changed, 7 insertions(+), 4 deletions(-)
 
 diff --git a/block/backup.c b/block/backup.c
-index 8630d32926..7f970842d7 100644
+index 8630d32926..3aaa75892a 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -613,6 +613,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
@@ -31,7 +31,7 @@ index 8630d32926..7f970842d7 100644
      block_job_add_bdrv(&job->common, "target", target, 0, BLK_PERM_ALL,
                         &error_abort);
      job->len = len;
-+    job->common.job.pause_count = pause_count;
++    job->common.job.pause_count += pause_count;
  
      return &job->common;
  
@@ -83,10 +83,10 @@ index 903b9c1034..0b2516c3cf 100644
  
  void hmp_drive_add_node(Monitor *mon, const char *optstr);
 diff --git a/job.c b/job.c
-index fa671b431a..72c50ee18e 100644
+index a3bec7fb22..950924ebad 100644
 --- a/job.c
 +++ b/job.c
-@@ -557,7 +557,7 @@ void job_start(Job *job)
+@@ -549,7 +549,7 @@ void job_start(Job *job)
      job->co = qemu_coroutine_create(job_co_entry, job);
      job->pause_count--;
      job->busy = true;

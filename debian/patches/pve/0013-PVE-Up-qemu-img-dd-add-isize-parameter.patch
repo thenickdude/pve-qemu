@@ -14,10 +14,10 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  1 file changed, 26 insertions(+), 3 deletions(-)
 
 diff --git a/qemu-img.c b/qemu-img.c
-index f46eefce4f..ec546846c6 100644
+index f459dd8345..1f623f5bba 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -4303,11 +4303,13 @@ out:
+@@ -4302,11 +4302,13 @@ out:
  #define C_OF      010
  #define C_SKIP    020
  #define C_OSIZE   040
@@ -31,7 +31,7 @@ index f46eefce4f..ec546846c6 100644
  };
  
  struct DdIo {
-@@ -4400,6 +4402,20 @@ static int img_dd_osize(const char *arg,
+@@ -4399,6 +4401,20 @@ static int img_dd_osize(const char *arg,
      return 0;
  }
  
@@ -52,7 +52,7 @@ index f46eefce4f..ec546846c6 100644
  static int img_dd(int argc, char **argv)
  {
      int ret = 0;
-@@ -4414,12 +4430,14 @@ static int img_dd(int argc, char **argv)
+@@ -4413,12 +4429,14 @@ static int img_dd(int argc, char **argv)
      int c, i;
      const char *out_fmt = "raw";
      const char *fmt = NULL;
@@ -68,7 +68,7 @@ index f46eefce4f..ec546846c6 100644
      };
      struct DdIo in = {
          .bsz = 512, /* Block size is by default 512 bytes */
-@@ -4441,6 +4459,7 @@ static int img_dd(int argc, char **argv)
+@@ -4440,6 +4458,7 @@ static int img_dd(int argc, char **argv)
          { "of", img_dd_of, C_OF },
          { "skip", img_dd_skip, C_SKIP },
          { "osize", img_dd_osize, C_OSIZE },
@@ -76,7 +76,7 @@ index f46eefce4f..ec546846c6 100644
          { NULL, NULL, 0 }
      };
      const struct option long_options[] = {
-@@ -4647,14 +4666,18 @@ static int img_dd(int argc, char **argv)
+@@ -4646,14 +4665,18 @@ static int img_dd(int argc, char **argv)
  
      in.buf = g_new(uint8_t, in.bsz);
  

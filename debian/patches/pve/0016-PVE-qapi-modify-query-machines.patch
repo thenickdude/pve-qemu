@@ -32,7 +32,7 @@ index a7d890c076..4e8ebf9adc 100644
  
  ##
 diff --git a/vl.c b/vl.c
-index 16b913f9d5..c750b7c18e 100644
+index 12d27fa028..9c3a41bfe2 100644
 --- a/vl.c
 +++ b/vl.c
 @@ -1455,6 +1455,11 @@ MachineInfoList *qmp_query_machines(Error **errp)

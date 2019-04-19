@@ -1,8 +1,42 @@
-pve-qemu-kvm (3.0.0-1~pvetest2) unstable; urgency=medium
+pve-qemu-kvm (3.0.1-1) unstable; urgency=medium
 
-  * update to 3.0.0
+  * update to 3.0.1
 
- -- Proxmox Support Team <support@proxmox.com>  Thu, 30 Aug 2018 14:59:49 +0200
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 19 Apr 2019 09:51:15 +0200
+
+pve-qemu-kvm (2.12.1-3) stable; urgency=medium
+
+  * fix an error handling issue with live snapshots where if a storage runs
+    full the process would ignore the error
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 18 Mar 2019 11:34:08 +0100
+
+pve-qemu-kvm (2.12.1-2) stable; urgency=medium
+
+  * fix CVE-2019-3812: Out-of-bounds read in hw/i2c/i2c-ddc.c allows for memory
+    disclosure
+
+  * fix CVE-2018-18849: lsi53c895a: OOB msg buffer access leads to DoS
+
+  * fix CVE-2018-20124: rdma: OOB access when building scatter-gather array
+
+  * fix CVE-2019-6778: slirp: heap buffer overflow in tcp_emu()
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 19 Feb 2019 09:28:42 +0100
+
+pve-qemu-kvm (2.12.1-1) stable; urgency=medium
+
+  * update to 2.12.1 with some additional CVE fixes included
+
+  * fix CVE-2018-10839: ne2000: integer overflow leads to buffer overflow issue
+
+  * fix CVE-2018-17958: rtl8139: integer overflow leads to buffer overflow
+
+  * fix CVE-2018-17962: pcnet: integer overflow leads to buffer overflow
+
+  * fix CVE-2018-17963: net: ignore packets with large size
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 16 Oct 2018 14:22:11 +0200
 
 pve-qemu-kvm (2.11.2-1) stable; urgency=medium
 

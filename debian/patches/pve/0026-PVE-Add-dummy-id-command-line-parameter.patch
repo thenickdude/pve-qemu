@@ -27,7 +27,7 @@ index 31329e26e2..15df7e4fab 100644
      "-fda/-fdb file  use 'file' as floppy disk 0/1 image\n", QEMU_ARCH_ALL)
  DEF("fdb", HAS_ARG, QEMU_OPTION_fdb, "", QEMU_ARCH_ALL)
 diff --git a/vl.c b/vl.c
-index b2e3e23724..a03e4c2867 100644
+index 63107d82a3..e349797245 100644
 --- a/vl.c
 +++ b/vl.c
 @@ -2915,6 +2915,7 @@ static void register_global_properties(MachineState *ms)
@@ -38,7 +38,7 @@ index b2e3e23724..a03e4c2867 100644
      int snapshot, linux_boot;
      const char *initrd_filename;
      const char *kernel_filename, *kernel_cmdline;
-@@ -3659,6 +3660,13 @@ int main(int argc, char **argv, char **envp)
+@@ -3660,6 +3661,13 @@ int main(int argc, char **argv, char **envp)
                      exit(1);
                  }
                  break;

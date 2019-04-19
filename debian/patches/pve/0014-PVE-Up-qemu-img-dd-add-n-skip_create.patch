@@ -8,10 +8,10 @@ Subject: [PATCH] PVE: [Up] qemu-img dd : add -n skip_create
  1 file changed, 14 insertions(+), 9 deletions(-)
 
 diff --git a/qemu-img.c b/qemu-img.c
-index ec546846c6..afa6e26ccf 100644
+index 1f623f5bba..5d9322db33 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -4432,7 +4432,7 @@ static int img_dd(int argc, char **argv)
+@@ -4431,7 +4431,7 @@ static int img_dd(int argc, char **argv)
      const char *fmt = NULL;
      int64_t size = 0, readsize = 0;
      int64_t block_count = 0, out_pos, in_pos;
@@ -20,7 +20,7 @@ index ec546846c6..afa6e26ccf 100644
      struct DdInfo dd = {
          .flags = 0,
          .count = 0,
-@@ -4470,7 +4470,7 @@ static int img_dd(int argc, char **argv)
+@@ -4469,7 +4469,7 @@ static int img_dd(int argc, char **argv)
          { 0, 0, 0, 0 }
      };
  
@@ -29,7 +29,7 @@ index ec546846c6..afa6e26ccf 100644
          if (c == EOF) {
              break;
          }
-@@ -4490,6 +4490,9 @@ static int img_dd(int argc, char **argv)
+@@ -4489,6 +4489,9 @@ static int img_dd(int argc, char **argv)
          case 'h':
              help();
              break;
@@ -39,7 +39,7 @@ index ec546846c6..afa6e26ccf 100644
          case 'U':
              force_share = true;
              break;
-@@ -4630,13 +4633,15 @@ static int img_dd(int argc, char **argv)
+@@ -4629,13 +4632,15 @@ static int img_dd(int argc, char **argv)
                                  size - in.bsz * in.offset, &error_abort);
          }
  

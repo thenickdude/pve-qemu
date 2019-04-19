@@ -56,7 +56,7 @@ index a836ee87d7..92c7886dee 100644
  block-obj-m = block/
  
 diff --git a/block/backup.c b/block/backup.c
-index 7f970842d7..5f53163a77 100644
+index 3aaa75892a..2410cca257 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -34,6 +34,7 @@ typedef struct BackupBlockJob {
@@ -265,7 +265,7 @@ index 7f970842d7..5f53163a77 100644
 +                           &error_abort);
 +    }
      job->len = len;
-     job->common.job.pause_count = pause_count;
+     job->common.job.pause_count += pause_count;
  
 diff --git a/block/replication.c b/block/replication.c
 index 84e07cc4d4..04fa448a5b 100644
@@ -280,7 +280,7 @@ index 84e07cc4d4..04fa448a5b 100644
          if (local_err) {
              error_propagate(errp, local_err);
 diff --git a/blockdev.c b/blockdev.c
-index 4f18d3c3d7..d5458f044e 100644
+index 4f18d3c3d7..86508066cc 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -31,7 +31,6 @@
@@ -649,7 +649,7 @@ index 4f18d3c3d7..d5458f044e 100644
 -            di->target = NULL;
 -        }
 +                                pvebackup_dump_cb, pvebackup_complete_cb, di,
-+                                2, NULL, &local_err);
++                                1, NULL, &local_err);
          if (!job || local_err != NULL) {
              error_setg(&backup_state.error, "backup_job_create failed");
              pvebackup_cancel(NULL);
@@ -718,10 +718,10 @@ index 0b2516c3cf..ecd6243440 100644
                              int pause_count,
                              JobTxn *txn, Error **errp);
 diff --git a/job.c b/job.c
-index 72c50ee18e..1b3bda275d 100644
+index 950924ebad..b4eaf57e64 100644
 --- a/job.c
 +++ b/job.c
-@@ -256,7 +256,8 @@ static bool job_started(Job *job)
+@@ -248,7 +248,8 @@ static bool job_started(Job *job)
      return job->co;
  }
  

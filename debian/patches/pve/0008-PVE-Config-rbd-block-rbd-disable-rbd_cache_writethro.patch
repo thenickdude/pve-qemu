@@ -17,7 +17,7 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  1 file changed, 2 insertions(+)
 
 diff --git a/block/rbd.c b/block/rbd.c
-index ca8e5bbace..34ae730711 100644
+index 014c68d629..53293845f6 100644
 --- a/block/rbd.c
 +++ b/block/rbd.c
 @@ -634,6 +634,8 @@ static int qemu_rbd_connect(rados_t *cluster, rados_ioctx_t *io_ctx,

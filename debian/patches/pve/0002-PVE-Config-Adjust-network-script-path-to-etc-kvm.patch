@@ -8,10 +8,10 @@ Subject: [PATCH] PVE: [Config] Adjust network script path to /etc/kvm/
  1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/include/net/net.h b/include/net/net.h
-index 1425960f76..fdf0957642 100644
+index 3e4638b8c6..e4dfe43f75 100644
 --- a/include/net/net.h
 +++ b/include/net/net.h
-@@ -216,8 +216,9 @@ void qmp_netdev_add(QDict *qdict, QObject **ret, Error **errp);
+@@ -210,8 +210,9 @@ void qmp_netdev_add(QDict *qdict, QObject **ret, Error **errp);
  int net_hub_id_for_client(NetClientState *nc, int *id);
  NetClientState *net_hub_port_find(int hub_id);
  

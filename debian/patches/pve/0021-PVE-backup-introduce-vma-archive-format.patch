@@ -7,7 +7,7 @@ TODO: Move to a libvma block backend.
 ---
  MAINTAINERS          |   6 +
  block/Makefile.objs  |   3 +
- block/vma.c          | 424 ++++++++++++++++++++++++++++++++++++++++
+ block/vma.c          | 503 +++++++++++++++++++++++++++++++++++++++++++++++
  blockdev.c           | 536 +++++++++++++++++++++++++++++++++++++++++++++++++++
  configure            |  29 +++
  hmp-commands-info.hx |  13 ++
@@ -17,7 +17,7 @@ TODO: Move to a libvma block backend.
  qapi/block-core.json | 109 ++++++++++-
  qapi/common.json     |  13 ++
  qapi/misc.json       |  13 --
- 12 files changed, 1229 insertions(+), 14 deletions(-)
+ 12 files changed, 1308 insertions(+), 14 deletions(-)
  create mode 100644 block/vma.c
 
 diff --git a/MAINTAINERS b/MAINTAINERS
@@ -57,10 +57,10 @@ index c00f0b32d6..abfd0f69d7 100644
 +vma.o-libs         := $(VMA_LIBS)
 diff --git a/block/vma.c b/block/vma.c
 new file mode 100644
-index 0000000000..7151514f94
+index 0000000000..b911b198dc
 --- /dev/null
 +++ b/block/vma.c
-@@ -0,0 +1,424 @@
+@@ -0,0 +1,503 @@
 +/*
 + * VMA archive backend for QEMU, container object
 + *
@@ -74,10 +74,12 @@ index 0000000000..7151514f94
 +
 +#include "qemu/osdep.h"
 +#include "qemu/uuid.h"
++#include "qemu/option.h"
 +#include "qemu-common.h"
 +#include "qapi/error.h"
 +#include "qapi/qmp/qerror.h"
 +#include "qapi/qmp/qstring.h"
++#include "qapi/qmp/qdict.h"
 +#include "qom/object.h"
 +#include "qom/object_interfaces.h"
 +#include "block/block_int.h"
@@ -132,9 +134,9 @@ index 0000000000..7151514f94
 +        return;
 +    }
 +
-+    rc = VMAWriter_fopen(vo->filename, &vo->vma);
-+    if (rc < 0) {
-+        error_setg_errno(errp, -rc, "failed to create VMA archive");
++    vo->vma = VMAWriter_fopen(vo->filename);
++    if (!vo->vma) {
++        error_setg_errno(errp, errno, "failed to create VMA archive");
 +        return;
 +    }
 +
@@ -147,7 +149,7 @@ index 0000000000..7151514f94
 +    qemu_mutex_init(&vo->mutex);
 +}
 +
-+static bool vma_object_can_be_deleted(UserCreatable *uc, Error **errp)
++static bool vma_object_can_be_deleted(UserCreatable *uc)
 +{
 +    //VMAObjectState *vo = VMA_OBJECT(uc);
 +    //if (!vo->vma) {
@@ -300,13 +302,17 @@ index 0000000000..7151514f94
 +{
 +    char *sep;
 +
++    if (strncmp(filename, "vma:", sizeof("vma:")-1) == 0) {
++        filename += sizeof("vma:")-1;
++    }
++
 +    sep = strchr(filename, '/');
 +    if (!sep || sep == filename) {
-+        error_setg(errp, "VMA filename should be <vma-object>/<device-name>");
++        error_setg(errp, "VMA file should be <vma-obj>/<name>/<size>");
 +        return;
 +    }
 +
-+    qdict_put(options, "vma", qstring_from_substr(filename, 0, sep-filename-1));
++    qdict_put(options, "vma", qstring_from_substr(filename, 0, sep-filename));
 +
 +    while (*sep && *sep == '/')
 +        ++sep;
@@ -315,7 +321,24 @@ index 0000000000..7151514f94
 +        return;
 +    }
 +
-+    qdict_put(options, "name", qstring_from_str(sep));
++    filename = sep;
++    sep = strchr(filename, '/');
++    if (!sep || sep == filename) {
++        error_setg(errp, "VMA file should be <vma-obj>/<name>/<size>");
++        return;
++    }
++
++    qdict_put(options, "name", qstring_from_substr(filename, 0, sep-filename));
++
++    while (*sep && *sep == '/')
++        ++sep;
++    if (!*sep) {
++        error_setg(errp, "missing device size\n");
++        return;
++    }
++
++    filename = sep;
++    qdict_put_str(options, "size", filename);
 +}
 +
 +static QemuOptsList runtime_opts = {
@@ -363,7 +386,18 @@ index 0000000000..7151514f94
 +                     BDRV_SECTOR_SIZE);
 +
 +    vma_id = qemu_opt_get(opts, "vma");
++    if (!vma_id) {
++        ret = -EINVAL;
++        error_setg(errp, "missing 'vma' property");
++        goto failed_opts;
++    }
++
 +    device_name = qemu_opt_get(opts, "name");
++    if (!device_name) {
++        ret = -EINVAL;
++        error_setg(errp, "missing 'name' property");
++        goto failed_opts;
++    }
 +
 +    VMAObjectState *vma = vma_by_id(vma_id);
 +    if (!vma) {
@@ -419,13 +453,16 @@ index 0000000000..7151514f94
 +static coroutine_fn int qemu_vma_co_writev(BlockDriverState *bs,
 +                                           int64_t sector_num,
 +                                           int nb_sectors,
-+                                           QEMUIOVector *qiov)
++                                           QEMUIOVector *qiov,
++                                           int flags)
 +{
 +    size_t i;
 +    ssize_t rc;
 +    BDRVVMAState *s = bs->opaque;
 +    VMAObjectState *vo = s->vma_obj;
 +    off_t offset = sector_num * BDRV_SECTOR_SIZE;
++    /* flags can be only values we set in supported_write_flags */
++    assert(flags == 0);
 +
 +    qemu_mutex_lock(&vo->mutex);
 +    if (vo->blocked) {
@@ -455,12 +492,47 @@ index 0000000000..7151514f94
 +{
 +    bdi->cluster_size = VMA_CLUSTER_SIZE;
 +    bdi->unallocated_blocks_are_zero = true;
-+    bdi->can_write_zeroes_with_unmap = false;
 +    return 0;
++}
++
++static int qemu_vma_check_perm(BlockDriverState *bs,
++                           uint64_t perm,
++                           uint64_t shared,
++                           Error **errp)
++{
++    /* Nothing to do. */
++    return 0;
++}
++
++static void qemu_vma_set_perm(BlockDriverState *bs,
++                              uint64_t perm,
++                              uint64_t shared)
++{
++    /* Nothing to do. */
++}
++
++static void qemu_vma_abort_perm_update(BlockDriverState *bs)
++{
++    /* Nothing to do. */
++}
++
++static void qemu_vma_refresh_limits(BlockDriverState *bs, Error **errp)
++{
++    bs->bl.request_alignment = BDRV_SECTOR_SIZE; /* No sub-sector I/O */
++}
++static void qemu_vma_child_perm(BlockDriverState *bs, BdrvChild *c,
++                                const BdrvChildRole *role,
++                                BlockReopenQueue *reopen_queue,
++                                uint64_t perm, uint64_t shared,
++                                uint64_t *nperm, uint64_t *nshared)
++{
++    *nperm = BLK_PERM_ALL;
++    *nshared = BLK_PERM_ALL;
 +}
 +
 +static BlockDriver bdrv_vma_drive = {
 +    .format_name                  = "vma-drive",
++    .protocol_name                = "vma",
 +    .instance_size                = sizeof(BDRVVMAState),
 +
 +#if 0
@@ -476,7 +548,14 @@ index 0000000000..7151514f94
 +    .bdrv_getlength               = qemu_vma_getlength,
 +    .bdrv_get_info                = qemu_vma_get_info,
 +
++    //.bdrv_co_preadv               = qemu_vma_co_preadv,
 +    .bdrv_co_writev               = qemu_vma_co_writev,
++
++    .bdrv_refresh_limits          = qemu_vma_refresh_limits,
++    .bdrv_check_perm              = qemu_vma_check_perm,
++    .bdrv_set_perm                = qemu_vma_set_perm,
++    .bdrv_abort_perm_update       = qemu_vma_abort_perm_update,
++    .bdrv_child_perm              = qemu_vma_child_perm,
 +};
 +
 +static void bdrv_vma_init(void)
@@ -1052,7 +1131,7 @@ index d5eb6b62ca..4f18d3c3d7 100644
                        bool has_base, const char *base,
                        bool has_base_node, const char *base_node,
 diff --git a/configure b/configure
-index 2a7796ea80..601c1f44f9 100755
+index 7b3f80a49c..d2cc11cdbb 100755
 --- a/configure
 +++ b/configure
 @@ -475,6 +475,7 @@ vxhs=""
@@ -1082,7 +1161,7 @@ index 2a7796ea80..601c1f44f9 100755
  
  NOTE: The object files are built at the place where configure is launched
  EOF
-@@ -4124,6 +4130,22 @@ EOF
+@@ -4121,6 +4127,22 @@ EOF
  fi
  
  ##########################################
@@ -1105,7 +1184,7 @@ index 2a7796ea80..601c1f44f9 100755
  # signalfd probe
  signalfd="no"
  cat > $TMPC << EOF
-@@ -6010,6 +6032,7 @@ echo "replication support $replication"
+@@ -6007,6 +6029,7 @@ echo "replication support $replication"
  echo "VxHS block device $vxhs"
  echo "capstone          $capstone"
  echo "docker            $docker"
@@ -1113,7 +1192,7 @@ index 2a7796ea80..601c1f44f9 100755
  
  if test "$sdl_too_old" = "yes"; then
  echo "-> Your SDL version is too old - please upgrade to have SDL support"
-@@ -6496,6 +6519,12 @@ if test "$usb_redir" = "yes" ; then
+@@ -6493,6 +6516,12 @@ if test "$usb_redir" = "yes" ; then
    echo "USB_REDIR_LIBS=$usb_redir_libs" >> $config_host_mak
  fi
  

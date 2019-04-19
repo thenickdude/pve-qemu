@@ -8,10 +8,10 @@ Subject: [PATCH] PVE: [Up] qemu-img: return success on info without snapshots
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/qemu-img.c b/qemu-img.c
-index 1acddf693c..4438e0c2c9 100644
+index 4799e097dc..789217cd35 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -2720,7 +2720,8 @@ static int img_info(int argc, char **argv)
+@@ -2719,7 +2719,8 @@ static int img_info(int argc, char **argv)
      list = collect_image_info_list(image_opts, filename, fmt, chain,
                                     force_share);
      if (!list) {

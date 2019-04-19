@@ -10,10 +10,10 @@ Subject: [PATCH] PVE: [Up] qmp: add get_link_status
  3 files changed, 43 insertions(+)
 
 diff --git a/net/net.c b/net/net.c
-index 2a3133990c..cd9178d6c9 100644
+index f8275843fb..8c8e100afa 100644
 --- a/net/net.c
 +++ b/net/net.c
-@@ -1331,6 +1331,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
+@@ -1342,6 +1342,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
      }
  }
  
