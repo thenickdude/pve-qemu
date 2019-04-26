@@ -25,5 +25,6 @@ pve/0024-PVE-vma-add-cache-option-to-device-map.patch
 pve/0025-PVE-vma-remove-forced-NO_FLUSH-option.patch
 pve/0026-PVE-Add-dummy-id-command-line-parameter.patch
 pve/0027-PVE-Config-Revert-target-i386-disable-LINT0-after-re.patch
+pve/0028-PVE-Up-Config-file-posix-make-locking-optiono-on-cre.patch
 extra/0001-monitor-guard-iothread-access-by-mon-use_io_thread.patch
 extra/0002-monitor-delay-monitor-iothread-creation.patch
