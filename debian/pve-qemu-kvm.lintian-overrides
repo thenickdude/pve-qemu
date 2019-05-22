@@ -1,0 +1,4 @@
+pve-qemu-kvm: arch-dependent-file-in-usr-share usr/share/kvm/hppa-firmware.img
+pve-qemu-kvm: binary-from-other-architecture usr/share/kvm/hppa-firmware.img
+pve-qemu-kvm: unstripped-binary-or-object usr/share/kvm/hppa-firmware.img
+pve-qemu-kvm: statically-linked-binary usr/share/kvm/hppa-firmware.img
