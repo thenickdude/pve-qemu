@@ -53,7 +53,7 @@ upload: $(DEBS)
 .PHONY: distclean clean
 distclean: clean
 clean:
-	rm -rf $(BUILDDIR) $(PACKAGE)_* $(DEBS) *.buildinfo *.changes
+	rm -rf $(BUILDDIR) $(PACKAGE)*.deb *.buildinfo *.changes
 
 .PHONY: dinstall
 dinstall: $(DEBS)
