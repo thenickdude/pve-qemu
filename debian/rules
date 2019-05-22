@@ -42,6 +42,7 @@ config.status: configure
 	--enable-usb-redir --enable-glusterfs --enable-libusb --disable-gtk \
 	--enable-xfsctl --enable-numa --disable-strip --enable-jemalloc \
 	--enable-virtfs --disable-libnfs \
+	--disable-capstone \
 	--disable-guest-agent --disable-guest-agent-msi
 
 build: build-stamp
