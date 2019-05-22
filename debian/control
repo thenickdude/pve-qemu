@@ -1,6 +1,6 @@
 Source: pve-qemu-kvm
 Section: admin
-Priority: extra
+Priority: optional
 Maintainer: Proxmox Support Team <support@proxmox.com>
 Build-Depends: autotools-dev,
                check,
