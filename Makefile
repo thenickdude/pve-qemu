@@ -1,20 +1,16 @@
-# also update debian/changelog
-KVMVER=3.0.1
-KVMPKGREL=2
+include /usr/share/dpkg/pkg-info.mk
+include /usr/share/dpkg/architecture.mk
 
-KVMPACKAGE = pve-qemu-kvm
-KVMSRC = qemu
-BUILDSRC = $(KVMSRC).tmp
+PACKAGE = pve-qemu-kvm
 
 SRCDIR := qemu
+BUILDDIR ?= ${PACKAGE}-${DEB_VERSION_UPSTREAM}
 
-ARCH := $(shell dpkg-architecture -qDEB_BUILD_ARCH)
 GITVERSION := $(shell git rev-parse HEAD)
 
-DEB = ${KVMPACKAGE}_${KVMVER}-${KVMPKGREL}_${ARCH}.deb
-DEB_DBG = ${KVMPACKAGE}-dbg_${KVMVER}-${KVMPKGREL}_${ARCH}.deb
+DEB = ${PACKAGE}_${DEB_VERSION_UPSTREAM_REVISION}_${DEB_BUILD_ARCH}.deb
+DEB_DBG = ${PACKAGE}-dbg_${DEB_VERSION_UPSTREAM_REVISION}_${DEB_BUILD_ARCH}.deb
 DEBS = $(DEB) $(DEB_DBG)
-
 
 all: $(DEBS)
 
@@ -22,44 +18,42 @@ all: $(DEBS)
 submodule:
 	test -f "${SRCDIR}/debian/changelog" || git submodule update --init
 
+$(BUILDDIR): keycodemapdb | submodule
+	rm -rf $(BUILDDIR)
+	cp -a $(SRCDIR) $(BUILDDIR)
+	cp -a debian $(BUILDDIR)/debian
+	rm -rf $(BUILDDIR)/ui/keycodemapdb
+	cp -a keycodemapdb $(BUILDDIR)/ui/
+	echo "git clone git://git.proxmox.com/git/pve-qemu.git\\ngit checkout $(GITVERSION)" > $(BUILDDIR)/debian/SOURCE
+	# set package version
+	sed -i 's/^pkgversion="".*/pkgversion="${PACKAGE}_${KVMVER}-${KVMPKGREL}"/' $(BUILDDIR)/configure
+
 .PHONY: deb kvm
 deb kvm: $(DEBS)
 $(DEB_DBG): $(DEB)
-$(DEB): keycodemapdb | submodule
-	rm -f *.deb
-	rm -rf $(BUILDSRC)
-	mkdir $(BUILDSRC)
-	cp -a $(KVMSRC)/* $(BUILDSRC)/
-	cp -a debian $(BUILDSRC)/debian
-	rm -rf $(BUILDSRC)/ui/keycodemapdb
-	cp -a keycodemapdb $(BUILDSRC)/ui/
-	echo "git clone git://git.proxmox.com/git/pve-qemu.git\\ngit checkout $(GITVERSION)" > $(BUILDSRC)/debian/SOURCE
-	# set package version
-	sed -i 's/^pkgversion="".*/pkgversion="${KVMPACKAGE}_${KVMVER}-${KVMPKGREL}"/' $(BUILDSRC)/configure
-	cd $(BUILDSRC); dpkg-buildpackage -b -rfakeroot -us -uc -j
-	lintian $(DEBS) || true
+$(DEB): $(BUILDDIR)
+	cd $(BUILDDIR); dpkg-buildpackage -b -us -uc -j
+	lintian $(DEBS)
 
 .PHONY: update
 update:
-	cd $(KVMSRC) && git submodule deinit ui/keycodemapdb || true
-	rm -rf $(KVMSRC)/ui/keycodemapdb
-	mkdir $(KVMSRC)/ui/keycodemapdb
-	cd $(KVMSRC) && git submodule update --init ui/keycodemapdb
+	cd $(SRCDIR) && git submodule deinit ui/keycodemapdb || true
+	rm -rf $(SRCDIR)/ui/keycodemapdb
+	mkdir $(SRCDIR)/ui/keycodemapdb
+	cd $(SRCDIR) && git submodule update --init ui/keycodemapdb
 	rm -rf keycodemapdb
 	mkdir keycodemapdb
-	cp -R $(KVMSRC)/ui/keycodemapdb/* keycodemapdb/
+	cp -R $(SRCDIR)/ui/keycodemapdb/* keycodemapdb/
 	git add keycodemapdb
 
 .PHONY: upload
 upload: $(DEBS)
 	tar cf - ${DEBS} | ssh repoman@repo.proxmox.com upload --product pve --dist stretch
 
-.PHONY: distclean
+.PHONY: distclean clean
 distclean: clean
-
-.PHONY: clean
 clean:
-	rm -rf $(BUILDSRC) $(KVMPACKAGE)_* $(DEBS) *.buildinfo
+	rm -rf $(BUILDDIR) $(PACKAGE)_* $(DEBS) *.buildinfo *.changes
 
 .PHONY: dinstall
 dinstall: $(DEBS)
