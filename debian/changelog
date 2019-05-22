@@ -1,3 +1,9 @@
+pve-qemu-kvm (3.0.1-60) pve; urgency=medium
+
+  * rebuild for Debian Buster / PVE 6
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 22 May 2019 17:54:45 +0200
+
 pve-qemu-kvm (3.0.1-2) unstable; urgency=medium
 
   * make file-locks optional when creating images (fixes qemu-img not being
