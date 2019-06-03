@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paolo Bonzini <pbonzini@redhat.com>
+Date: Thu, 16 May 2019 20:53:20 +0200
+Subject: [PATCH 8/9] target/i386: add MDS-NO feature
+
+Microarchitectural Data Sampling is a hardware vulnerability which allows
+unprivileged speculative access to data which is available in various CPU
+internal buffers.
+
+Some Intel processors use the ARCH_CAP_MDS_NO bit in the
+IA32_ARCH_CAPABILITIES
+MSR to report that they are not vulnerable, make it available to guests.
+
+Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+Message-Id: <20190516185320.28340-1-pbonzini@redhat.com>
+Signed-off-by: Eduardo Habkost <ehabkost@redhat.com>
+---
+ target/i386/cpu.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/target/i386/cpu.c b/target/i386/cpu.c
+index a64aa8793e..02b64f730c 100644
+--- a/target/i386/cpu.c
++++ b/target/i386/cpu.c
+@@ -1146,7 +1146,7 @@ static FeatureWordInfo feature_word_info[FEATURE_WORDS] = {
+         .type = MSR_FEATURE_WORD,
+         .feat_names = {
+             "rdctl-no", "ibrs-all", "rsba", "skip-l1dfl-vmentry",
+-            "ssb-no", NULL, NULL, NULL,
++            "ssb-no", "mds-no", NULL, NULL,
+             NULL, NULL, NULL, NULL,
+             NULL, NULL, NULL, NULL,
+             NULL, NULL, NULL, NULL,
+-- 
+2.20.1
+

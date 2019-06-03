@@ -1,0 +1,113 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Robert Hoo <robert.hu@linux.intel.com>
+Date: Mon, 15 Oct 2018 12:47:25 +0800
+Subject: [PATCH 7/9] x86: define a new MSR based feature word --
+ FEATURE_WORDS_ARCH_CAPABILITIES
+
+Note RSBA is specially treated -- no matter host support it or not, qemu
+pretends it is supported.
+
+Signed-off-by: Robert Hoo <robert.hu@linux.intel.com>
+Message-Id: <1539578845-37944-4-git-send-email-robert.hu@linux.intel.com>
+[ehabkost: removed automatic enabling of RSBA]
+Reviewed-by: Eduardo Habkost <ehabkost@redhat.com>
+Signed-off-by: Eduardo Habkost <ehabkost@redhat.com>
+---
+ target/i386/cpu.c | 24 +++++++++++++++++++++++-
+ target/i386/cpu.h |  8 ++++++++
+ target/i386/kvm.c | 11 +++++++++++
+ 3 files changed, 42 insertions(+), 1 deletion(-)
+
+diff --git a/target/i386/cpu.c b/target/i386/cpu.c
+index d2985144a3..a64aa8793e 100644
+--- a/target/i386/cpu.c
++++ b/target/i386/cpu.c
+@@ -1141,6 +1141,27 @@ static FeatureWordInfo feature_word_info[FEATURE_WORDS] = {
+         },
+         .tcg_features = ~0U,
+     },
++    /*Below are MSR exposed features*/
++    [FEAT_ARCH_CAPABILITIES] = {
++        .type = MSR_FEATURE_WORD,
++        .feat_names = {
++            "rdctl-no", "ibrs-all", "rsba", "skip-l1dfl-vmentry",
++            "ssb-no", NULL, NULL, NULL,
++            NULL, NULL, NULL, NULL,
++            NULL, NULL, NULL, NULL,
++            NULL, NULL, NULL, NULL,
++            NULL, NULL, NULL, NULL,
++            NULL, NULL, NULL, NULL,
++            NULL, NULL, NULL, NULL,
++        },
++        .msr = {
++            .index = MSR_IA32_ARCH_CAPABILITIES,
++            .cpuid_dep = {
++                FEAT_7_0_EDX,
++                CPUID_7_0_EDX_ARCH_CAPABILITIES
++            }
++        },
++    },
+ };
+ 
+ typedef struct X86RegisterInfo32 {
+@@ -3581,7 +3602,8 @@ static uint32_t x86_cpu_get_supported_feature_word(FeatureWord w,
+                                                         wi->cpuid.reg);
+             break;
+         case MSR_FEATURE_WORD:
+-            r = kvm_arch_get_supported_msr_feature(kvm_state, wi->msr.index);
++            r = kvm_arch_get_supported_msr_feature(kvm_state,
++                        wi->msr.index);
+             break;
+         }
+     } else if (hvf_enabled()) {
+diff --git a/target/i386/cpu.h b/target/i386/cpu.h
+index fb2f5f6ebc..ae54a98249 100644
+--- a/target/i386/cpu.h
++++ b/target/i386/cpu.h
+@@ -502,6 +502,7 @@ typedef enum FeatureWord {
+     FEAT_6_EAX,         /* CPUID[6].EAX */
+     FEAT_XSAVE_COMP_LO, /* CPUID[EAX=0xd,ECX=0].EAX */
+     FEAT_XSAVE_COMP_HI, /* CPUID[EAX=0xd,ECX=0].EDX */
++    FEAT_ARCH_CAPABILITIES,
+     FEATURE_WORDS,
+ } FeatureWord;
+ 
+@@ -727,6 +728,13 @@ typedef uint32_t FeatureWordArray[FEATURE_WORDS];
+ #define CPUID_TOPOLOGY_LEVEL_SMT      (1U << 8)
+ #define CPUID_TOPOLOGY_LEVEL_CORE     (2U << 8)
+ 
++/* MSR Feature Bits */
++#define MSR_ARCH_CAP_RDCL_NO    (1U << 0)
++#define MSR_ARCH_CAP_IBRS_ALL   (1U << 1)
++#define MSR_ARCH_CAP_RSBA       (1U << 2)
++#define MSR_ARCH_CAP_SKIP_L1DFL_VMENTRY (1U << 3)
++#define MSR_ARCH_CAP_SSB_NO     (1U << 4)
++
+ #ifndef HYPERV_SPINLOCK_NEVER_RETRY
+ #define HYPERV_SPINLOCK_NEVER_RETRY             0xFFFFFFFF
+ #endif
+diff --git a/target/i386/kvm.c b/target/i386/kvm.c
+index cd45c79169..0b7fcb4f7f 100644
+--- a/target/i386/kvm.c
++++ b/target/i386/kvm.c
+@@ -1936,6 +1936,17 @@ static int kvm_put_msrs(X86CPU *cpu, int level)
+     }
+ #endif
+ 
++    /* If host supports feature MSR, write down. */
++    if (kvm_feature_msrs) {
++        int i;
++        for (i = 0; i < kvm_feature_msrs->nmsrs; i++)
++            if (kvm_feature_msrs->indices[i] == MSR_IA32_ARCH_CAPABILITIES) {
++                kvm_msr_entry_add(cpu, MSR_IA32_ARCH_CAPABILITIES,
++                              env->features[FEAT_ARCH_CAPABILITIES]);
++                break;
++            }
++    }
++
+     /*
+      * The following MSRs have side effects on the guest or are too heavy
+      * for normal writeback. Limit them to reset or full state updates.
+-- 
+2.20.1
+

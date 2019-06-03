@@ -28,3 +28,10 @@ pve/0027-PVE-Config-Revert-target-i386-disable-LINT0-after-re.patch
 pve/0028-PVE-Up-Config-file-posix-make-locking-optiono-on-cre.patch
 extra/0001-monitor-guard-iothread-access-by-mon-use_io_thread.patch
 extra/0002-monitor-delay-monitor-iothread-creation.patch
+extra/0003-kvm-Add-support-to-KVM_GET_MSR_FEATURE_INDEX_LIST-an.patch
+extra/0004-i386-Add-CPUID-bit-and-feature-words-for-IA32_ARCH_C.patch
+extra/0005-i386-Add-new-MSR-indices-for-IA32_PRED_CMD-and-IA32_.patch
+extra/0006-x86-Data-structure-changes-to-support-MSR-based-feat.patch
+extra/0007-x86-define-a-new-MSR-based-feature-word-FEATURE_WORD.patch
+extra/0008-target-i386-add-MDS-NO-feature.patch
+extra/0009-target-i386-define-md-clear-bit.patch
