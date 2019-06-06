@@ -1,0 +1,58 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Thu, 30 Aug 2018 14:52:56 +0200
+Subject: [PATCH] PVE: Add dummy -id command line parameter
+
+This used to be part of the qemu-side PVE authentication for
+VNC. Now this does nothing.
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ qemu-options.hx | 3 +++
+ vl.c            | 8 ++++++++
+ 2 files changed, 11 insertions(+)
+
+diff --git a/qemu-options.hx b/qemu-options.hx
+index 880c63dab2..6c98b2b510 100644
+--- a/qemu-options.hx
++++ b/qemu-options.hx
+@@ -801,6 +801,9 @@ STEXI
+ @table @option
+ ETEXI
+ 
++DEF("id", HAS_ARG, QEMU_OPTION_id,
++    "-id n           set the VMID", QEMU_ARCH_ALL)
++
+ DEF("fda", HAS_ARG, QEMU_OPTION_fda,
+     "-fda/-fdb file  use 'file' as floppy disk 0/1 image\n", QEMU_ARCH_ALL)
+ DEF("fdb", HAS_ARG, QEMU_OPTION_fdb, "", QEMU_ARCH_ALL)
+diff --git a/vl.c b/vl.c
+index 577e9b0f40..88512e26e9 100644
+--- a/vl.c
++++ b/vl.c
+@@ -2994,6 +2994,7 @@ static void user_register_global_props(void)
+ int main(int argc, char **argv, char **envp)
+ {
+     int i;
++    long vm_id;
+     int snapshot, linux_boot;
+     const char *initrd_filename;
+     const char *kernel_filename, *kernel_cmdline;
+@@ -3682,6 +3683,13 @@ int main(int argc, char **argv, char **envp)
+                     exit(1);
+                 }
+                 break;
++            case QEMU_OPTION_id:
++                vm_id = strtol(optarg, (char **)&optarg, 10);
++                if (*optarg != 0 || vm_id < 100 || vm_id > INT_MAX) {
++                    error_report("invalid -id argument %s", optarg);
++                    exit(1);
++                }
++                break;
+             case QEMU_OPTION_vnc:
+                 vnc_parse(optarg, &error_fatal);
+                 break;
+-- 
+2.20.1
+

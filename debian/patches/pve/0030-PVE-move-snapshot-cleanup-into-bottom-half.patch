@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Mon, 24 Jun 2019 10:19:50 +0200
+Subject: [PATCH] PVE: move snapshot cleanup into bottom half
+
+as per:
+    (0ceccd858a8d) migration: qemu_savevm_state_cleanup() in cleanup
+
+may affect held locks and therefore change assumptions made
+by that function!
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ savevm-async.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/savevm-async.c b/savevm-async.c
+index 0bbbbf51ba..f9355c5036 100644
+--- a/savevm-async.c
++++ b/savevm-async.c
+@@ -197,6 +197,8 @@ static void process_savevm_cleanup(void *opaque)
+     int ret;
+     qemu_bh_delete(snap_state.cleanup_bh);
+     snap_state.cleanup_bh = NULL;
++    qemu_savevm_state_cleanup();
++
+     qemu_mutex_unlock_iothread();
+     qemu_thread_join(&snap_state.thread);
+     qemu_mutex_lock_iothread();
+@@ -273,7 +275,6 @@ static void *process_savevm_thread(void *opaque)
+                     save_snapshot_error("qemu_savevm_state_iterate error %d", ret);
+                     break;
+             }
+-            qemu_savevm_state_cleanup();
+             DPRINTF("save complete\n");
+             break;
+         }
+-- 
+2.20.1
+

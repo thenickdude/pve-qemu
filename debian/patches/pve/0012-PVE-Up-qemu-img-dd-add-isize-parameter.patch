@@ -1,0 +1,103 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Fri, 23 Feb 2018 08:43:18 +0100
+Subject: [PATCH] PVE: [Up] qemu-img dd: add isize parameter
+
+for writing small images from stdin to bigger ones
+
+In order to distinguish between an actually unexpected and
+an expected end of input.
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ qemu-img.c | 29 ++++++++++++++++++++++++++---
+ 1 file changed, 26 insertions(+), 3 deletions(-)
+
+diff --git a/qemu-img.c b/qemu-img.c
+index 6e1a3b8933..6a76897c01 100644
+--- a/qemu-img.c
++++ b/qemu-img.c
+@@ -4314,11 +4314,13 @@ out:
+ #define C_OF      010
+ #define C_SKIP    020
+ #define C_OSIZE   040
++#define C_ISIZE   0100
+ 
+ struct DdInfo {
+     unsigned int flags;
+     int64_t count;
+     int64_t osize;
++    int64_t isize;
+ };
+ 
+ struct DdIo {
+@@ -4411,6 +4413,20 @@ static int img_dd_osize(const char *arg,
+     return 0;
+ }
+ 
++static int img_dd_isize(const char *arg,
++                        struct DdIo *in, struct DdIo *out,
++                        struct DdInfo *dd)
++{
++    dd->isize = cvtnum(arg);
++
++    if (dd->isize < 0) {
++        error_report("invalid number: '%s'", arg);
++        return 1;
++    }
++
++    return 0;
++}
++
+ static int img_dd(int argc, char **argv)
+ {
+     int ret = 0;
+@@ -4425,12 +4441,14 @@ static int img_dd(int argc, char **argv)
+     int c, i;
+     const char *out_fmt = "raw";
+     const char *fmt = NULL;
+-    int64_t size = 0;
++    int64_t size = 0, readsize = 0;
+     int64_t block_count = 0, out_pos, in_pos;
+     bool force_share = false;
+     struct DdInfo dd = {
+         .flags = 0,
+         .count = 0,
++        .osize = 0,
++        .isize = -1,
+     };
+     struct DdIo in = {
+         .bsz = 512, /* Block size is by default 512 bytes */
+@@ -4452,6 +4470,7 @@ static int img_dd(int argc, char **argv)
+         { "of", img_dd_of, C_OF },
+         { "skip", img_dd_skip, C_SKIP },
+         { "osize", img_dd_osize, C_OSIZE },
++        { "isize", img_dd_isize, C_ISIZE },
+         { NULL, NULL, 0 }
+     };
+     const struct option long_options[] = {
+@@ -4658,14 +4677,18 @@ static int img_dd(int argc, char **argv)
+ 
+     in.buf = g_new(uint8_t, in.bsz);
+ 
+-    for (out_pos = 0; in_pos < size; block_count++) {
++    readsize = (dd.isize > 0) ? dd.isize : size;
++    for (out_pos = 0; in_pos < readsize; block_count++) {
+         int in_ret, out_ret;
+-        size_t in_bsz = in_pos + in.bsz > size ? size - in_pos : in.bsz;
++        size_t in_bsz = in_pos + in.bsz > readsize ? readsize - in_pos : in.bsz;
+         if (blk1) {
+             in_ret = blk_pread(blk1, in_pos, in.buf, in_bsz);
+         } else {
+             in_ret = read(STDIN_FILENO, in.buf, in_bsz);
+             if (in_ret == 0) {
++                if (dd.isize == 0) {
++                    goto out;
++                }
+                 /* early EOF is considered an error */
+                 error_report("Input ended unexpectedly");
+                 ret = -1;
+-- 
+2.20.1
+

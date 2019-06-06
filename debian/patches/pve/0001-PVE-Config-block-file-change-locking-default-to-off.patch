@@ -8,15 +8,16 @@ locks but not whether the storage the file resides on
 supports any locking, causing issues with NFS.
 
 Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/file-posix.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/block/file-posix.c b/block/file-posix.c
-index fe83cbf0eb..431a9dddc6 100644
+index 1cf4ee49eb..89f014f39a 100644
 --- a/block/file-posix.c
 +++ b/block/file-posix.c
-@@ -421,7 +421,7 @@ static QemuOptsList raw_runtime_opts = {
+@@ -428,7 +428,7 @@ static QemuOptsList raw_runtime_opts = {
          {
              .name = "locking",
              .type = QEMU_OPT_STRING,
@@ -25,7 +26,7 @@ index fe83cbf0eb..431a9dddc6 100644
          },
          {
              .name = "pr-manager",
-@@ -503,7 +503,7 @@ static int raw_open_common(BlockDriverState *bs, QDict *options,
+@@ -517,7 +517,7 @@ static int raw_open_common(BlockDriverState *bs, QDict *options,
          s->use_lock = false;
          break;
      case ON_OFF_AUTO_AUTO:
@@ -35,5 +36,5 @@ index fe83cbf0eb..431a9dddc6 100644
      default:
          abort();
 -- 
-2.11.0
+2.20.1
 

@@ -3,15 +3,16 @@ From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Wed, 9 Dec 2015 14:16:49 +0100
 Subject: [PATCH] PVE: [Config] Adjust network script path to /etc/kvm/
 
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  include/net/net.h | 5 +++--
  1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/include/net/net.h b/include/net/net.h
-index 3e4638b8c6..e4dfe43f75 100644
+index acf0451fc4..4a64633577 100644
 --- a/include/net/net.h
 +++ b/include/net/net.h
-@@ -210,8 +210,9 @@ void qmp_netdev_add(QDict *qdict, QObject **ret, Error **errp);
+@@ -209,8 +209,9 @@ void qmp_netdev_add(QDict *qdict, QObject **ret, Error **errp);
  int net_hub_id_for_client(NetClientState *nc, int *id);
  NetClientState *net_hub_port_find(int hub_id);
  
@@ -24,5 +25,5 @@ index 3e4638b8c6..e4dfe43f75 100644
  #define DEFAULT_BRIDGE_INTERFACE "br0"
  
 -- 
-2.11.0
+2.20.1
 

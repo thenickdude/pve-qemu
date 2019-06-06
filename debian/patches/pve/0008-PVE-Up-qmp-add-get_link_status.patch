@@ -1,0 +1,91 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 9 Dec 2015 16:34:41 +0100
+Subject: [PATCH] PVE: [Up] qmp: add get_link_status
+
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ net/net.c             | 27 +++++++++++++++++++++++++++
+ qapi/net.json         | 15 +++++++++++++++
+ qapi/qapi-schema.json |  1 +
+ 3 files changed, 43 insertions(+)
+
+diff --git a/net/net.c b/net/net.c
+index f3a3c5444c..1023cff921 100644
+--- a/net/net.c
++++ b/net/net.c
+@@ -1346,6 +1346,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
+     }
+ }
+ 
++int64_t qmp_get_link_status(const char *name, Error **errp)
++{
++    NetClientState *ncs[MAX_QUEUE_NUM];
++    NetClientState *nc;
++    int queues;
++    bool ret;
++
++    queues = qemu_find_net_clients_except(name, ncs,
++                                          NET_CLIENT_DRIVER__MAX,
++                                          MAX_QUEUE_NUM);
++
++    if (queues == 0) {
++        error_set(errp, ERROR_CLASS_DEVICE_NOT_FOUND,
++                  "Device '%s' not found", name);
++        return (int64_t) -1;
++    }
++
++    nc = ncs[0];
++    ret = ncs[0]->link_down;
++
++    if (nc->peer->info->type == NET_CLIENT_DRIVER_NIC) {
++      ret = ncs[0]->peer->link_down;
++    }
++
++    return (int64_t) ret ? 0 : 1;
++}
++
+ void colo_notify_filters_event(int event, Error **errp)
+ {
+     NetClientState *nc;
+diff --git a/qapi/net.json b/qapi/net.json
+index 5f7bff1637..5991d1e5b8 100644
+--- a/qapi/net.json
++++ b/qapi/net.json
+@@ -34,6 +34,21 @@
+ ##
+ { 'command': 'set_link', 'data': {'name': 'str', 'up': 'bool'} }
+ 
++##
++# @get_link_status:
++#
++# Get the current link state of the nics or nic.
++#
++# @name: name of the nic you get the state of
++#
++# Return: If link is up 1
++#         If link is down 0
++#         If an error occure an empty string.
++#
++# Notes: this is an Proxmox VE extension and not offical part of Qemu.
++##
++{ 'command': 'get_link_status', 'data': {'name': 'str'}, 'returns': 'int'}
++
+ ##
+ # @netdev_add:
+ #
+diff --git a/qapi/qapi-schema.json b/qapi/qapi-schema.json
+index 4bd1223637..d8facba0a2 100644
+--- a/qapi/qapi-schema.json
++++ b/qapi/qapi-schema.json
+@@ -61,6 +61,7 @@
+         'query-migrate-cache-size',
+         'query-tpm-models',
+         'query-tpm-types',
++        'get_link_status',
+         'ringbuf-read' ],
+     'name-case-whitelist': [
+         'ACPISlotType',             # DIMM, visible through query-acpi-ospm-status
+-- 
+2.20.1
+
