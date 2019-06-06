@@ -1,3 +1,9 @@
+pve-qemu-kvm (4.0.0-1) pve; urgency=medium
+
+  * update to 4.0.0
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 17 Jun 2019 14:08:19 +0200
+
 pve-qemu-kvm (3.0.1-62) pve; urgency=medium
 
   * backport Microarchitectural Data Sampling reporting infrastructure
