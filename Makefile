@@ -16,7 +16,7 @@ all: $(DEBS)
 
 .PHONY: submodule
 submodule:
-	test -f "${SRCDIR}/debian/changelog" || git submodule update --init
+	test -f "${SRCDIR}/configure" || git submodule update --init --recursive
 
 $(BUILDDIR): keycodemapdb | submodule
 	rm -rf $(BUILDDIR)
