@@ -51,6 +51,7 @@ config.status: configure
 	--disable-smartcard \
 	--disable-strip \
 	--disable-xen \
+	--enable-curl \
 	--enable-glusterfs \
 	--enable-gnutls \
 	--enable-jemalloc \
