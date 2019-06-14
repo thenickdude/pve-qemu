@@ -1,3 +1,11 @@
+pve-qemu-kvm (3.0.1-62) pve; urgency=medium
+
+  * backport Microarchitectural Data Sampling reporting infrastructure
+
+  * cleanup build dependencies for a more reproducible build
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 14 Jun 2019 20:53:52 +0200
+
 pve-qemu-kvm (3.0.1-61) pve; urgency=medium
 
   * fixup libspice* dependencies
