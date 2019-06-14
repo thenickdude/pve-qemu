@@ -33,17 +33,36 @@ config.status: configure
 	# Add here commands to configure the package.
 
 	# guest-agent is only required for guest systems
-	./configure --with-confsuffix="/kvm" --target-list=$(ARCH)-softmmu,aarch64-softmmu \
-	--prefix=/usr --datadir=/usr/share \
+	./configure \
 	--docdir=/usr/share/doc/pve-qemu-kvm \
-	--sysconfdir=/etc --localstatedir=/var --disable-xen --enable-gnutls \
-	--enable-sdl --enable-linux-aio --enable-rbd --enable-libiscsi \
-	--disable-smartcard --audio-drv-list="alsa" --enable-spice \
-	--enable-usb-redir --enable-glusterfs --enable-libusb --disable-gtk \
-	--enable-xfsctl --enable-numa --disable-strip --enable-jemalloc \
-	--enable-virtfs --disable-libnfs \
+	--localstatedir=/var \
+	--prefix=/usr \
+	--sysconfdir=/etc \
+	--target-list=$(ARCH)-softmmu,aarch64-softmmu \
+	--with-confsuffix="/kvm" \
+	--audio-drv-list="alsa" \
+	--datadir=/usr/share \
 	--disable-capstone \
-	--disable-guest-agent --disable-guest-agent-msi
+	--disable-gtk \
+	--disable-guest-agent \
+	--disable-guest-agent-msi \
+	--disable-libnfs \
+	--disable-smartcard \
+	--disable-strip \
+	--disable-xen \
+	--enable-glusterfs \
+	--enable-gnutls \
+	--enable-jemalloc \
+	--enable-libiscsi \
+	--enable-libusb \
+	--enable-linux-aio \
+	--enable-numa \
+	--enable-rbd \
+	--enable-sdl \
+	--enable-spice \
+	--enable-usb-redir \
+	--enable-virtfs \
+	--enable-xfsctl
 
 build: build-stamp
 
