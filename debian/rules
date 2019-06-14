@@ -59,6 +59,7 @@ config.status: configure
 	--enable-numa \
 	--enable-rbd \
 	--enable-sdl \
+	--enable-seccomp \
 	--enable-spice \
 	--enable-usb-redir \
 	--enable-virtfs \
