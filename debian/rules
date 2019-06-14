@@ -47,6 +47,7 @@ config.status: configure
 	--disable-guest-agent \
 	--disable-guest-agent-msi \
 	--disable-libnfs \
+	--disable-libxml2 \
 	--disable-smartcard \
 	--disable-strip \
 	--disable-xen \
