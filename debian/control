@@ -9,6 +9,7 @@ Build-Depends: autotools-dev,
                libacl1-dev,
                libaio-dev,
                libcap-dev,
+               libfdt-dev,
                libgnutls28-dev,
                libiscsi-dev (>= 1.12.0),
                libjemalloc-dev,
@@ -19,15 +20,14 @@ Build-Depends: autotools-dev,
                librbd-dev (>= 0.48),
                libsdl1.2-dev,
                libspice-protocol-dev (>= 0.12.14~),
+               libspice-server-dev (>= 0.14.0~),
                libusb-1.0-0-dev (>= 1.0.17-1),
                libusbredirparser-dev (>= 0.6-2),
-               libspice-server-dev (>= 0.14.0~),
                quilt,
                texi2html,
                texinfo,
                uuid-dev,
                xfslibs-dev,
-               libfdt-dev,
 Standards-Version: 3.7.2
 
 Package: pve-qemu-kvm
@@ -40,11 +40,11 @@ Depends: ceph-common (>= 0.48),
          libjemalloc2,
          libjpeg62-turbo,
          libsdl1.2debian,
+         libspice-server1 (>= 0.14.0~),
          libusb-1.0-0 (>= 1.0.17-1),
          libusbredirparser1 (>= 0.6-2),
          libuuid1,
          numactl,
-         libspice-server1 (>= 0.14.0~),
          python,
          ${misc:Depends},
          ${shlibs:Depends},
@@ -53,17 +53,15 @@ Conflicts: kvm,
            pve-qemu-kvm-2.6.18,
            qemu,
            qemu-kvm,
+           qemu-system-arm,
            qemu-system-common,
            qemu-system-x86,
-           qemu-system-arm,
            qemu-utils,
-Provides: qemu-system-x86,
-          qemu-system-arm,
-          qemu-utils,
+Provides: qemu-system-arm, qemu-system-x86, qemu-utils
 Replaces: pve-kvm,
           pve-qemu-kvm-2.6.18,
-          qemu-system-x86,
           qemu-system-arm,
+          qemu-system-x86,
           qemu-utils,
 Description: Full virtualization on x86 hardware
  Using KVM, one can run multiple virtual PCs, each running unmodified Linux or
@@ -73,6 +71,6 @@ Description: Full virtualization on x86 hardware
 Package: pve-qemu-kvm-dbg
 Architecture: any
 Section: debug
-Depends: pve-qemu-kvm (= ${binary:Version}),
+Depends: pve-qemu-kvm (= ${binary:Version})
 Description: pve qemu debugging symbols
  This package contains the debugging symbols for pve-qemu-kvm.
