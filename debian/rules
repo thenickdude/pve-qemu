@@ -48,6 +48,7 @@ config.status: configure
 	--disable-guest-agent-msi \
 	--disable-libnfs \
 	--disable-libxml2 \
+	--disable-sdl \
 	--disable-smartcard \
 	--disable-strip \
 	--disable-xen \
@@ -60,7 +61,6 @@ config.status: configure
 	--enable-linux-aio \
 	--enable-numa \
 	--enable-rbd \
-	--enable-sdl \
 	--enable-seccomp \
 	--enable-spice \
 	--enable-usb-redir \
