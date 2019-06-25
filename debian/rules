@@ -53,6 +53,7 @@ config.status: configure
 	--disable-strip \
 	--disable-xen \
 	--enable-curl \
+	--enable-docs \
 	--enable-glusterfs \
 	--enable-gnutls \
 	--enable-jemalloc \
