@@ -25,8 +25,6 @@ $(BUILDDIR): keycodemapdb | submodule
 	rm -rf $(BUILDDIR)/ui/keycodemapdb
 	cp -a keycodemapdb $(BUILDDIR)/ui/
 	echo "git clone git://git.proxmox.com/git/pve-qemu.git\\ngit checkout $(GITVERSION)" > $(BUILDDIR)/debian/SOURCE
-	# set package version
-	sed -i 's/^pkgversion="".*/pkgversion="${PACKAGE}_${KVMVER}-${KVMPKGREL}"/' $(BUILDDIR)/configure
 
 .PHONY: deb kvm
 deb kvm: $(DEBS)

@@ -9,6 +9,7 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+include /usr/share/dpkg/pkg-info.mk
 
 # These are used for cross-compiling and for saving the configure script
 # from having to guess our platform (since we know it already)
@@ -40,6 +41,7 @@ config.status: configure
 	--sysconfdir=/etc \
 	--target-list=$(ARCH)-softmmu,aarch64-softmmu \
 	--with-confsuffix="/kvm" \
+	--with-pkgversion="${DEB_SOURCE}_${DEB_VERSION_UPSTREAM}" \
 	--audio-drv-list="alsa" \
 	--datadir=/usr/share \
 	--disable-capstone \
