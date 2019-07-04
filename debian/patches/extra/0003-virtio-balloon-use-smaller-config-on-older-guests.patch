@@ -1,0 +1,161 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Tue, 2 Jul 2019 09:23:43 +0200
+Subject: [PATCH] virtio-balloon: use smaller config on older guests
+
+The increased config size changes its alignment requirements
+preventing guests from migrating from old qemu versions if
+their balloon mapping isn't stricter aligned.
+So base the default config size on the machine version.
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+---
+ hw/i386/pc.c                       |  2 ++
+ hw/virtio/virtio-balloon.c         | 52 +++++++++++++++++++++++++++---
+ include/hw/virtio/virtio-balloon.h |  1 +
+ 3 files changed, 51 insertions(+), 4 deletions(-)
+
+diff --git a/hw/i386/pc.c b/hw/i386/pc.c
+index f2c15bf1f2..a6c01203f5 100644
+--- a/hw/i386/pc.c
++++ b/hw/i386/pc.c
+@@ -77,6 +77,7 @@
+ #include "hw/i386/intel_iommu.h"
+ #include "hw/net/ne2000-isa.h"
+ #include "standard-headers/asm-x86/bootparam.h"
++#include "hw/virtio/virtio-balloon.h"
+ 
+ /* debug PC/ISA interrupts */
+ //#define DEBUG_IRQ
+@@ -137,6 +138,7 @@ GlobalProperty pc_compat_3_1[] = {
+     { "Icelake-Server" "-" TYPE_X86_CPU,      "mpx", "on" },
+     { "Cascadelake-Server" "-" TYPE_X86_CPU, "stepping", "5" },
+     { TYPE_X86_CPU, "x-intel-pt-auto-level", "off" },
++    { TYPE_VIRTIO_BALLOON, "x-use-large-balloon-config", "off" },
+ };
+ const size_t pc_compat_3_1_len = G_N_ELEMENTS(pc_compat_3_1);
+ 
+diff --git a/hw/virtio/virtio-balloon.c b/hw/virtio/virtio-balloon.c
+index 2112874055..d10298786d 100644
+--- a/hw/virtio/virtio-balloon.c
++++ b/hw/virtio/virtio-balloon.c
+@@ -328,6 +328,28 @@ static void balloon_stats_set_poll_interval(Object *obj, Visitor *v,
+     balloon_stats_change_timer(s, 0);
+ }
+ 
++static void balloon_get_large_config(Object *obj, Visitor *v,
++                                     const char *name, void *opaque,
++                                     Error **errp)
++{
++    VirtIOBalloon *s = opaque;
++    visit_type_bool(v, name, &s->use_large_config, errp);
++}
++
++static void balloon_set_large_config(Object *obj, Visitor *v,
++                                     const char *name, void *opaque,
++                                     Error **errp)
++{
++    VirtIOBalloon *s = opaque;
++    DeviceState *dev = DEVICE(s);
++
++    if (dev->realized) {
++        error_setg(errp, "balloon config size cannot be changed at runtime");
++    } else {
++        visit_type_bool(v, name, &s->use_large_config, errp);
++    }
++}
++
+ static void virtio_balloon_handle_output(VirtIODevice *vdev, VirtQueue *vq)
+ {
+     VirtIOBalloon *s = VIRTIO_BALLOON(vdev);
+@@ -526,6 +548,17 @@ static bool virtio_balloon_free_page_support(void *opaque)
+     return virtio_vdev_has_feature(vdev, VIRTIO_BALLOON_F_FREE_PAGE_HINT);
+ }
+ 
++static size_t virtio_balloon_config_size(void *opaque)
++{
++    VirtIOBalloon *s = opaque;
++
++    if (s->use_large_config) {
++        return sizeof(struct virtio_balloon_config);
++    } else {
++        return offsetof(struct virtio_balloon_config, free_page_report_cmd_id);
++    }
++}
++
+ static void virtio_balloon_free_page_start(VirtIOBalloon *s)
+ {
+     VirtIODevice *vdev = VIRTIO_DEVICE(s);
+@@ -635,7 +668,7 @@ static void virtio_balloon_get_config(VirtIODevice *vdev, uint8_t *config_data)
+     }
+ 
+     trace_virtio_balloon_get_config(config.num_pages, config.actual);
+-    memcpy(config_data, &config, sizeof(struct virtio_balloon_config));
++    memcpy(config_data, &config, virtio_balloon_config_size(dev));
+ }
+ 
+ static int build_dimm_list(Object *obj, void *opaque)
+@@ -679,7 +712,7 @@ static void virtio_balloon_set_config(VirtIODevice *vdev,
+     uint32_t oldactual = dev->actual;
+     ram_addr_t vm_ram_size = get_current_ram_size();
+ 
+-    memcpy(&config, config_data, sizeof(struct virtio_balloon_config));
++    memcpy(&config, config_data, virtio_balloon_config_size(dev));
+     dev->actual = le32_to_cpu(config.actual);
+     if (dev->actual != oldactual) {
+         qapi_event_send_balloon_change(vm_ram_size -
+@@ -766,7 +799,7 @@ static void virtio_balloon_device_realize(DeviceState *dev, Error **errp)
+     int ret;
+ 
+     virtio_init(vdev, "virtio-balloon", VIRTIO_ID_BALLOON,
+-                sizeof(struct virtio_balloon_config));
++                virtio_balloon_config_size(s));
+ 
+     ret = qemu_add_balloon_handler(virtio_balloon_to_target,
+                                    virtio_balloon_stat, s);
+@@ -791,7 +824,7 @@ static void virtio_balloon_device_realize(DeviceState *dev, Error **errp)
+         s->free_page_report_notify.notify =
+                                        virtio_balloon_free_page_report_notify;
+         precopy_add_notifier(&s->free_page_report_notify);
+-        if (s->iothread) {
++        if (s->iothread && s->use_large_config) {
+             object_ref(OBJECT(s->iothread));
+             s->free_page_bh = aio_bh_new(iothread_get_aio_context(s->iothread),
+                                        virtio_ballloon_get_free_page_hints, s);
+@@ -804,6 +837,11 @@ static void virtio_balloon_device_realize(DeviceState *dev, Error **errp)
+             virtio_error(vdev, "iothread is missing");
+         }
+     }
++
++    if (!s->use_large_config) {
++        s->host_features &= ~(1 << VIRTIO_BALLOON_F_PAGE_POISON);
++    }
++
+     reset_stats(s);
+ }
+ 
+@@ -880,6 +918,12 @@ static void virtio_balloon_instance_init(Object *obj)
+                         balloon_stats_get_poll_interval,
+                         balloon_stats_set_poll_interval,
+                         NULL, s, NULL);
++
++    s->use_large_config = true;
++    object_property_add(obj, "x-use-large-balloon-config", "bool",
++                        balloon_get_large_config,
++                        balloon_set_large_config,
++                        NULL, s, NULL);
+ }
+ 
+ static const VMStateDescription vmstate_virtio_balloon = {
+diff --git a/include/hw/virtio/virtio-balloon.h b/include/hw/virtio/virtio-balloon.h
+index 1afafb12f6..f212c08bd7 100644
+--- a/include/hw/virtio/virtio-balloon.h
++++ b/include/hw/virtio/virtio-balloon.h
+@@ -45,6 +45,7 @@ enum virtio_balloon_free_page_report_status {
+ typedef struct VirtIOBalloon {
+     VirtIODevice parent_obj;
+     VirtQueue *ivq, *dvq, *svq, *free_page_vq;
++    bool use_large_config;
+     uint32_t free_page_report_status;
+     uint32_t num_pages;
+     uint32_t actual;
