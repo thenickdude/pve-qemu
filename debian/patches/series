@@ -1,6 +1,6 @@
 extra/0001-target-i386-add-MDS-NO-feature.patch
 extra/0002-target-i386-define-md-clear-bit.patch
-extra/0003-virtio-balloon-use-smaller-config-on-older-guests.patch
+extra/0003-virtio-balloon-fix-QEMU-4.0-config-size-migration-in.patch
 pve/0001-PVE-Config-block-file-change-locking-default-to-off.patch
 pve/0002-PVE-Config-Adjust-network-script-path-to-etc-kvm.patch
 pve/0003-PVE-Config-set-the-CPU-model-to-kvm64-32-instead-of-.patch
