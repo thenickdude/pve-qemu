@@ -1,3 +1,9 @@
+pve-qemu-kvm (4.0.0-3) pve; urgency=medium
+
+  * update virtio-balloon live migration patch
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 11 Jul 2019 09:28:57 +0200
+
 pve-qemu-kvm (4.0.0-2) pve; urgency=medium
 
   * improve live migration of older virtual machines with virtio baloon device
