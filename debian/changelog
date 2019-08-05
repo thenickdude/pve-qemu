@@ -1,3 +1,9 @@
+pve-qemu-kvm (4.0.0-4) pve; urgency=medium
+
+  * fix CVE-2019-14378: slirp heap buffer overflow during packet reassembly
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 05 Aug 2019 11:21:04 +0200
+
 pve-qemu-kvm (4.0.0-3) pve; urgency=medium
 
   * update virtio-balloon live migration patch
