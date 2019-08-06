@@ -159,7 +159,9 @@ binary-arch: build install
 #	dh_perl
 #	dh_makeshlibs
 	dh_installdeb
-	dh_shlibdeps
+	# Debian >= Buster has libglusterfs0 and lots of libgfFOO, upstream has the libs in glusterfs-common
+	# pass -x to dpkg-shlibdeps and specify dependencies in d/control instead
+	dh_shlibdeps -- -xlibglusterfs0 -xlibgfxdr0 -xlibgfrpc0 -xlibgfdb0 -xlibgfchangelog0 -xlibgfapi0
 	dh_gencontrol
 	dh_md5sums
 	dh_builddeb
