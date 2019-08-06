@@ -1,3 +1,9 @@
+pve-qemu-kvm (4.0.0-5) pve; urgency=medium
+
+  * packaging update: adapt to glusterfs dependency changes
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 06 Aug 2019 12:49:16 +0200
+
 pve-qemu-kvm (4.0.0-4) pve; urgency=medium
 
   * fix CVE-2019-14378: slirp heap buffer overflow during packet reassembly
