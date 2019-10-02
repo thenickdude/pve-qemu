@@ -2,6 +2,7 @@ extra/0001-target-i386-add-MDS-NO-feature.patch
 extra/0002-target-i386-define-md-clear-bit.patch
 extra/0003-virtio-balloon-fix-QEMU-4.0-config-size-migration-in.patch
 extra/0004-Fix-heap-overflow-in-ip_reass-on-big-packet-input.patch
+extra/0005-monitor-qmp-resume-monitor-when-clearing-its-queue.patch
 pve/0001-PVE-Config-block-file-change-locking-default-to-off.patch
 pve/0002-PVE-Config-Adjust-network-script-path-to-etc-kvm.patch
 pve/0003-PVE-Config-set-the-CPU-model-to-kvm64-32-instead-of-.patch
@@ -32,4 +33,3 @@ pve/0027-PVE-Up-Config-file-posix-make-locking-optiono-on-cre.patch
 pve/0028-docs-recommend-use-of-md-clear-feature-on-all-Intel-.patch
 pve/0029-PVE-savevm-async-kick-AIO-wait-on-block-state-write.patch
 pve/0030-PVE-move-snapshot-cleanup-into-bottom-half.patch
-pve/0031-PVE-monitor-disable-oob-capability.patch

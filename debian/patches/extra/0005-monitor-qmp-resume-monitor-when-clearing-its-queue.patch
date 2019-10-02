@@ -1,0 +1,69 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Wed, 2 Oct 2019 09:41:34 +0200
+Subject: [PATCH] monitor/qmp: resume monitor when clearing its queue
+
+When a monitor's queue is filled up in handle_qmp_command()
+it gets suspended. It's the dispatcher bh's job currently to
+resume the monitor, which it does after processing an even
+from the queue. However, it is possible for a
+CHR_EVENT_CLOSED event to be processed before before the bh
+is scheduled, which will clear the queue without resuming
+the monitor, thereby preventing the dispatcher from reaching
+the resume() call.
+Fix this by resuming the monitor when clearing a queue which
+was filled up.
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+---
+ monitor.c | 21 ++++++++++++++++-----
+ 1 file changed, 16 insertions(+), 5 deletions(-)
+
+diff --git a/monitor.c b/monitor.c
+index 4807bbe811..daadbcdede 100644
+--- a/monitor.c
++++ b/monitor.c
+@@ -356,12 +356,28 @@ static void qmp_request_free(QMPRequest *req)
+     g_free(req);
+ }
+ 
++static bool qmp_oob_enabled(Monitor *mon)
++{
++    return mon->qmp.capab[QMP_CAPABILITY_OOB];
++}
++
+ /* Caller must hold mon->qmp.qmp_queue_lock */
+ static void monitor_qmp_cleanup_req_queue_locked(Monitor *mon)
+ {
++    bool need_resume =
++        (!qmp_oob_enabled(mon) && mon->qmp.qmp_requests->length > 0)
++        || mon->qmp.qmp_requests->length == QMP_REQ_QUEUE_LEN_MAX;
+     while (!g_queue_is_empty(mon->qmp.qmp_requests)) {
+         qmp_request_free(g_queue_pop_head(mon->qmp.qmp_requests));
+     }
++    if (need_resume) {
++        /*
++         * Pairs with the monitor_suspend() in handle_qmp_command() in case the
++         * queue gets cleared from a CH_EVENT_CLOSED event before the dispatch
++         * bh got scheduled.
++         */
++        monitor_resume(mon);
++    }
+ }
+ 
+ static void monitor_qmp_cleanup_queues(Monitor *mon)
+@@ -1157,11 +1173,6 @@ static void monitor_init_qmp_commands(void)
+                          qmp_marshal_qmp_capabilities, QCO_ALLOW_PRECONFIG);
+ }
+ 
+-static bool qmp_oob_enabled(Monitor *mon)
+-{
+-    return mon->qmp.capab[QMP_CAPABILITY_OOB];
+-}
+-
+ static void monitor_qmp_caps_reset(Monitor *mon)
+ {
+     memset(mon->qmp.capab_offered, 0, sizeof(mon->qmp.capab_offered));
+-- 
+2.20.1
+
