@@ -1,3 +1,9 @@
+pve-qemu-kvm (4.0.0-6) pve; urgency=medium
+
+  * fix an issue where the qmp monitor ended up permanently suspended
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 02 Oct 2019 10:10:37 +0200
+
 pve-qemu-kvm (4.0.0-5) pve; urgency=medium
 
   * packaging update: adapt to glusterfs dependency changes
