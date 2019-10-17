@@ -21,6 +21,8 @@ ARCH ?= $(shell dpkg-architecture -qDEB_HOST_GNU_CPU)
 PACKAGE=pve-qemu-kvm
 destdir := $(CURDIR)/debian/$(PACKAGE)
 
+flagfile := $(destdir)/usr/share/kvm/recognized-CPUID-flags-x86_64
+
 CFLAGS = -Wall
 
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
@@ -127,6 +129,9 @@ install: build
 	rm -Rf $(destdir)/usr/include/linux/
 	rm -Rf $(destdir)/usr/include
 	rm -Rf $(destdir)/usr/lib*
+
+	# CPU flags are static for QEMU version, allows avoiding more costly checks
+	$(destdir)/usr/bin/qemu-system-x86_64 -cpu help | ./debian/parse-cpu-flags.pl > $(flagfile)
 
 # Build architecture-independent files here.
 binary-indep: build install
