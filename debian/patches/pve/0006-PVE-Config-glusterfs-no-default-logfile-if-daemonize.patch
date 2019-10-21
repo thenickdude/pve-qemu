@@ -48,6 +48,3 @@ index e664ca4462..70c59db107 100644
      }
  
      ret = glfs_init(glfs);
--- 
-2.20.1
-

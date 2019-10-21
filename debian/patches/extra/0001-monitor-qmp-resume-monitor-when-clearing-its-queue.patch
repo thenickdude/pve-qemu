@@ -64,6 +64,3 @@ index 4807bbe811..daadbcdede 100644
  static void monitor_qmp_caps_reset(Monitor *mon)
  {
      memset(mon->qmp.capab_offered, 0, sizeof(mon->qmp.capab_offered));
--- 
-2.20.1
-

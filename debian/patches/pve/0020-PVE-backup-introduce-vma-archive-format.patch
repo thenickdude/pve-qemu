@@ -566,7 +566,7 @@ index 0000000000..b911b198dc
 +
 +block_init(bdrv_vma_init);
 diff --git a/blockdev.c b/blockdev.c
-index ce4506f3af..9210494b47 100644
+index a3542db57a..5d524b9a74 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -31,11 +31,13 @@
@@ -591,7 +591,7 @@ index ce4506f3af..9210494b47 100644
  #include "qapi/qmp/qdict.h"
  #include "qapi/qmp/qnum.h"
  #include "qapi/qmp/qstring.h"
-@@ -3152,6 +3155,539 @@ out:
+@@ -3148,6 +3151,539 @@ out:
      aio_context_release(aio_context);
  }
  
@@ -1560,6 +1560,3 @@ index 49dfda0b28..376f26002a 100644
  ##
  # @query-uuid:
  #
--- 
-2.20.1
-

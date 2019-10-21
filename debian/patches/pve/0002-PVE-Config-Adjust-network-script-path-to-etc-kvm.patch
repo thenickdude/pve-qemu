@@ -24,6 +24,3 @@ index acf0451fc4..4a64633577 100644
  #define DEFAULT_BRIDGE_HELPER CONFIG_QEMU_HELPERDIR "/qemu-bridge-helper"
  #define DEFAULT_BRIDGE_INTERFACE "br0"
  
--- 
-2.20.1
-

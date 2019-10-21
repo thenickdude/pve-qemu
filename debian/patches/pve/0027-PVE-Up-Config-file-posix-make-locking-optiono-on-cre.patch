@@ -13,7 +13,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 43 insertions(+), 21 deletions(-)
 
 diff --git a/block/file-posix.c b/block/file-posix.c
-index 89f014f39a..ad2f9bf243 100644
+index 0613f59c7b..ef5c1bf487 100644
 --- a/block/file-posix.c
 +++ b/block/file-posix.c
 @@ -2223,6 +2223,7 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
@@ -118,7 +118,7 @@ index 89f014f39a..ad2f9bf243 100644
          },
      };
      return raw_co_create(&options, errp);
-@@ -2773,7 +2794,7 @@ static int raw_check_perm(BlockDriverState *bs, uint64_t perm, uint64_t shared,
+@@ -2789,7 +2810,7 @@ static int raw_check_perm(BlockDriverState *bs, uint64_t perm, uint64_t shared,
      }
  
      /* Copy locks to the new fd */
@@ -141,6 +141,3 @@ index 6f97460806..0e9c239485 100644
  
  ##
  # @BlockdevCreateOptionsGluster:
--- 
-2.20.1
-

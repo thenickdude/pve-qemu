@@ -46,6 +46,3 @@ index 5593dfcb06..bd80c18210 100644
      if (port) {
          info->has_port = true;
          info->port = port;
--- 
-2.20.1
-

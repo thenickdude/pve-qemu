@@ -26,6 +26,3 @@ index 476b7bee00..3289fd722f 100644
              bool write_zero = true;
  
              if (readmap) {
--- 
-2.20.1
-

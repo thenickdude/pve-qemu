@@ -54,6 +54,3 @@ index 0632c74e9f..5593dfcb06 100644
          }
  
          x509_key_password = qemu_opt_get(opts, "x509-key-password");
--- 
-2.20.1
-

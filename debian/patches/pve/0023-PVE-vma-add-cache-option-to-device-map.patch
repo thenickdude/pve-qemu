@@ -91,6 +91,3 @@ index f9f5c308fe..476b7bee00 100644
              if (throttling_group) {
                  blk_io_limits_enable(blk, throttling_group);
              }
--- 
-2.20.1
-

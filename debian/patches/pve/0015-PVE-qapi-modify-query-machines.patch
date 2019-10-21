@@ -34,7 +34,7 @@ index c98bb4b559..4a0e26720e 100644
  
  ##
 diff --git a/vl.c b/vl.c
-index c696ad2a13..5c4b1a281e 100644
+index c3dee09c9b..98efed1a79 100644
 --- a/vl.c
 +++ b/vl.c
 @@ -1531,6 +1531,11 @@ MachineInfoList *qmp_query_machines(Error **errp)
@@ -49,6 +49,3 @@ index c696ad2a13..5c4b1a281e 100644
          entry = g_malloc0(sizeof(*entry));
          entry->value = info;
          entry->next = mach_list;
--- 
-2.20.1
-

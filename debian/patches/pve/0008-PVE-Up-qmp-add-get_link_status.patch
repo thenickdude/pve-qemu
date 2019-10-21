@@ -86,6 +86,3 @@ index 4bd1223637..d8facba0a2 100644
          'ringbuf-read' ],
      'name-case-whitelist': [
          'ACPISlotType',             # DIMM, visible through query-acpi-ospm-status
--- 
-2.20.1
-

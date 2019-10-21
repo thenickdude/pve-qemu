@@ -18,10 +18,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 1 insertion(+), 4 deletions(-)
 
 diff --git a/monitor.c b/monitor.c
-index 4807bbe811..f8d2338667 100644
+index daadbcdede..0f79a7dfa4 100644
 --- a/monitor.c
 +++ b/monitor.c
-@@ -4605,10 +4605,7 @@ void monitor_init(Chardev *chr, int flags)
+@@ -4616,10 +4616,7 @@ void monitor_init(Chardev *chr, int flags)
      bool use_readline = flags & MONITOR_USE_READLINE;
  
      /* Note: we run QMP monitor in I/O thread when @chr supports that */
@@ -33,6 +33,3 @@ index 4807bbe811..f8d2338667 100644
  
      qemu_chr_fe_init(&mon->chr, chr, &error_abort);
      mon->flags = flags;
--- 
-2.20.1
-

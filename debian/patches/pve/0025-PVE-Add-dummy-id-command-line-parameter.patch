@@ -28,10 +28,10 @@ index 880c63dab2..6c98b2b510 100644
      "-fda/-fdb file  use 'file' as floppy disk 0/1 image\n", QEMU_ARCH_ALL)
  DEF("fdb", HAS_ARG, QEMU_OPTION_fdb, "", QEMU_ARCH_ALL)
 diff --git a/vl.c b/vl.c
-index 577e9b0f40..88512e26e9 100644
+index 68ca370e19..bb2cdb8ea9 100644
 --- a/vl.c
 +++ b/vl.c
-@@ -2994,6 +2994,7 @@ static void user_register_global_props(void)
+@@ -2993,6 +2993,7 @@ static void user_register_global_props(void)
  int main(int argc, char **argv, char **envp)
  {
      int i;
@@ -39,7 +39,7 @@ index 577e9b0f40..88512e26e9 100644
      int snapshot, linux_boot;
      const char *initrd_filename;
      const char *kernel_filename, *kernel_cmdline;
-@@ -3682,6 +3683,13 @@ int main(int argc, char **argv, char **envp)
+@@ -3681,6 +3682,13 @@ int main(int argc, char **argv, char **envp)
                      exit(1);
                  }
                  break;
@@ -53,6 +53,3 @@ index 577e9b0f40..88512e26e9 100644
              case QEMU_OPTION_vnc:
                  vnc_parse(optarg, &error_fatal);
                  break;
--- 
-2.20.1
-

@@ -75,6 +75,3 @@ index 70c59db107..e8e2739b53 100644
  
      ret = glfs_discard_async(s->fd, offset, size, gluster_finish_aiocb, &acb);
      if (ret < 0) {
--- 
-2.20.1
-

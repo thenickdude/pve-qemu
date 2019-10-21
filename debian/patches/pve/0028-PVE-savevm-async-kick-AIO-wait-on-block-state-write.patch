@@ -20,6 +20,3 @@ index 2149010bb8..0bbbbf51ba 100644
  }
  
  static ssize_t block_state_writev_buffer(void *opaque, struct iovec *iov,
--- 
-2.20.1
-

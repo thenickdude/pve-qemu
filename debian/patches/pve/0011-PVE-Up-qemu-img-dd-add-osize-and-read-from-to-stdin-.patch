@@ -33,8 +33,8 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  qemu-img-cmds.hx |   4 +-
- qemu-img.c       | 194 +++++++++++++++++++++++++++++------------------
- 2 files changed, 123 insertions(+), 75 deletions(-)
+ qemu-img.c       | 192 +++++++++++++++++++++++++++++------------------
+ 2 files changed, 122 insertions(+), 74 deletions(-)
 
 diff --git a/qemu-img-cmds.hx b/qemu-img-cmds.hx
 index 4b47f7495d..db1df8f60b 100644
@@ -136,36 +136,6 @@ index 4546198471..6e1a3b8933 100644
 -    drv = bdrv_find_format(out_fmt);
 -    if (!drv) {
 -        error_report("Unknown file format");
--        ret = -1;
--        goto out;
--    }
--    proto_drv = bdrv_find_protocol(out.filename, true, &local_err);
--
--    if (!proto_drv) {
--        error_report_err(local_err);
--        ret = -1;
--        goto out;
--    }
--    if (!drv->create_opts) {
--        error_report("Format driver '%s' does not support image creation",
--                     drv->format_name);
--        ret = -1;
--        goto out;
--    }
--    if (!proto_drv->create_opts) {
--        error_report("Protocol driver '%s' does not support image creation",
--                     proto_drv->format_name);
--        ret = -1;
--        goto out;
--    }
--    create_opts = qemu_opts_append(create_opts, drv->create_opts);
--    create_opts = qemu_opts_append(create_opts, proto_drv->create_opts);
--
--    opts = qemu_opts_create(create_opts, NULL, 0, &error_abort);
--
--    size = blk_getlength(blk1);
--    if (size < 0) {
--        error_report("Failed to get size for '%s'", in.filename);
 +    if (dd.flags & C_OSIZE) {
 +        size = dd.osize;
 +    } else if (dd.flags & C_IF) {
@@ -182,21 +152,32 @@ index 4546198471..6e1a3b8933 100644
          ret = -1;
          goto out;
      }
+-    proto_drv = bdrv_find_protocol(out.filename, true, &local_err);
  
--    if (dd.flags & C_COUNT && dd.count <= INT64_MAX / in.bsz &&
-+    if (!(dd.flags & C_OSIZE) && dd.flags & C_COUNT && dd.count <= INT64_MAX / in.bsz &&
-         dd.count * in.bsz < size) {
-         size = dd.count * in.bsz;
-     }
- 
--    /* Overflow means the specified offset is beyond input image's size */
--    if (dd.flags & C_SKIP && (in.offset > INT64_MAX / in.bsz ||
--                              size < in.bsz * in.offset)) {
--        qemu_opt_set_number(opts, BLOCK_OPT_SIZE, 0, &error_abort);
--    } else {
--        qemu_opt_set_number(opts, BLOCK_OPT_SIZE,
--                            size - in.bsz * in.offset, &error_abort);
+-    if (!proto_drv) {
+-        error_report_err(local_err);
+-        ret = -1;
+-        goto out;
 -    }
+-    if (!drv->create_opts) {
+-        error_report("Format driver '%s' does not support image creation",
+-                     drv->format_name);
+-        ret = -1;
+-        goto out;
+-    }
+-    if (!proto_drv->create_opts) {
+-        error_report("Protocol driver '%s' does not support image creation",
+-                     proto_drv->format_name);
+-        ret = -1;
+-        goto out;
++    if (!(dd.flags & C_OSIZE) && dd.flags & C_COUNT && dd.count <= INT64_MAX / in.bsz &&
++        dd.count * in.bsz < size) {
++        size = dd.count * in.bsz;
+     }
+-    create_opts = qemu_opts_append(create_opts, drv->create_opts);
+-    create_opts = qemu_opts_append(create_opts, proto_drv->create_opts);
+ 
+-    opts = qemu_opts_create(create_opts, NULL, 0, &error_abort);
 +    if (dd.flags & C_OF) {
 +        drv = bdrv_find_format(out_fmt);
 +        if (!drv) {
@@ -206,11 +187,9 @@ index 4546198471..6e1a3b8933 100644
 +        }
 +        proto_drv = bdrv_find_protocol(out.filename, true, &local_err);
  
--    ret = bdrv_create(drv, out.filename, opts, &local_err);
--    if (ret < 0) {
--        error_reportf_err(local_err,
--                          "%s: error while creating output image: ",
--                          out.filename);
+-    size = blk_getlength(blk1);
+-    if (size < 0) {
+-        error_report("Failed to get size for '%s'", in.filename);
 -        ret = -1;
 -        goto out;
 -    }
@@ -234,18 +213,20 @@ index 4546198471..6e1a3b8933 100644
 +        create_opts = qemu_opts_append(create_opts, drv->create_opts);
 +        create_opts = qemu_opts_append(create_opts, proto_drv->create_opts);
  
--    /* TODO, we can't honour --image-opts for the target,
--     * since it needs to be given in a format compatible
--     * with the bdrv_create() call above which does not
--     * support image-opts style.
--     */
--    blk2 = img_open_file(out.filename, NULL, out_fmt, BDRV_O_RDWR,
--                         false, false, false);
+-    if (dd.flags & C_COUNT && dd.count <= INT64_MAX / in.bsz &&
+-        dd.count * in.bsz < size) {
+-        size = dd.count * in.bsz;
+-    }
 +        opts = qemu_opts_create(create_opts, NULL, 0, &error_abort);
  
--    if (!blk2) {
--        ret = -1;
--        goto out;
+-    /* Overflow means the specified offset is beyond input image's size */
+-    if (dd.flags & C_SKIP && (in.offset > INT64_MAX / in.bsz ||
+-                              size < in.bsz * in.offset)) {
+-        qemu_opt_set_number(opts, BLOCK_OPT_SIZE, 0, &error_abort);
+-    } else {
+-        qemu_opt_set_number(opts, BLOCK_OPT_SIZE,
+-                            size - in.bsz * in.offset, &error_abort);
+-    }
 +        /* Overflow means the specified offset is beyond input image's size */
 +        if (dd.flags & C_OSIZE) {
 +            qemu_opt_set_number(opts, BLOCK_OPT_SIZE, size, &error_abort);
@@ -256,7 +237,15 @@ index 4546198471..6e1a3b8933 100644
 +            qemu_opt_set_number(opts, BLOCK_OPT_SIZE,
 +                                size - in.bsz * in.offset, &error_abort);
 +        }
-+
+ 
+-    ret = bdrv_create(drv, out.filename, opts, &local_err);
+-    if (ret < 0) {
+-        error_reportf_err(local_err,
+-                          "%s: error while creating output image: ",
+-                          out.filename);
+-        ret = -1;
+-        goto out;
+-    }
 +        ret = bdrv_create(drv, out.filename, opts, &local_err);
 +        if (ret < 0) {
 +            error_reportf_err(local_err,
@@ -265,7 +254,14 @@ index 4546198471..6e1a3b8933 100644
 +            ret = -1;
 +            goto out;
 +        }
-+
+ 
+-    /* TODO, we can't honour --image-opts for the target,
+-     * since it needs to be given in a format compatible
+-     * with the bdrv_create() call above which does not
+-     * support image-opts style.
+-     */
+-    blk2 = img_open_file(out.filename, NULL, out_fmt, BDRV_O_RDWR,
+-                         false, false, false);
 +        /* TODO, we can't honour --image-opts for the target,
 +         * since it needs to be given in a format compatible
 +         * with the bdrv_create() call above which does not
@@ -273,7 +269,10 @@ index 4546198471..6e1a3b8933 100644
 +         */
 +        blk2 = img_open_file(out.filename, NULL, out_fmt, BDRV_O_RDWR,
 +                             false, false, false);
-+
+ 
+-    if (!blk2) {
+-        ret = -1;
+-        goto out;
 +        if (!blk2) {
 +            ret = -1;
 +            goto out;
@@ -319,6 +318,3 @@ index 4546198471..6e1a3b8933 100644
              error_report("error while writing to output image file: %s",
                           strerror(-out_ret));
              ret = -1;
--- 
-2.20.1
-

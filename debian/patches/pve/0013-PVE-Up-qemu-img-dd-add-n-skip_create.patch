@@ -63,6 +63,3 @@ index 6a76897c01..506ae959af 100644
          }
  
          /* TODO, we can't honour --image-opts for the target,
--- 
-2.20.1
-

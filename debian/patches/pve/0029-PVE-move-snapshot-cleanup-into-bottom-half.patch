@@ -36,6 +36,3 @@ index 0bbbbf51ba..f9355c5036 100644
              DPRINTF("save complete\n");
              break;
          }
--- 
-2.20.1
-

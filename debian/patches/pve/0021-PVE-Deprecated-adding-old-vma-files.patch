@@ -8,7 +8,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  Makefile                  |   3 +-
  Makefile.objs             |   1 +
- block/backup.c            | 103 +++--
+ block/backup.c            |  93 +++--
  block/replication.c       |   1 +
  blockdev.c                | 208 +++++----
  include/block/block_int.h |   4 +
@@ -17,14 +17,14 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  vma-writer.c              | 771 ++++++++++++++++++++++++++++++++++
  vma.c                     | 756 +++++++++++++++++++++++++++++++++
  vma.h                     | 150 +++++++
- 11 files changed, 2752 insertions(+), 105 deletions(-)
+ 11 files changed, 2739 insertions(+), 108 deletions(-)
  create mode 100644 vma-reader.c
  create mode 100644 vma-writer.c
  create mode 100644 vma.c
  create mode 100644 vma.h
 
 diff --git a/Makefile b/Makefile
-index 04a0d45050..0b5a8353ea 100644
+index d4c5750256..a14995fdb3 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -419,7 +419,7 @@ dummy := $(call unnest-vars,, \
@@ -57,7 +57,7 @@ index 559486973a..9477a23ca2 100644
  block-obj-m = block/
  
 diff --git a/block/backup.c b/block/backup.c
-index 51c36d291b..18598fd491 100644
+index 9ee43981e8..5240f71bb5 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -41,6 +41,7 @@ typedef struct BackupBlockJob {
@@ -68,7 +68,7 @@ index 51c36d291b..18598fd491 100644
      BlockdevOnError on_source_error;
      BlockdevOnError on_target_error;
      CoRwlock flush_rwlock;
-@@ -130,12 +131,20 @@ static int coroutine_fn backup_cow_with_bounce_buffer(BackupBlockJob *job,
+@@ -131,12 +132,20 @@ static int coroutine_fn backup_cow_with_bounce_buffer(BackupBlockJob *job,
      }
  
      if (qemu_iovec_is_zero(&qiov)) {
@@ -94,20 +94,22 @@ index 51c36d291b..18598fd491 100644
      }
      if (ret < 0) {
          trace_backup_do_cow_write_fail(job, start, ret);
-@@ -213,7 +222,11 @@ static int coroutine_fn backup_do_cow(BackupBlockJob *job,
+@@ -220,8 +229,12 @@ static int coroutine_fn backup_do_cow(BackupBlockJob *job,
          trace_backup_do_cow_process(job, start);
  
          if (job->use_copy_range) {
--            ret = backup_cow_with_offload(job, start, end, is_write_notifier);
+-            ret = backup_cow_with_offload(job, start, dirty_end,
+-                                          is_write_notifier);
 +            if (job->dump_cb) {
 +                ret = - 1;
 +            } else {
-+                ret = backup_cow_with_offload(job, start, end, is_write_notifier);
++                ret = backup_cow_with_offload(job, start, dirty_end,
++                                              is_write_notifier);
 +            }
              if (ret < 0) {
                  job->use_copy_range = false;
              }
-@@ -297,7 +310,9 @@ static void backup_abort(Job *job)
+@@ -306,7 +319,9 @@ static void backup_abort(Job *job)
  static void backup_clean(Job *job)
  {
      BackupBlockJob *s = container_of(job, BackupBlockJob, common.job);
@@ -117,8 +119,8 @@ index 51c36d291b..18598fd491 100644
 +    }
      blk_unref(s->target);
      s->target = NULL;
- }
-@@ -306,7 +321,9 @@ static void backup_attached_aio_context(BlockJob *job, AioContext *aio_context)
+ 
+@@ -320,7 +335,9 @@ static void backup_attached_aio_context(BlockJob *job, AioContext *aio_context)
  {
      BackupBlockJob *s = container_of(job, BackupBlockJob, common);
  
@@ -129,7 +131,7 @@ index 51c36d291b..18598fd491 100644
  }
  
  void backup_do_checkpoint(BlockJob *job, Error **errp)
-@@ -347,9 +364,11 @@ static BlockErrorAction backup_error_action(BackupBlockJob *job,
+@@ -359,9 +376,11 @@ static BlockErrorAction backup_error_action(BackupBlockJob *job,
      if (read) {
          return block_job_error_action(&job->common, job->on_source_error,
                                        true, error);
@@ -142,7 +144,7 @@ index 51c36d291b..18598fd491 100644
      }
  }
  
-@@ -571,6 +590,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -559,6 +578,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                    BlockdevOnError on_source_error,
                    BlockdevOnError on_target_error,
                    int creation_flags,
@@ -150,8 +152,8 @@ index 51c36d291b..18598fd491 100644
                    BlockCompletionFunc *cb, void *opaque,
                    int pause_count,
                    JobTxn *txn, Error **errp)
-@@ -581,7 +601,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
-     int ret;
+@@ -570,7 +590,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+     HBitmap *copy_bitmap = NULL;
  
      assert(bs);
 -    assert(target);
@@ -159,7 +161,7 @@ index 51c36d291b..18598fd491 100644
  
      if (bs == target) {
          error_setg(errp, "Source and target cannot be the same");
-@@ -594,13 +614,13 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -583,23 +603,23 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
          return NULL;
      }
  
@@ -175,7 +177,10 @@ index 51c36d291b..18598fd491 100644
          error_setg(errp, "Compression is not supported for this drive %s",
                     bdrv_get_device_name(target));
          return NULL;
-@@ -610,7 +630,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+     }
+ 
+-    if (bdrv_op_is_blocked(bs, BLOCK_OP_TYPE_BACKUP_SOURCE, errp)) {
++    if (target && bdrv_op_is_blocked(bs, BLOCK_OP_TYPE_BACKUP_SOURCE, errp)) {
          return NULL;
      }
  
@@ -184,7 +189,16 @@ index 51c36d291b..18598fd491 100644
          return NULL;
      }
  
-@@ -650,15 +670,18 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -629,7 +649,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+         goto error;
+     }
+ 
+-    cluster_size = backup_calculate_cluster_size(target, errp);
++    cluster_size = backup_calculate_cluster_size(target ? target : bs, errp);
+     if (cluster_size < 0) {
+         goto error;
+     }
+@@ -646,15 +666,18 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
          goto error;
      }
  
@@ -210,59 +224,34 @@ index 51c36d291b..18598fd491 100644
      job->on_source_error = on_source_error;
      job->on_target_error = on_target_error;
      job->sync_mode = sync_mode;
-@@ -669,6 +692,9 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
-     /* Detect image-fleecing (and similar) schemes */
-     job->serialize_target_writes = bdrv_chain_contains(target, bs);
- 
-+    if (!target) {
-+        goto use_default_cluster_size;
-+    }
-     /* If there is no backing file on the target, we cannot rely on COW if our
-      * backup cluster size is smaller than the target cluster size. Even for
-      * targets with a backing file, try to avoid COW if possible. */
-@@ -693,18 +719,35 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
-         /* Not fatal; just trudge on ahead. */
-         job->cluster_size = BACKUP_CLUSTER_SIZE_DEFAULT;
-     } else {
--        job->cluster_size = MAX(BACKUP_CLUSTER_SIZE_DEFAULT, bdi.cluster_size);
-+        use_default_cluster_size:
-+        ret = bdrv_get_info(bs, &bdi);
-+        if (ret < 0) {
-+            job->cluster_size = BACKUP_CLUSTER_SIZE_DEFAULT;
-+        } else {
-+            /* round down to nearest BACKUP_CLUSTER_SIZE_DEFAULT */
-+            job->cluster_size = (bdi.cluster_size / BACKUP_CLUSTER_SIZE_DEFAULT) * BACKUP_CLUSTER_SIZE_DEFAULT;
-+            if (job->cluster_size == 0) {
-+                /* but we can't go below it */
-+                job->cluster_size = BACKUP_CLUSTER_SIZE_DEFAULT;
-+            }
-+        }
-+    }
-+    if (target) {
-+        job->use_copy_range = true;
-+        job->copy_range_size = MIN_NON_ZERO(blk_get_max_transfer(job->common.blk),
-+                                            blk_get_max_transfer(job->target));
-+        job->copy_range_size = MAX(job->cluster_size,
-+                                   QEMU_ALIGN_UP(job->copy_range_size,
-+                                                 job->cluster_size));
-+    } else {
-+        job->use_copy_range = false;
-     }
--    job->use_copy_range = true;
+@@ -667,16 +690,20 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+     job->cluster_size = cluster_size;
+     job->copy_bitmap = copy_bitmap;
+     copy_bitmap = NULL;
+-    job->use_copy_range = !compress; /* compression isn't supported for it */
 -    job->copy_range_size = MIN_NON_ZERO(blk_get_max_transfer(job->common.blk),
 -                                        blk_get_max_transfer(job->target));
 -    job->copy_range_size = MAX(job->cluster_size,
 -                               QEMU_ALIGN_UP(job->copy_range_size,
 -                                             job->cluster_size));
- 
+-
 -    /* Required permissions are already taken with target's blk_new() */
 -    block_job_add_bdrv(&job->common, "target", target, 0, BLK_PERM_ALL,
 -                       &error_abort);
++
 +    if (target) {
++        job->use_copy_range = !compress; /* compression isn't supported for it */
++        job->copy_range_size = MIN_NON_ZERO(blk_get_max_transfer(job->common.blk),
++                                            blk_get_max_transfer(job->target));
++        job->copy_range_size = MAX(job->cluster_size,
++                                   QEMU_ALIGN_UP(job->copy_range_size,
++                                                 job->cluster_size));
++
 +        /* Required permissions are already taken with target's blk_new() */
 +        block_job_add_bdrv(&job->common, "target", target, 0, BLK_PERM_ALL,
 +                           &error_abort);
 +    }
++
      job->len = len;
      job->common.job.pause_count += pause_count;
  
@@ -279,7 +268,7 @@ index 0a265db1b5..e85c62ba9c 100644
          if (local_err) {
              error_propagate(errp, local_err);
 diff --git a/blockdev.c b/blockdev.c
-index 9210494b47..f8ce285caa 100644
+index 5d524b9a74..2466a02cbd 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -31,7 +31,6 @@
@@ -298,7 +287,7 @@ index 9210494b47..f8ce285caa 100644
  
  static QTAILQ_HEAD(, BlockDriverState) monitor_bdrv_states =
      QTAILQ_HEAD_INITIALIZER(monitor_bdrv_states);
-@@ -3160,15 +3160,14 @@ out:
+@@ -3156,15 +3156,14 @@ out:
  static struct PVEBackupState {
      Error *error;
      bool cancel;
@@ -316,7 +305,7 @@ index 9210494b47..f8ce285caa 100644
      size_t total;
      size_t transferred;
      size_t zero_bytes;
-@@ -3187,6 +3186,71 @@ typedef struct PVEBackupDevInfo {
+@@ -3183,6 +3182,71 @@ typedef struct PVEBackupDevInfo {
  
  static void pvebackup_run_next_job(void);
  
@@ -388,7 +377,7 @@ index 9210494b47..f8ce285caa 100644
  static void pvebackup_cleanup(void)
  {
      qemu_mutex_lock(&backup_state.backup_mutex);
-@@ -3198,9 +3262,11 @@ static void pvebackup_cleanup(void)
+@@ -3194,9 +3258,11 @@ static void pvebackup_cleanup(void)
  
      backup_state.end_time = time(NULL);
  
@@ -403,7 +392,7 @@ index 9210494b47..f8ce285caa 100644
      }
  
      g_list_free(backup_state.di_list);
-@@ -3208,6 +3274,13 @@ static void pvebackup_cleanup(void)
+@@ -3204,6 +3270,13 @@ static void pvebackup_cleanup(void)
      qemu_mutex_unlock(&backup_state.backup_mutex);
  }
  
@@ -417,7 +406,7 @@ index 9210494b47..f8ce285caa 100644
  static void pvebackup_complete_cb(void *opaque, int ret)
  {
      // This always runs in the main loop
-@@ -3224,9 +3297,9 @@ static void pvebackup_complete_cb(void *opaque, int ret)
+@@ -3220,9 +3293,9 @@ static void pvebackup_complete_cb(void *opaque, int ret)
      di->bs = NULL;
      di->target = NULL;
  
@@ -430,7 +419,7 @@ index 9210494b47..f8ce285caa 100644
      }
  
      // remove self from job queue
-@@ -3254,14 +3327,9 @@ static void pvebackup_cancel(void *opaque)
+@@ -3250,14 +3323,9 @@ static void pvebackup_cancel(void *opaque)
          error_setg(&backup_state.error, "backup cancelled");
      }
  
@@ -447,7 +436,7 @@ index 9210494b47..f8ce285caa 100644
      }
  
      GList *l = backup_state.di_list;
-@@ -3292,18 +3360,14 @@ void qmp_backup_cancel(Error **errp)
+@@ -3288,18 +3356,14 @@ void qmp_backup_cancel(Error **errp)
      Coroutine *co = qemu_coroutine_create(pvebackup_cancel, NULL);
      qemu_coroutine_enter(co);
  
@@ -469,7 +458,7 @@ index 9210494b47..f8ce285caa 100644
                           Error **errp)
  {
      char *cdata = NULL;
-@@ -3317,7 +3381,12 @@ static int config_to_vma(const char *file, BackupFormat format,
+@@ -3313,7 +3377,12 @@ static int config_to_vma(const char *file, BackupFormat format,
      char *basename = g_path_get_basename(file);
  
      if (format == BACKUP_FORMAT_VMA) {
@@ -483,7 +472,7 @@ index 9210494b47..f8ce285caa 100644
      } else if (format == BACKUP_FORMAT_DIR) {
          char config_path[PATH_MAX];
          snprintf(config_path, PATH_MAX, "%s/%s", backup_dir, basename);
-@@ -3334,28 +3403,30 @@ static int config_to_vma(const char *file, BackupFormat format,
+@@ -3330,28 +3399,30 @@ static int config_to_vma(const char *file, BackupFormat format,
      return 0;
  }
  
@@ -523,7 +512,7 @@ index 9210494b47..f8ce285caa 100644
      }
      qemu_mutex_unlock(&backup_state.backup_mutex);
  
-@@ -3366,7 +3437,7 @@ static void pvebackup_run_next_job(void)
+@@ -3362,7 +3433,7 @@ static void pvebackup_run_next_job(void)
  UuidInfo *qmp_backup(const char *backup_file, bool has_format,
                      BackupFormat format,
                      bool has_config_file, const char *config_file,
@@ -532,7 +521,7 @@ index 9210494b47..f8ce285caa 100644
                      bool has_devlist, const char *devlist,
                      bool has_speed, int64_t speed, Error **errp)
  {
-@@ -3374,7 +3445,8 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3370,7 +3441,8 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      BlockDriverState *bs = NULL;
      const char *backup_dir = NULL;
      Error *local_err = NULL;
@@ -542,7 +531,7 @@ index 9210494b47..f8ce285caa 100644
      gchar **devs = NULL;
      GList *di_list = NULL;
      GList *l;
-@@ -3386,7 +3458,7 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3382,7 +3454,7 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
          backup_state.backup_mutex_initialized = true;
      }
  
@@ -551,7 +540,7 @@ index 9210494b47..f8ce285caa 100644
          error_set(errp, ERROR_CLASS_GENERIC_ERROR,
                    "previous backup not finished");
          return NULL;
-@@ -3461,40 +3533,28 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3457,40 +3529,28 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
          total += size;
      }
  
@@ -600,7 +589,7 @@ index 9210494b47..f8ce285caa 100644
                  goto err;
              }
          }
-@@ -3535,14 +3595,14 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3531,14 +3591,14 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
  
      /* add configuration file to archive */
      if (has_config_file) {
@@ -617,7 +606,7 @@ index 9210494b47..f8ce285caa 100644
              goto err;
          }
      }
-@@ -3565,12 +3625,13 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3561,12 +3621,13 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      }
      backup_state.backup_file = g_strdup(backup_file);
  
@@ -634,7 +623,7 @@ index 9210494b47..f8ce285caa 100644
  
      backup_state.total = total;
      backup_state.transferred = 0;
-@@ -3581,21 +3642,21 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3577,21 +3638,21 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      while (l) {
          PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
          l = g_list_next(l);
@@ -662,7 +651,7 @@ index 9210494b47..f8ce285caa 100644
      }
  
      qemu_mutex_unlock(&backup_state.backup_mutex);
-@@ -3631,9 +3692,10 @@ err:
+@@ -3627,9 +3688,10 @@ err:
          g_strfreev(devs);
      }
  
@@ -676,7 +665,7 @@ index 9210494b47..f8ce285caa 100644
      }
  
      if (backup_dir) {
-@@ -4086,7 +4148,7 @@ static BlockJob *do_drive_backup(DriveBackup *backup, JobTxn *txn,
+@@ -4082,7 +4144,7 @@ static BlockJob *do_drive_backup(DriveBackup *backup, JobTxn *txn,
      job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
                              backup->sync, bmap, backup->compress,
                              backup->on_source_error, backup->on_target_error,
@@ -685,7 +674,7 @@ index 9210494b47..f8ce285caa 100644
      bdrv_unref(target_bs);
      if (local_err != NULL) {
          error_propagate(errp, local_err);
-@@ -4196,7 +4258,7 @@ BlockJob *do_blockdev_backup(BlockdevBackup *backup, JobTxn *txn,
+@@ -4192,7 +4254,7 @@ BlockJob *do_blockdev_backup(BlockdevBackup *backup, JobTxn *txn,
      job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
                              backup->sync, bmap, backup->compress,
                              backup->on_source_error, backup->on_target_error,
@@ -3288,6 +3277,3 @@ index 0000000000..c895c97f6d
 +int vma_reader_verify(VmaReader *vmar, bool verbose, Error **errp);
 +
 +#endif /* BACKUP_VMA_H */
--- 
-2.20.1
-

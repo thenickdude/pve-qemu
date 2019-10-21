@@ -15,7 +15,7 @@ index fd9567634d..b163fa2d3a 100644
 @@ -199,12 +199,14 @@ int vma_writer_register_stream(VmaWriter *vmaw, const char *devname,
      return n;
  }
-
+ 
 -static void vma_co_continue_write(void *opaque)
 +static void coroutine_fn yield_until_fd_writable(int fd)
  {
@@ -30,11 +30,11 @@ index fd9567634d..b163fa2d3a 100644
 +    qemu_coroutine_yield();
 +    aio_set_fd_handler(ctx, fd, false, NULL, NULL, NULL, NULL);
  }
-
+ 
  static ssize_t coroutine_fn
 @@ -224,14 +226,12 @@ vma_queue_write(VmaWriter *vmaw, const void *buf, size_t bytes)
      vmaw->co_writer = qemu_coroutine_self();
-
+ 
      while (done < bytes) {
 -        aio_set_fd_handler(qemu_get_aio_context(), vmaw->fd, false, NULL, vma_co_continue_write, NULL, vmaw);
 -        qemu_coroutine_yield();
@@ -48,5 +48,3 @@ index fd9567634d..b163fa2d3a 100644
          ret = write(vmaw->fd, buf + done, bytes - done);
          if (ret > 0) {
              done += ret;
---
-2.20.1

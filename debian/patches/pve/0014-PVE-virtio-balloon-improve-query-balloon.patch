@@ -55,10 +55,10 @@ index 8eec768088..25fe18cbcf 100644
      qapi_free_BalloonInfo(info);
  }
 diff --git a/hw/virtio/virtio-balloon.c b/hw/virtio/virtio-balloon.c
-index 2112874055..d96e4aa96f 100644
+index adde97fe4b..e7f91a3cec 100644
 --- a/hw/virtio/virtio-balloon.c
 +++ b/hw/virtio/virtio-balloon.c
-@@ -701,8 +701,37 @@ static uint64_t virtio_balloon_get_features(VirtIODevice *vdev, uint64_t f,
+@@ -712,8 +712,37 @@ static uint64_t virtio_balloon_get_features(VirtIODevice *vdev, uint64_t f,
  static void virtio_balloon_stat(void *opaque, BalloonInfo *info)
  {
      VirtIOBalloon *dev = opaque;
@@ -134,6 +134,3 @@ index 8b3ca4fdd3..c98bb4b559 100644
  
  ##
  # @query-balloon:
--- 
-2.20.1
-

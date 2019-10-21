@@ -30,6 +30,3 @@ index 0c549c9935..7f7a5d4c35 100644
      r = rados_connect(*cluster);
      if (r < 0) {
          error_setg_errno(errp, -r, "error connecting");
--- 
-2.20.1
-

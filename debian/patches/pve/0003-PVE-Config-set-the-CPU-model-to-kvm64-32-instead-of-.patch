@@ -25,6 +25,3 @@ index 83fb522554..154a443071 100644
  #endif
  
  #define cpu_signal_handler cpu_x86_signal_handler
--- 
-2.20.1
-

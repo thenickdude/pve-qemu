@@ -98,6 +98,3 @@ index 6e1a3b8933..6a76897c01 100644
                  /* early EOF is considered an error */
                  error_report("Input ended unexpectedly");
                  ret = -1;
--- 
-2.20.1
-

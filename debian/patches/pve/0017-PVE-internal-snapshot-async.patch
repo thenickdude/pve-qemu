@@ -776,10 +776,10 @@ index 0000000000..2149010bb8
 +    return ret;
 +}
 diff --git a/vl.c b/vl.c
-index 5c4b1a281e..577e9b0f40 100644
+index 98efed1a79..68ca370e19 100644
 --- a/vl.c
 +++ b/vl.c
-@@ -3006,6 +3006,7 @@ int main(int argc, char **argv, char **envp)
+@@ -3005,6 +3005,7 @@ int main(int argc, char **argv, char **envp)
      int optind;
      const char *optarg;
      const char *loadvm = NULL;
@@ -787,7 +787,7 @@ index 5c4b1a281e..577e9b0f40 100644
      MachineClass *machine_class;
      const char *cpu_model;
      const char *vga_model = NULL;
-@@ -3573,6 +3574,9 @@ int main(int argc, char **argv, char **envp)
+@@ -3572,6 +3573,9 @@ int main(int argc, char **argv, char **envp)
              case QEMU_OPTION_loadvm:
                  loadvm = optarg;
                  break;
@@ -797,7 +797,7 @@ index 5c4b1a281e..577e9b0f40 100644
              case QEMU_OPTION_full_screen:
                  dpy.has_full_screen = true;
                  dpy.full_screen = true;
-@@ -4580,6 +4584,12 @@ int main(int argc, char **argv, char **envp)
+@@ -4579,6 +4583,12 @@ int main(int argc, char **argv, char **envp)
              autostart = 0;
              exit(1);
          }
@@ -810,6 +810,3 @@ index 5c4b1a281e..577e9b0f40 100644
      }
      if (replay_mode != REPLAY_MODE_NONE) {
          replay_vmstate_init();
--- 
-2.20.1
-
