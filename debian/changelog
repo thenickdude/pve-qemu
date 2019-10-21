@@ -1,3 +1,12 @@
+pve-qemu-kvm (4.0.1-1) pve; urgency=medium
+
+  * update to new stable upstream release v4.0.1
+
+  * fix #1071: use correct AioContext to cope with IOThreads when doing a VMA
+    backup
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 21 Oct 2019 17:09:38 +0200
+
 pve-qemu-kvm (4.0.0-7) pve; urgency=medium
 
   * disable monitor oob execution, as it still seems to be unstable
