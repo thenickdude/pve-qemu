@@ -34,3 +34,4 @@ pve/0028-docs-recommend-use-of-md-clear-feature-on-all-Intel-.patch
 pve/0029-PVE-savevm-async-kick-AIO-wait-on-block-state-write.patch
 pve/0030-PVE-move-snapshot-cleanup-into-bottom-half.patch
 pve/0031-PVE-monitor-disable-oob-capability.patch
+pve/0032-PVE-bug-fix-1071-vma-writer.c-use-correct-AioContext.patch
