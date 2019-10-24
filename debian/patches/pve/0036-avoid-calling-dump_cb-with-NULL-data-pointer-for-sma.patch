@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Dietmar Maurer <dietmar@proxmox.com>
+Date: Thu, 24 Oct 2019 08:06:51 +0200
+Subject: [PATCH] avoid calling dump_cb with NULL data pointer for small/last
+ cluster
+
+The last block of a backup may be smaller than cluster_size.
+
+Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
+---
+ block/backup.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/block/backup.c b/block/backup.c
+index 2ccec79db6..cc20d77b9f 100644
+--- a/block/backup.c
++++ b/block/backup.c
+@@ -133,7 +133,12 @@ static int coroutine_fn backup_cow_with_bounce_buffer(BackupBlockJob *job,
+ 
+     if (qemu_iovec_is_zero(&qiov)) {
+         if (job->dump_cb) {
+-            ret = job->dump_cb(job->common.job.opaque, job->target, start, qiov.size, NULL);
++            if (qiov.size == job->cluster_size) {
++                // Note: pass NULL to indicate that we want to write [0u8; cluster_size]
++                ret = job->dump_cb(job->common.job.opaque, job->target, start, qiov.size, NULL);
++            } else {
++                ret = job->dump_cb(job->common.job.opaque, job->target, start, qiov.size, *bounce_buffer);
++            }
+         } else {
+             ret = blk_co_pwrite_zeroes(job->target, start,
+                                        qiov.size, write_flags | BDRV_REQ_MAY_UNMAP);

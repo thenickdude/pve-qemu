@@ -33,3 +33,6 @@ pve/0031-PVE-bug-fix-1071-vma-writer.c-use-correct-AioContext.patch
 pve/0032-qmp_backup-run-backup-related-code-inside-coroutines.patch
 pve/0033-qmp_backup-use-a-CoMutex-to-protect-access-to-backup.patch
 pve/0034-vma_writer_close-avoid-call-to-aio_poll-acquire-flus.patch
+pve/0035-backup_job_create-pass-cluster-size-for-dump.patch
+pve/0036-avoid-calling-dump_cb-with-NULL-data-pointer-for-sma.patch
+pve/0037-rename-config_to_vma-into-pvebackup_co_add_config.patch

@@ -1,0 +1,123 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Dietmar Maurer <dietmar@proxmox.com>
+Date: Thu, 24 Oct 2019 08:06:50 +0200
+Subject: [PATCH] backup_job_create: pass cluster size for dump
+
+Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
+---
+ block/backup.c            |  8 +++++++-
+ block/replication.c       |  2 +-
+ blockdev.c                | 10 ++++++----
+ include/block/block_int.h |  4 ++++
+ 4 files changed, 18 insertions(+), 6 deletions(-)
+
+diff --git a/block/backup.c b/block/backup.c
+index 5240f71bb5..2ccec79db6 100644
+--- a/block/backup.c
++++ b/block/backup.c
+@@ -579,6 +579,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+                   BlockdevOnError on_target_error,
+                   int creation_flags,
+                   BackupDumpFunc *dump_cb,
++                  int dump_cb_block_size,
+                   BlockCompletionFunc *cb, void *opaque,
+                   int pause_count,
+                   JobTxn *txn, Error **errp)
+@@ -649,7 +650,12 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+         goto error;
+     }
+ 
+-    cluster_size = backup_calculate_cluster_size(target ? target : bs, errp);
++    if (target) {
++        cluster_size = backup_calculate_cluster_size(target, errp);
++    } else {
++        cluster_size = dump_cb_block_size;
++    }
++
+     if (cluster_size < 0) {
+         goto error;
+     }
+diff --git a/block/replication.c b/block/replication.c
+index e85c62ba9c..a2ad512251 100644
+--- a/block/replication.c
++++ b/block/replication.c
+@@ -543,7 +543,7 @@ static void replication_start(ReplicationState *rs, ReplicationMode mode,
+                                 0, MIRROR_SYNC_MODE_NONE, NULL, false,
+                                 BLOCKDEV_ON_ERROR_REPORT,
+                                 BLOCKDEV_ON_ERROR_REPORT, JOB_INTERNAL,
+-                                NULL,
++                                NULL, 0,
+                                 backup_job_completed, bs, 0, NULL, &local_err);
+         if (local_err) {
+             error_propagate(errp, local_err);
+diff --git a/blockdev.c b/blockdev.c
+index 7e9241cf42..6d16043131 100644
+--- a/blockdev.c
++++ b/blockdev.c
+@@ -3524,6 +3524,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+     GList *l;
+     UuidInfo *uuid_info;
+     BlockJob *job;
++    int dump_cb_block_size = -1;
+ 
+     if (!backup_state.backup_mutex_initialized) {
+         qemu_co_mutex_init(&backup_state.backup_mutex);
+@@ -3611,6 +3612,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+     uuid_generate(uuid);
+ 
+     if (format == BACKUP_FORMAT_VMA) {
++        dump_cb_block_size = VMA_CLUSTER_SIZE;
+         vmaw = vma_writer_create(task->backup_file, uuid, &local_err);
+         if (!vmaw) {
+             if (local_err) {
+@@ -3718,8 +3720,8 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+         l = g_list_next(l);
+         job = backup_job_create(NULL, di->bs, di->target, backup_state.speed, MIRROR_SYNC_MODE_FULL, NULL,
+                                 false, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
+-                                JOB_DEFAULT, pvebackup_co_dump_cb, pvebackup_complete_cb, di,
+-                                1, NULL, &local_err);
++                                JOB_DEFAULT, pvebackup_co_dump_cb, dump_cb_block_size,
++                                pvebackup_complete_cb, di, 1, NULL, &local_err);
+         if (!job || local_err != NULL) {
+             error_setg(&backup_state.error, "backup_job_create failed");
+             break;
+@@ -4284,7 +4286,7 @@ static BlockJob *do_drive_backup(DriveBackup *backup, JobTxn *txn,
+     job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
+                             backup->sync, bmap, backup->compress,
+                             backup->on_source_error, backup->on_target_error,
+-                            job_flags, NULL, NULL, NULL, 0, txn, &local_err);
++                            job_flags, NULL, 0, NULL, NULL, 0, txn, &local_err);
+     bdrv_unref(target_bs);
+     if (local_err != NULL) {
+         error_propagate(errp, local_err);
+@@ -4394,7 +4396,7 @@ BlockJob *do_blockdev_backup(BlockdevBackup *backup, JobTxn *txn,
+     job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
+                             backup->sync, bmap, backup->compress,
+                             backup->on_source_error, backup->on_target_error,
+-                            job_flags, NULL, NULL, NULL, 0, txn, &local_err);
++                            job_flags, NULL, 0, NULL, NULL, 0, txn, &local_err);
+     if (local_err != NULL) {
+         error_propagate(errp, local_err);
+     }
+diff --git a/include/block/block_int.h b/include/block/block_int.h
+index fd1828cd70..0ac312b359 100644
+--- a/include/block/block_int.h
++++ b/include/block/block_int.h
+@@ -1144,6 +1144,9 @@ void mirror_start(const char *job_id, BlockDriverState *bs,
+  * @on_target_error: The action to take upon error writing to the target.
+  * @creation_flags: Flags that control the behavior of the Job lifetime.
+  *                  See @BlockJobCreateFlags
++ * @dump_cb: Callback for PVE backup code. Called for each data block when
++ *           target is NULL.
++ * @dump_cb_block_size: The minimum block size expected by dump_cb.
+  * @cb: Completion function for the job.
+  * @opaque: Opaque pointer value passed to @cb.
+  * @txn: Transaction that this job is part of (may be NULL).
+@@ -1160,6 +1163,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+                             BlockdevOnError on_target_error,
+                             int creation_flags,
+                             BackupDumpFunc *dump_cb,
++                            int dump_cb_block_size,
+                             BlockCompletionFunc *cb, void *opaque,
+                             int pause_count,
+                             JobTxn *txn, Error **errp);
