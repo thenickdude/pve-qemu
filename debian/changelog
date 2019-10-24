@@ -1,3 +1,9 @@
+pve-qemu-kvm (4.0.1-3) pve; urgency=medium
+
+  * various cleanups for backup related code
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 24 Oct 2019 08:50:21 +0200
+
 pve-qemu-kvm (4.0.1-2) pve; urgency=medium
 
   * use co-routines and improve locking for backup related code
