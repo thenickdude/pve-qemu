@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Dietmar Maurer <dietmar@proxmox.com>
+Date: Wed, 30 Oct 2019 12:15:44 +0100
+Subject: [PATCH] pvebackup_co_dump_cb: do not call job->cancel()
+
+The backup loop will automatically abort if we return an error.
+---
+ blockdev.c | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/blockdev.c b/blockdev.c
+index 786921da0a..a36c4ce23d 100644
+--- a/blockdev.c
++++ b/blockdev.c
+@@ -3254,10 +3254,8 @@ static int coroutine_fn pvebackup_co_dump_cb(void *opaque, BlockBackend *target,
+                 if (!backup_state.error) {
+                     vma_writer_error_propagate(backup_state.vmaw, &backup_state.error);
+                 }
+-                if (di->bs && di->bs->job) {
+-                    job_cancel(&di->bs->job->job, true);
+-                }
+-                break;
++                qemu_co_mutex_unlock(&backup_state.backup_mutex);
++                return ret;
+             } else {
+                 backup_state.zero_bytes += zero_bytes;
+                 if (remaining >= VMA_CLUSTER_SIZE) {

@@ -36,3 +36,6 @@ pve/0034-vma_writer_close-avoid-call-to-aio_poll-acquire-flus.patch
 pve/0035-backup_job_create-pass-cluster-size-for-dump.patch
 pve/0036-avoid-calling-dump_cb-with-NULL-data-pointer-for-sma.patch
 pve/0037-rename-config_to_vma-into-pvebackup_co_add_config.patch
+pve/0038-pvebackup_co_dump_cb-do-not-call-job-cancel.patch
+pve/0039-fix-backup-job-completion.patch
+pve/0040-pvebackup_complete_cb-avoid-poll-loop-if-already-ins.patch
