@@ -39,3 +39,4 @@ pve/0037-rename-config_to_vma-into-pvebackup_co_add_config.patch
 pve/0038-pvebackup_co_dump_cb-do-not-call-job-cancel.patch
 pve/0039-fix-backup-job-completion.patch
 pve/0040-pvebackup_complete_cb-avoid-poll-loop-if-already-ins.patch
+pve/0041-PVE-backup-consider-source-cluster-size-as-well.patch
