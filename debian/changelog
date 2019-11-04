@@ -1,3 +1,9 @@
+pve-qemu-kvm (4.0.1-5) pve; urgency=medium
+
+  * fix a backup speed regression with disks on ceph
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 04 Nov 2019 14:23:33 +0100
+
 pve-qemu-kvm (4.0.1-4) pve; urgency=medium
 
   * various cleanups and stability improvements for backup related code
