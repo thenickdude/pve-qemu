@@ -40,3 +40,6 @@ pve/0038-pvebackup_co_dump_cb-do-not-call-job-cancel.patch
 pve/0039-fix-backup-job-completion.patch
 pve/0040-pvebackup_complete_cb-avoid-poll-loop-if-already-ins.patch
 pve/0041-PVE-backup-consider-source-cluster-size-as-well.patch
+pve/0042-PVE-fixup-vma-tool.patch
+pve/0043-PVE-fixup-blockdev-pvebackup-integration-fix-blockjo.patch
+pve/0044-Acquire-aio_context-before-calling-block_job_add_bdr.patch
