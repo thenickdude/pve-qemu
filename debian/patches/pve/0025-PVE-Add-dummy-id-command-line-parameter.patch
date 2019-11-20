@@ -14,10 +14,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 11 insertions(+)
 
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 880c63dab2..6c98b2b510 100644
+index 34994daafd..6db02fe903 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -801,6 +801,9 @@ STEXI
+@@ -802,6 +802,9 @@ STEXI
  @table @option
  ETEXI
  
@@ -28,10 +28,10 @@ index 880c63dab2..6c98b2b510 100644
      "-fda/-fdb file  use 'file' as floppy disk 0/1 image\n", QEMU_ARCH_ALL)
  DEF("fdb", HAS_ARG, QEMU_OPTION_fdb, "", QEMU_ARCH_ALL)
 diff --git a/vl.c b/vl.c
-index 68ca370e19..bb2cdb8ea9 100644
+index 1c5536e5bb..7ffcd271f1 100644
 --- a/vl.c
 +++ b/vl.c
-@@ -2993,6 +2993,7 @@ static void user_register_global_props(void)
+@@ -2857,6 +2857,7 @@ static void user_register_global_props(void)
  int main(int argc, char **argv, char **envp)
  {
      int i;
@@ -39,7 +39,7 @@ index 68ca370e19..bb2cdb8ea9 100644
      int snapshot, linux_boot;
      const char *initrd_filename;
      const char *kernel_filename, *kernel_cmdline;
-@@ -3681,6 +3682,13 @@ int main(int argc, char **argv, char **envp)
+@@ -3570,6 +3571,13 @@ int main(int argc, char **argv, char **envp)
                      exit(1);
                  }
                  break;

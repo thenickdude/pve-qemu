@@ -6,26 +6,26 @@ Subject: [PATCH] PVE: backup: introduce vma archive format
 TODO: Move to a libvma block backend.
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- MAINTAINERS          |   6 +
- block/Makefile.objs  |   3 +
- block/vma.c          | 503 ++++++++++++++++++++++++++++++++++++++++
- blockdev.c           | 536 +++++++++++++++++++++++++++++++++++++++++++
- configure            |  29 +++
- hmp-commands-info.hx |  13 ++
- hmp-commands.hx      |  31 +++
- hmp.c                |  63 +++++
- hmp.h                |   3 +
- qapi/block-core.json | 109 ++++++++-
- qapi/common.json     |  13 ++
- qapi/misc.json       |  13 --
- 12 files changed, 1308 insertions(+), 14 deletions(-)
+ MAINTAINERS           |   6 +
+ block/Makefile.objs   |   3 +
+ block/vma.c           | 503 +++++++++++++++++++++++++++++++++++++++
+ blockdev.c            | 536 ++++++++++++++++++++++++++++++++++++++++++
+ configure             |  30 +++
+ hmp-commands-info.hx  |  13 +
+ hmp-commands.hx       |  31 +++
+ include/monitor/hmp.h |   3 +
+ monitor/hmp-cmds.c    |  63 +++++
+ qapi/block-core.json  | 109 ++++++++-
+ qapi/common.json      |  13 +
+ qapi/misc.json        |  13 -
+ 12 files changed, 1309 insertions(+), 14 deletions(-)
  create mode 100644 block/vma.c
 
 diff --git a/MAINTAINERS b/MAINTAINERS
-index 56139ac8ab..5588f5c91e 100644
+index d6de200453..de09d099f6 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
-@@ -2499,6 +2499,12 @@ L: qemu-block@nongnu.org
+@@ -2563,6 +2563,12 @@ L: qemu-block@nongnu.org
  S: Supported
  F: block/vvfat.c
  
@@ -39,13 +39,13 @@ index 56139ac8ab..5588f5c91e 100644
  M: Stefan Hajnoczi <stefanha@redhat.com>
  L: qemu-block@nongnu.org
 diff --git a/block/Makefile.objs b/block/Makefile.objs
-index 03b5763bfa..00fa730d7b 100644
+index 6022242c3f..86b10d8ea7 100644
 --- a/block/Makefile.objs
 +++ b/block/Makefile.objs
 @@ -33,6 +33,7 @@ block-obj-$(CONFIG_RBD) += rbd.o
  block-obj-$(CONFIG_GLUSTERFS) += gluster.o
  block-obj-$(CONFIG_VXHS) += vxhs.o
- block-obj-$(CONFIG_LIBSSH2) += ssh.o
+ block-obj-$(CONFIG_LIBSSH) += ssh.o
 +block-obj-$(CONFIG_VMA) += vma.o
  block-obj-y += accounting.o dirty-bitmap.o
  block-obj-y += write-threshold.o
@@ -566,7 +566,7 @@ index 0000000000..b911b198dc
 +
 +block_init(bdrv_vma_init);
 diff --git a/blockdev.c b/blockdev.c
-index a3542db57a..5d524b9a74 100644
+index a7c97b1585..7047475a3c 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -31,11 +31,13 @@
@@ -583,7 +583,7 @@ index a3542db57a..5d524b9a74 100644
  #include "block/throttle-groups.h"
  #include "monitor/monitor.h"
  #include "qemu/error-report.h"
-@@ -44,6 +46,7 @@
+@@ -45,6 +47,7 @@
  #include "qapi/qapi-commands-block.h"
  #include "qapi/qapi-commands-transaction.h"
  #include "qapi/qapi-visit-block-core.h"
@@ -591,7 +591,7 @@ index a3542db57a..5d524b9a74 100644
  #include "qapi/qmp/qdict.h"
  #include "qapi/qmp/qnum.h"
  #include "qapi/qmp/qstring.h"
-@@ -3148,6 +3151,539 @@ out:
+@@ -3168,6 +3171,539 @@ out:
      aio_context_release(aio_context);
  }
  
@@ -1132,18 +1132,19 @@ index a3542db57a..5d524b9a74 100644
                        bool has_base, const char *base,
                        bool has_base_node, const char *base_node,
 diff --git a/configure b/configure
-index 1c563a7027..d164677950 100755
+index 714e7fb6a1..5e16d8e562 100755
 --- a/configure
 +++ b/configure
-@@ -491,6 +491,7 @@ docker="no"
+@@ -499,6 +499,8 @@ docker="no"
  debug_mutex="no"
  libpmem=""
  default_devices="yes"
++libudev="no"
 +vma=""
  
  # cross compilers defaults, can be overridden with --cross-cc-ARCH
  cross_cc_aarch64="aarch64-linux-gnu-gcc"
-@@ -1518,6 +1519,10 @@ for opt do
+@@ -1543,6 +1545,10 @@ for opt do
    ;;
    --disable-libpmem) libpmem=no
    ;;
@@ -1154,7 +1155,7 @@ index 1c563a7027..d164677950 100755
    *)
        echo "ERROR: unknown option $opt"
        echo "Try '$0 --help' for more information"
-@@ -1818,6 +1823,7 @@ disabled with --disable-FEATURE, default is enabled if available:
+@@ -1842,6 +1848,7 @@ disabled with --disable-FEATURE, default is enabled if available:
    capstone        capstone disassembler support
    debug-mutex     mutex debugging support
    libpmem         libpmem support
@@ -1162,7 +1163,7 @@ index 1c563a7027..d164677950 100755
  
  NOTE: The object files are built at the place where configure is launched
  EOF
-@@ -4378,6 +4384,22 @@ EOF
+@@ -4402,6 +4409,22 @@ EOF
    fi
  fi
  
@@ -1185,7 +1186,7 @@ index 1c563a7027..d164677950 100755
  ##########################################
  # signalfd probe
  signalfd="no"
-@@ -6438,6 +6460,7 @@ echo "docker            $docker"
+@@ -6481,6 +6504,7 @@ echo "docker            $docker"
  echo "libpmem support   $libpmem"
  echo "libudev           $libudev"
  echo "default devices   $default_devices"
@@ -1193,7 +1194,7 @@ index 1c563a7027..d164677950 100755
  
  if test "$supported_cpu" = "no"; then
      echo
-@@ -6931,6 +6954,12 @@ if test "$usb_redir" = "yes" ; then
+@@ -6983,6 +7007,12 @@ if test "$usb_redir" = "yes" ; then
    echo "USB_REDIR_LIBS=$usb_redir_libs" >> $config_host_mak
  fi
  
@@ -1231,7 +1232,7 @@ index 444bd8e43d..21106bcbe6 100644
  
  #if defined(CONFIG_SLIRP)
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 284e97973a..d723552bee 100644
+index e075d413c0..5bdfdeaf57 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
 @@ -105,6 +105,37 @@ STEXI
@@ -1272,11 +1273,32 @@ index 284e97973a..d723552bee 100644
  ETEXI
  
      {
-diff --git a/hmp.c b/hmp.c
-index 16243bba50..113671ad2a 100644
---- a/hmp.c
-+++ b/hmp.c
-@@ -167,6 +167,44 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
+diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
+index c6ee8295f0..0f2f96c4af 100644
+--- a/include/monitor/hmp.h
++++ b/include/monitor/hmp.h
+@@ -30,6 +30,7 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_capabilities(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_parameters(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_cache_size(Monitor *mon, const QDict *qdict);
++void hmp_info_backup(Monitor *mon, const QDict *qdict);
+ void hmp_info_cpus(Monitor *mon, const QDict *qdict);
+ void hmp_info_block(Monitor *mon, const QDict *qdict);
+ void hmp_info_blockstats(Monitor *mon, const QDict *qdict);
+@@ -90,6 +91,8 @@ void hmp_eject(Monitor *mon, const QDict *qdict);
+ void hmp_change(Monitor *mon, const QDict *qdict);
+ void hmp_block_set_io_throttle(Monitor *mon, const QDict *qdict);
+ void hmp_block_stream(Monitor *mon, const QDict *qdict);
++void hmp_backup(Monitor *mon, const QDict *qdict);
++void hmp_backup_cancel(Monitor *mon, const QDict *qdict);
+ void hmp_block_job_set_speed(Monitor *mon, const QDict *qdict);
+ void hmp_block_job_cancel(Monitor *mon, const QDict *qdict);
+ void hmp_block_job_pause(Monitor *mon, const QDict *qdict);
+diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
+index 39a8020367..bc9ca346f7 100644
+--- a/monitor/hmp-cmds.c
++++ b/monitor/hmp-cmds.c
+@@ -196,6 +196,44 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
      qapi_free_MouseInfoList(mice_list);
  }
  
@@ -1321,7 +1343,7 @@ index 16243bba50..113671ad2a 100644
  static char *SocketAddress_to_str(SocketAddress *addr)
  {
      switch (addr->type) {
-@@ -2059,6 +2097,31 @@ void hmp_block_stream(Monitor *mon, const QDict *qdict)
+@@ -2078,6 +2116,31 @@ void hmp_block_stream(Monitor *mon, const QDict *qdict)
      hmp_handle_error(mon, &error);
  }
  
@@ -1353,29 +1375,8 @@ index 16243bba50..113671ad2a 100644
  void hmp_block_job_set_speed(Monitor *mon, const QDict *qdict)
  {
      Error *error = NULL;
-diff --git a/hmp.h b/hmp.h
-index bcb90c478f..043b74edee 100644
---- a/hmp.h
-+++ b/hmp.h
-@@ -29,6 +29,7 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict);
- void hmp_info_migrate_capabilities(Monitor *mon, const QDict *qdict);
- void hmp_info_migrate_parameters(Monitor *mon, const QDict *qdict);
- void hmp_info_migrate_cache_size(Monitor *mon, const QDict *qdict);
-+void hmp_info_backup(Monitor *mon, const QDict *qdict);
- void hmp_info_cpus(Monitor *mon, const QDict *qdict);
- void hmp_info_block(Monitor *mon, const QDict *qdict);
- void hmp_info_blockstats(Monitor *mon, const QDict *qdict);
-@@ -89,6 +90,8 @@ void hmp_eject(Monitor *mon, const QDict *qdict);
- void hmp_change(Monitor *mon, const QDict *qdict);
- void hmp_block_set_io_throttle(Monitor *mon, const QDict *qdict);
- void hmp_block_stream(Monitor *mon, const QDict *qdict);
-+void hmp_backup(Monitor *mon, const QDict *qdict);
-+void hmp_backup_cancel(Monitor *mon, const QDict *qdict);
- void hmp_block_job_set_speed(Monitor *mon, const QDict *qdict);
- void hmp_block_job_cancel(Monitor *mon, const QDict *qdict);
- void hmp_block_job_pause(Monitor *mon, const QDict *qdict);
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 7ccbfff9d0..6f97460806 100644
+index 0d43d4f37c..97cb7ec41c 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -796,6 +796,97 @@
@@ -1476,7 +1477,7 @@ index 7ccbfff9d0..6f97460806 100644
  ##
  # @BlockDeviceTimedStats:
  #
-@@ -2819,7 +2910,7 @@
+@@ -2835,7 +2926,7 @@
              'qcow2', 'qed', 'quorum', 'raw', 'rbd',
              { 'name': 'replication', 'if': 'defined(CONFIG_REPLICATION)' },
              'sheepdog',
@@ -1485,7 +1486,7 @@ index 7ccbfff9d0..6f97460806 100644
  
  ##
  # @BlockdevOptionsFile:
-@@ -3836,6 +3927,21 @@
+@@ -3898,6 +3989,21 @@
              'server': 'InetSocketAddressBase',
              '*tls-creds': 'str' } }
  
@@ -1507,7 +1508,7 @@ index 7ccbfff9d0..6f97460806 100644
  ##
  # @BlockdevOptionsThrottle:
  #
-@@ -3931,6 +4037,7 @@
+@@ -3993,6 +4099,7 @@
        'throttle':   'BlockdevOptionsThrottle',
        'vdi':        'BlockdevOptionsGenericFormat',
        'vhdx':       'BlockdevOptionsGenericFormat',
@@ -1537,10 +1538,10 @@ index 99d313ef3b..bae0650c51 100644
 +##
 +{ 'struct': 'UuidInfo', 'data': {'UUID': 'str'} }
 diff --git a/qapi/misc.json b/qapi/misc.json
-index 49dfda0b28..376f26002a 100644
+index 31029e3132..335035c04d 100644
 --- a/qapi/misc.json
 +++ b/qapi/misc.json
-@@ -274,19 +274,6 @@
+@@ -270,19 +270,6 @@
  ##
  { 'command': 'query-kvm', 'returns': 'KvmInfo' }
  

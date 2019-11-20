@@ -9,10 +9,10 @@ The backup loop will automatically abort if we return an error.
  1 file changed, 2 insertions(+), 4 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index 786921da0a..a36c4ce23d 100644
+index 530b76c82f..568f71fdb4 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3254,10 +3254,8 @@ static int coroutine_fn pvebackup_co_dump_cb(void *opaque, BlockBackend *target,
+@@ -3274,10 +3274,8 @@ static int coroutine_fn pvebackup_co_dump_cb(void *opaque, BlockBackend *target,
                  if (!backup_state.error) {
                      vma_writer_error_propagate(backup_state.vmaw, &backup_state.error);
                  }

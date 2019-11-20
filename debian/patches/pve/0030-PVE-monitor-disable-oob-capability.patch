@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Tue, 25 Jun 2019 11:17:58 +0200
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Thu, 14 Nov 2019 14:38:02 +0100
 Subject: [PATCH] PVE: monitor: disable oob capability
 
 A bisect revealed that commit 8258292e18c3
@@ -14,22 +14,20 @@ disable oob, so we can get a functioning qemu out...
 Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- monitor.c | 5 +----
- 1 file changed, 1 insertion(+), 4 deletions(-)
+ monitor/qmp.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/monitor.c b/monitor.c
-index daadbcdede..0f79a7dfa4 100644
---- a/monitor.c
-+++ b/monitor.c
-@@ -4616,10 +4616,7 @@ void monitor_init(Chardev *chr, int flags)
-     bool use_readline = flags & MONITOR_USE_READLINE;
+diff --git a/monitor/qmp.c b/monitor/qmp.c
+index fb3e66c62a..ad6703dc52 100644
+--- a/monitor/qmp.c
++++ b/monitor/qmp.c
+@@ -379,8 +379,7 @@ void monitor_init_qmp(Chardev *chr, bool pretty)
+     MonitorQMP *mon = g_new0(MonitorQMP, 1);
  
      /* Note: we run QMP monitor in I/O thread when @chr supports that */
--    monitor_data_init(mon, false,
--                      (flags & MONITOR_USE_CONTROL)
--                      && qemu_chr_has_feature(chr,
--                                              QEMU_CHAR_FEATURE_GCONTEXT));
-+    monitor_data_init(mon, false, false);
+-    monitor_data_init(&mon->common, true, false,
+-                      qemu_chr_has_feature(chr, QEMU_CHAR_FEATURE_GCONTEXT));
++    monitor_data_init(&mon->common, true, false, false);
  
-     qemu_chr_fe_init(&mon->chr, chr, &error_abort);
-     mon->flags = flags;
+     mon->pretty = pretty;
+ 

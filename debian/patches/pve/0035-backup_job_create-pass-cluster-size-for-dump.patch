@@ -12,10 +12,10 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  4 files changed, 18 insertions(+), 6 deletions(-)
 
 diff --git a/block/backup.c b/block/backup.c
-index 5240f71bb5..2ccec79db6 100644
+index 05569de5d4..a3f0d2c9a5 100644
 --- a/block/backup.c
 +++ b/block/backup.c
-@@ -579,6 +579,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -566,6 +566,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                    BlockdevOnError on_target_error,
                    int creation_flags,
                    BackupDumpFunc *dump_cb,
@@ -23,7 +23,7 @@ index 5240f71bb5..2ccec79db6 100644
                    BlockCompletionFunc *cb, void *opaque,
                    int pause_count,
                    JobTxn *txn, Error **errp)
-@@ -649,7 +650,12 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -636,7 +637,12 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
          goto error;
      }
  
@@ -38,10 +38,10 @@ index 5240f71bb5..2ccec79db6 100644
          goto error;
      }
 diff --git a/block/replication.c b/block/replication.c
-index e85c62ba9c..a2ad512251 100644
+index f060755713..b9465c3587 100644
 --- a/block/replication.c
 +++ b/block/replication.c
-@@ -543,7 +543,7 @@ static void replication_start(ReplicationState *rs, ReplicationMode mode,
+@@ -546,7 +546,7 @@ static void replication_start(ReplicationState *rs, ReplicationMode mode,
                                  0, MIRROR_SYNC_MODE_NONE, NULL, false,
                                  BLOCKDEV_ON_ERROR_REPORT,
                                  BLOCKDEV_ON_ERROR_REPORT, JOB_INTERNAL,
@@ -51,10 +51,10 @@ index e85c62ba9c..a2ad512251 100644
          if (local_err) {
              error_propagate(errp, local_err);
 diff --git a/blockdev.c b/blockdev.c
-index 7e9241cf42..6d16043131 100644
+index 29196c18d8..a95beb823e 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3524,6 +3524,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -3544,6 +3544,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
      GList *l;
      UuidInfo *uuid_info;
      BlockJob *job;
@@ -62,7 +62,7 @@ index 7e9241cf42..6d16043131 100644
  
      if (!backup_state.backup_mutex_initialized) {
          qemu_co_mutex_init(&backup_state.backup_mutex);
-@@ -3611,6 +3612,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -3631,6 +3632,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
      uuid_generate(uuid);
  
      if (format == BACKUP_FORMAT_VMA) {
@@ -70,7 +70,7 @@ index 7e9241cf42..6d16043131 100644
          vmaw = vma_writer_create(task->backup_file, uuid, &local_err);
          if (!vmaw) {
              if (local_err) {
-@@ -3718,8 +3720,8 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -3738,8 +3740,8 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
          l = g_list_next(l);
          job = backup_job_create(NULL, di->bs, di->target, backup_state.speed, MIRROR_SYNC_MODE_FULL, NULL,
                                  false, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
@@ -81,16 +81,16 @@ index 7e9241cf42..6d16043131 100644
          if (!job || local_err != NULL) {
              error_setg(&backup_state.error, "backup_job_create failed");
              break;
-@@ -4284,7 +4286,7 @@ static BlockJob *do_drive_backup(DriveBackup *backup, JobTxn *txn,
+@@ -4312,7 +4314,7 @@ static BlockJob *do_drive_backup(DriveBackup *backup, JobTxn *txn,
      job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
                              backup->sync, bmap, backup->compress,
                              backup->on_source_error, backup->on_target_error,
 -                            job_flags, NULL, NULL, NULL, 0, txn, &local_err);
 +                            job_flags, NULL, 0, NULL, NULL, 0, txn, &local_err);
-     bdrv_unref(target_bs);
      if (local_err != NULL) {
          error_propagate(errp, local_err);
-@@ -4394,7 +4396,7 @@ BlockJob *do_blockdev_backup(BlockdevBackup *backup, JobTxn *txn,
+         goto unref;
+@@ -4417,7 +4419,7 @@ BlockJob *do_blockdev_backup(BlockdevBackup *backup, JobTxn *txn,
      job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
                              backup->sync, bmap, backup->compress,
                              backup->on_source_error, backup->on_target_error,
@@ -100,10 +100,10 @@ index 7e9241cf42..6d16043131 100644
          error_propagate(errp, local_err);
      }
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index fd1828cd70..0ac312b359 100644
+index 73a55a7351..13dfee215d 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
-@@ -1144,6 +1144,9 @@ void mirror_start(const char *job_id, BlockDriverState *bs,
+@@ -1156,6 +1156,9 @@ void mirror_start(const char *job_id, BlockDriverState *bs,
   * @on_target_error: The action to take upon error writing to the target.
   * @creation_flags: Flags that control the behavior of the Job lifetime.
   *                  See @BlockJobCreateFlags
@@ -113,7 +113,7 @@ index fd1828cd70..0ac312b359 100644
   * @cb: Completion function for the job.
   * @opaque: Opaque pointer value passed to @cb.
   * @txn: Transaction that this job is part of (may be NULL).
-@@ -1160,6 +1163,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -1172,6 +1175,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                              BlockdevOnError on_target_error,
                              int creation_flags,
                              BackupDumpFunc *dump_cb,

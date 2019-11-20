@@ -13,10 +13,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 43 insertions(+), 21 deletions(-)
 
 diff --git a/block/file-posix.c b/block/file-posix.c
-index 0613f59c7b..ef5c1bf487 100644
+index 760648b78c..e40386384e 100644
 --- a/block/file-posix.c
 +++ b/block/file-posix.c
-@@ -2223,6 +2223,7 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
+@@ -2240,6 +2240,7 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
      int fd;
      uint64_t perm, shared;
      int result = 0;
@@ -24,7 +24,7 @@ index 0613f59c7b..ef5c1bf487 100644
  
      /* Validate options and set default values */
      assert(options->driver == BLOCKDEV_DRIVER_FILE);
-@@ -2256,19 +2257,22 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
+@@ -2273,19 +2274,22 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
      perm = BLK_PERM_WRITE | BLK_PERM_RESIZE;
      shared = BLK_PERM_ALL & ~BLK_PERM_RESIZE;
  
@@ -59,7 +59,7 @@ index 0613f59c7b..ef5c1bf487 100644
      }
  
      /* Clear the file by truncating it to 0 */
-@@ -2301,13 +2305,15 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
+@@ -2318,13 +2322,15 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
      }
  
  out_unlock:
@@ -82,7 +82,7 @@ index 0613f59c7b..ef5c1bf487 100644
      }
  
  out_close:
-@@ -2328,6 +2334,7 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
+@@ -2345,6 +2351,7 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
      PreallocMode prealloc;
      char *buf = NULL;
      Error *local_err = NULL;
@@ -90,7 +90,7 @@ index 0613f59c7b..ef5c1bf487 100644
  
      /* Skip file: protocol prefix */
      strstart(filename, "file:", &filename);
-@@ -2345,6 +2352,18 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
+@@ -2362,6 +2369,18 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
          return -EINVAL;
      }
  
@@ -109,7 +109,7 @@ index 0613f59c7b..ef5c1bf487 100644
      options = (BlockdevCreateOptions) {
          .driver     = BLOCKDEV_DRIVER_FILE,
          .u.file     = {
-@@ -2354,6 +2373,8 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
+@@ -2371,6 +2390,8 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
              .preallocation      = prealloc,
              .has_nocow          = true,
              .nocow              = nocow,
@@ -118,7 +118,7 @@ index 0613f59c7b..ef5c1bf487 100644
          },
      };
      return raw_co_create(&options, errp);
-@@ -2789,7 +2810,7 @@ static int raw_check_perm(BlockDriverState *bs, uint64_t perm, uint64_t shared,
+@@ -2812,7 +2833,7 @@ static int raw_check_perm(BlockDriverState *bs, uint64_t perm, uint64_t shared,
      }
  
      /* Copy locks to the new fd */
@@ -128,10 +128,10 @@ index 0613f59c7b..ef5c1bf487 100644
                                     false, errp);
          if (ret < 0) {
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 6f97460806..0e9c239485 100644
+index 97cb7ec41c..f432d4f3ec 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -4219,7 +4219,8 @@
+@@ -4284,7 +4284,8 @@
    'data': { 'filename':         'str',
              'size':             'size',
              '*preallocation':   'PreallocMode',

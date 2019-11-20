@@ -12,10 +12,10 @@ jobs in the list.
  1 file changed, 4 insertions(+), 5 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index a36c4ce23d..421240fbb8 100644
+index 568f71fdb4..66f2711185 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3339,12 +3339,14 @@ static void coroutine_fn pvebackup_co_complete_cb(void *opaque)
+@@ -3359,12 +3359,14 @@ static void coroutine_fn pvebackup_co_complete_cb(void *opaque)
      backup_state.di_list = g_list_remove(backup_state.di_list, di);
      g_free(di);
  
@@ -32,7 +32,7 @@ index a36c4ce23d..421240fbb8 100644
      }
  }
  
-@@ -3490,9 +3492,6 @@ static void coroutine_fn pvebackup_co_run_next_job(void)
+@@ -3510,9 +3512,6 @@ static void coroutine_fn pvebackup_co_run_next_job(void)
          }
      }
      qemu_co_mutex_unlock(&backup_state.backup_mutex);

@@ -18,10 +18,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  5 files changed, 7 insertions(+), 4 deletions(-)
 
 diff --git a/block/backup.c b/block/backup.c
-index 381659d5ef..9ee43981e8 100644
+index b26c22c4b8..812783d3cb 100644
 --- a/block/backup.c
 +++ b/block/backup.c
-@@ -560,6 +560,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -550,6 +550,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                    BlockdevOnError on_target_error,
                    int creation_flags,
                    BlockCompletionFunc *cb, void *opaque,
@@ -29,7 +29,7 @@ index 381659d5ef..9ee43981e8 100644
                    JobTxn *txn, Error **errp)
  {
      int64_t len;
-@@ -677,6 +678,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -668,6 +669,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
      block_job_add_bdrv(&job->common, "target", target, 0, BLK_PERM_ALL,
                         &error_abort);
      job->len = len;
@@ -38,10 +38,10 @@ index 381659d5ef..9ee43981e8 100644
      return &job->common;
  
 diff --git a/block/replication.c b/block/replication.c
-index 3d4dedddfc..0a265db1b5 100644
+index 23b2993d74..e70a6cf2bd 100644
 --- a/block/replication.c
 +++ b/block/replication.c
-@@ -543,7 +543,7 @@ static void replication_start(ReplicationState *rs, ReplicationMode mode,
+@@ -546,7 +546,7 @@ static void replication_start(ReplicationState *rs, ReplicationMode mode,
                                  0, MIRROR_SYNC_MODE_NONE, NULL, false,
                                  BLOCKDEV_ON_ERROR_REPORT,
                                  BLOCKDEV_ON_ERROR_REPORT, JOB_INTERNAL,
@@ -51,19 +51,19 @@ index 3d4dedddfc..0a265db1b5 100644
              error_propagate(errp, local_err);
              backup_job_cleanup(bs);
 diff --git a/blockdev.c b/blockdev.c
-index d358169995..a3542db57a 100644
+index 4d141e9a1f..a7c97b1585 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3546,7 +3546,7 @@ static BlockJob *do_drive_backup(DriveBackup *backup, JobTxn *txn,
+@@ -3574,7 +3574,7 @@ static BlockJob *do_drive_backup(DriveBackup *backup, JobTxn *txn,
      job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
                              backup->sync, bmap, backup->compress,
                              backup->on_source_error, backup->on_target_error,
 -                            job_flags, NULL, NULL, txn, &local_err);
 +                            job_flags, NULL, NULL, 0, txn, &local_err);
-     bdrv_unref(target_bs);
      if (local_err != NULL) {
          error_propagate(errp, local_err);
-@@ -3656,7 +3656,7 @@ BlockJob *do_blockdev_backup(BlockdevBackup *backup, JobTxn *txn,
+         goto unref;
+@@ -3679,7 +3679,7 @@ BlockJob *do_blockdev_backup(BlockdevBackup *backup, JobTxn *txn,
      job = backup_job_create(backup->job_id, bs, target_bs, backup->speed,
                              backup->sync, bmap, backup->compress,
                              backup->on_source_error, backup->on_target_error,
@@ -73,10 +73,10 @@ index d358169995..a3542db57a 100644
          error_propagate(errp, local_err);
      }
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 01e855a066..b409e02be8 100644
+index 3aa1e832a8..9f4fbad5a6 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
-@@ -1157,6 +1157,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -1169,6 +1169,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                              BlockdevOnError on_target_error,
                              int creation_flags,
                              BlockCompletionFunc *cb, void *opaque,
@@ -85,10 +85,10 @@ index 01e855a066..b409e02be8 100644
  
  void hmp_drive_add_node(Monitor *mon, const char *optstr);
 diff --git a/job.c b/job.c
-index da8e4b7bf2..86161bd9f3 100644
+index 28dd48f8a5..7a21e83780 100644
 --- a/job.c
 +++ b/job.c
-@@ -899,7 +899,7 @@ void job_start(Job *job)
+@@ -898,7 +898,7 @@ void job_start(Job *job)
      job->co = qemu_coroutine_create(job_co_entry, job);
      job->pause_count--;
      job->busy = true;

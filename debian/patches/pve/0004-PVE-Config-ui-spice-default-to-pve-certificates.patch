@@ -9,10 +9,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 9 insertions(+), 6 deletions(-)
 
 diff --git a/ui/spice-core.c b/ui/spice-core.c
-index 0632c74e9f..5593dfcb06 100644
+index 2ffc3335f0..c95bbd6c77 100644
 --- a/ui/spice-core.c
 +++ b/ui/spice-core.c
-@@ -667,32 +667,35 @@ void qemu_spice_init(void)
+@@ -668,32 +668,35 @@ void qemu_spice_init(void)
  
      if (tls_port) {
          x509_dir = qemu_opt_get(opts, "x509-dir");

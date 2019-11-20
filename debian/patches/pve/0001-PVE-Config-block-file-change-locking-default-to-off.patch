@@ -14,10 +14,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/block/file-posix.c b/block/file-posix.c
-index c185f34a2e..0613f59c7b 100644
+index 4479cc7ab4..760648b78c 100644
 --- a/block/file-posix.c
 +++ b/block/file-posix.c
-@@ -428,7 +428,7 @@ static QemuOptsList raw_runtime_opts = {
+@@ -430,7 +430,7 @@ static QemuOptsList raw_runtime_opts = {
          {
              .name = "locking",
              .type = QEMU_OPT_STRING,
@@ -26,7 +26,7 @@ index c185f34a2e..0613f59c7b 100644
          },
          {
              .name = "pr-manager",
-@@ -517,7 +517,7 @@ static int raw_open_common(BlockDriverState *bs, QDict *options,
+@@ -519,7 +519,7 @@ static int raw_open_common(BlockDriverState *bs, QDict *options,
          s->use_lock = false;
          break;
      case ON_OFF_AUTO_AUTO:

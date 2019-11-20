@@ -9,10 +9,10 @@ Subject: [PATCH] pvebackup_complete_cb: avoid poll loop if already inside
  1 file changed, 8 insertions(+), 2 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index 421240fbb8..e889bd13d5 100644
+index 66f2711185..083ada6c8e 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3169,6 +3169,8 @@ static void coroutine_fn block_on_coroutine_wrapper(void *opaque)
+@@ -3189,6 +3189,8 @@ static void coroutine_fn block_on_coroutine_wrapper(void *opaque)
  
  static void block_on_coroutine_fn(CoroutineEntry *entry, void *entry_arg)
  {
@@ -21,7 +21,7 @@ index 421240fbb8..e889bd13d5 100644
      AioContext *ctx = qemu_get_current_aio_context();
      BlockOnCoroutineWrapper wrapper = {
          .finished = false,
-@@ -3352,13 +3354,17 @@ static void coroutine_fn pvebackup_co_complete_cb(void *opaque)
+@@ -3372,13 +3374,17 @@ static void coroutine_fn pvebackup_co_complete_cb(void *opaque)
  
  static void pvebackup_complete_cb(void *opaque, int ret)
  {

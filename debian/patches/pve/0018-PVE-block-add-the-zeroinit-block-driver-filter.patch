@@ -6,12 +6,12 @@ Subject: [PATCH] PVE: block: add the zeroinit block driver filter
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/Makefile.objs |   1 +
- block/zeroinit.c    | 203 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 204 insertions(+)
+ block/zeroinit.c    | 204 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 205 insertions(+)
  create mode 100644 block/zeroinit.c
 
 diff --git a/block/Makefile.objs b/block/Makefile.objs
-index 7a81892a52..03b5763bfa 100644
+index 35f3bca4d9..6022242c3f 100644
 --- a/block/Makefile.objs
 +++ b/block/Makefile.objs
 @@ -11,6 +11,7 @@ block-obj-$(CONFIG_QED) += qed.o qed-l2-cache.o qed-table.o qed-cluster.o
@@ -24,10 +24,10 @@ index 7a81892a52..03b5763bfa 100644
  block-obj-y += blklogwrites.o
 diff --git a/block/zeroinit.c b/block/zeroinit.c
 new file mode 100644
-index 0000000000..64c49ad0e0
+index 0000000000..e78511d36c
 --- /dev/null
 +++ b/block/zeroinit.c
-@@ -0,0 +1,203 @@
+@@ -0,0 +1,204 @@
 +/*
 + * Filter to fake a zero-initialized block device.
 + *
@@ -45,6 +45,7 @@ index 0000000000..64c49ad0e0
 +#include "qapi/qmp/qstring.h"
 +#include "qemu/cutils.h"
 +#include "qemu/option.h"
++#include "qemu/module.h"
 +
 +typedef struct {
 +    bool has_zero_init;

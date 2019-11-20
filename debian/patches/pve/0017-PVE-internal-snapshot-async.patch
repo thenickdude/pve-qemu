@@ -8,9 +8,9 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  Makefile.objs                |   1 +
  hmp-commands-info.hx         |  13 +
  hmp-commands.hx              |  32 +++
- hmp.c                        |  57 +++++
- hmp.h                        |   5 +
  include/migration/snapshot.h |   1 +
+ include/monitor/hmp.h        |   5 +
+ monitor/hmp-cmds.c           |  57 +++++
  qapi/migration.json          |  34 +++
  qapi/misc.json               |  32 +++
  qemu-options.hx              |  13 +
@@ -20,13 +20,13 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  create mode 100644 savevm-async.c
 
 diff --git a/Makefile.objs b/Makefile.objs
-index cf065de5ed..559486973a 100644
+index 6a143dcd57..21dd93b58c 100644
 --- a/Makefile.objs
 +++ b/Makefile.objs
-@@ -46,6 +46,7 @@ ifeq ($(CONFIG_SOFTMMU),y)
- common-obj-y = blockdev.o blockdev-nbd.o block/
- common-obj-y += bootdevice.o iothread.o
+@@ -48,6 +48,7 @@ common-obj-y += bootdevice.o iothread.o
+ common-obj-y += dump/
  common-obj-y += job-qmp.o
+ common-obj-y += monitor/
 +common-obj-y += savevm-async.o
  common-obj-y += net/
  common-obj-y += qdev-monitor.o device-hotplug.o
@@ -56,10 +56,10 @@ index c59444c461..444bd8e43d 100644
  
      {
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 9b4035965c..284e97973a 100644
+index bfa5681dd2..e075d413c0 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
-@@ -1926,3 +1926,35 @@ ETEXI
+@@ -1944,3 +1944,35 @@ ETEXI
  STEXI
  @end table
  ETEXI
@@ -95,11 +95,45 @@ index 9b4035965c..284e97973a 100644
 +        .help       = "Resume VM after snaphot.",
 +        .cmd = hmp_savevm_end,
 +    },
-diff --git a/hmp.c b/hmp.c
-index 25fe18cbcf..16243bba50 100644
---- a/hmp.c
-+++ b/hmp.c
-@@ -2722,6 +2722,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
+diff --git a/include/migration/snapshot.h b/include/migration/snapshot.h
+index c85b6ec75b..4411b7121d 100644
+--- a/include/migration/snapshot.h
++++ b/include/migration/snapshot.h
+@@ -17,5 +17,6 @@
+ 
+ int save_snapshot(const char *name, Error **errp);
+ int load_snapshot(const char *name, Error **errp);
++int load_snapshot_from_blockdev(const char *filename, Error **errp);
+ 
+ #endif
+diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
+index a0e9511440..c6ee8295f0 100644
+--- a/include/monitor/hmp.h
++++ b/include/monitor/hmp.h
+@@ -25,6 +25,7 @@ void hmp_info_status(Monitor *mon, const QDict *qdict);
+ void hmp_info_uuid(Monitor *mon, const QDict *qdict);
+ void hmp_info_chardev(Monitor *mon, const QDict *qdict);
+ void hmp_info_mice(Monitor *mon, const QDict *qdict);
++void hmp_info_savevm(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_capabilities(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_parameters(Monitor *mon, const QDict *qdict);
+@@ -102,6 +103,10 @@ void hmp_netdev_add(Monitor *mon, const QDict *qdict);
+ void hmp_netdev_del(Monitor *mon, const QDict *qdict);
+ void hmp_getfd(Monitor *mon, const QDict *qdict);
+ void hmp_closefd(Monitor *mon, const QDict *qdict);
++void hmp_savevm_start(Monitor *mon, const QDict *qdict);
++void hmp_snapshot_drive(Monitor *mon, const QDict *qdict);
++void hmp_delete_drive_snapshot(Monitor *mon, const QDict *qdict);
++void hmp_savevm_end(Monitor *mon, const QDict *qdict);
+ void hmp_sendkey(Monitor *mon, const QDict *qdict);
+ void hmp_screendump(Monitor *mon, const QDict *qdict);
+ void hmp_nbd_server_start(Monitor *mon, const QDict *qdict);
+diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
+index 1b32c59329..39a8020367 100644
+--- a/monitor/hmp-cmds.c
++++ b/monitor/hmp-cmds.c
+@@ -2640,6 +2640,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
      hmp_handle_error(mon, &err);
  }
  
@@ -163,40 +197,6 @@ index 25fe18cbcf..16243bba50 100644
  void hmp_info_iothreads(Monitor *mon, const QDict *qdict)
  {
      IOThreadInfoList *info_list = qmp_query_iothreads(NULL);
-diff --git a/hmp.h b/hmp.h
-index 43617f2646..bcb90c478f 100644
---- a/hmp.h
-+++ b/hmp.h
-@@ -24,6 +24,7 @@ void hmp_info_status(Monitor *mon, const QDict *qdict);
- void hmp_info_uuid(Monitor *mon, const QDict *qdict);
- void hmp_info_chardev(Monitor *mon, const QDict *qdict);
- void hmp_info_mice(Monitor *mon, const QDict *qdict);
-+void hmp_info_savevm(Monitor *mon, const QDict *qdict);
- void hmp_info_migrate(Monitor *mon, const QDict *qdict);
- void hmp_info_migrate_capabilities(Monitor *mon, const QDict *qdict);
- void hmp_info_migrate_parameters(Monitor *mon, const QDict *qdict);
-@@ -101,6 +102,10 @@ void hmp_netdev_add(Monitor *mon, const QDict *qdict);
- void hmp_netdev_del(Monitor *mon, const QDict *qdict);
- void hmp_getfd(Monitor *mon, const QDict *qdict);
- void hmp_closefd(Monitor *mon, const QDict *qdict);
-+void hmp_savevm_start(Monitor *mon, const QDict *qdict);
-+void hmp_snapshot_drive(Monitor *mon, const QDict *qdict);
-+void hmp_delete_drive_snapshot(Monitor *mon, const QDict *qdict);
-+void hmp_savevm_end(Monitor *mon, const QDict *qdict);
- void hmp_sendkey(Monitor *mon, const QDict *qdict);
- void hmp_screendump(Monitor *mon, const QDict *qdict);
- void hmp_nbd_server_start(Monitor *mon, const QDict *qdict);
-diff --git a/include/migration/snapshot.h b/include/migration/snapshot.h
-index c85b6ec75b..4411b7121d 100644
---- a/include/migration/snapshot.h
-+++ b/include/migration/snapshot.h
-@@ -17,5 +17,6 @@
- 
- int save_snapshot(const char *name, Error **errp);
- int load_snapshot(const char *name, Error **errp);
-+int load_snapshot_from_blockdev(const char *filename, Error **errp);
- 
- #endif
 diff --git a/qapi/migration.json b/qapi/migration.json
 index 9cfbaf8c6c..e206355d56 100644
 --- a/qapi/migration.json
@@ -243,10 +243,10 @@ index 9cfbaf8c6c..e206355d56 100644
  # @query-migrate:
  #
 diff --git a/qapi/misc.json b/qapi/misc.json
-index 4a0e26720e..49dfda0b28 100644
+index 2445c950cc..31029e3132 100644
 --- a/qapi/misc.json
 +++ b/qapi/misc.json
-@@ -2358,6 +2358,38 @@
+@@ -1384,6 +1384,38 @@
  ##
  { 'command': 'query-target', 'returns': 'TargetInfo' }
  
@@ -286,10 +286,10 @@ index 4a0e26720e..49dfda0b28 100644
  # @AcpiTableOptions:
  #
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 08749a3391..880c63dab2 100644
+index 9621e934c0..34994daafd 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -3680,6 +3680,19 @@ STEXI
+@@ -3731,6 +3731,19 @@ STEXI
  Start right away with a saved state (@code{loadvm} in monitor)
  ETEXI
  
@@ -776,18 +776,18 @@ index 0000000000..2149010bb8
 +    return ret;
 +}
 diff --git a/vl.c b/vl.c
-index 98efed1a79..68ca370e19 100644
+index b426b32134..1c5536e5bb 100644
 --- a/vl.c
 +++ b/vl.c
-@@ -3005,6 +3005,7 @@ int main(int argc, char **argv, char **envp)
+@@ -2869,6 +2869,7 @@ int main(int argc, char **argv, char **envp)
      int optind;
      const char *optarg;
      const char *loadvm = NULL;
 +    const char *loadstate = NULL;
      MachineClass *machine_class;
-     const char *cpu_model;
+     const char *cpu_option;
      const char *vga_model = NULL;
-@@ -3572,6 +3573,9 @@ int main(int argc, char **argv, char **envp)
+@@ -3445,6 +3446,9 @@ int main(int argc, char **argv, char **envp)
              case QEMU_OPTION_loadvm:
                  loadvm = optarg;
                  break;
@@ -797,7 +797,7 @@ index 98efed1a79..68ca370e19 100644
              case QEMU_OPTION_full_screen:
                  dpy.has_full_screen = true;
                  dpy.full_screen = true;
-@@ -4579,6 +4583,12 @@ int main(int argc, char **argv, char **envp)
+@@ -4444,6 +4448,12 @@ int main(int argc, char **argv, char **envp)
              autostart = 0;
              exit(1);
          }

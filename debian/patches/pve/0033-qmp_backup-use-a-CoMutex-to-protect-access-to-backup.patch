@@ -14,10 +14,10 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  1 file changed, 52 insertions(+), 22 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index 85031de942..7e9241cf42 100644
+index cec0f770e8..29196c18d8 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3195,7 +3195,7 @@ static struct PVEBackupState {
+@@ -3215,7 +3215,7 @@ static struct PVEBackupState {
      size_t total;
      size_t transferred;
      size_t zero_bytes;
@@ -26,7 +26,7 @@ index 85031de942..7e9241cf42 100644
      bool      backup_mutex_initialized;
  } backup_state;
  
-@@ -3220,7 +3220,10 @@ static int coroutine_fn pvebackup_co_dump_cb(void *opaque, BlockBackend *target,
+@@ -3240,7 +3240,10 @@ static int coroutine_fn pvebackup_co_dump_cb(void *opaque, BlockBackend *target,
      const unsigned char *buf = pbuf;
      PVEBackupDevInfo *di = opaque;
  
@@ -37,7 +37,7 @@ index 85031de942..7e9241cf42 100644
          return size; // return success
      }
  
-@@ -3231,6 +3234,7 @@ static int coroutine_fn pvebackup_co_dump_cb(void *opaque, BlockBackend *target,
+@@ -3251,6 +3254,7 @@ static int coroutine_fn pvebackup_co_dump_cb(void *opaque, BlockBackend *target,
                         "got unaligned write inside backup dump "
                         "callback (sector %ld)", start);
          }
@@ -45,7 +45,7 @@ index 85031de942..7e9241cf42 100644
          return -1; // not aligned to cluster size
      }
  
-@@ -3272,6 +3276,8 @@ static int coroutine_fn pvebackup_co_dump_cb(void *opaque, BlockBackend *target,
+@@ -3292,6 +3296,8 @@ static int coroutine_fn pvebackup_co_dump_cb(void *opaque, BlockBackend *target,
          backup_state.transferred += size;
      }
  
@@ -54,7 +54,7 @@ index 85031de942..7e9241cf42 100644
      // Note: always return success, because we want that writes succeed anyways.
  
      return size;
-@@ -3281,10 +3287,9 @@ static void coroutine_fn pvebackup_co_cleanup(void)
+@@ -3301,10 +3307,9 @@ static void coroutine_fn pvebackup_co_cleanup(void)
  {
      assert(qemu_in_coroutine());
  
@@ -67,7 +67,7 @@ index 85031de942..7e9241cf42 100644
          return;
      }
  
-@@ -3299,7 +3304,7 @@ static void coroutine_fn pvebackup_co_cleanup(void)
+@@ -3319,7 +3324,7 @@ static void coroutine_fn pvebackup_co_cleanup(void)
  
      g_list_free(backup_state.di_list);
      backup_state.di_list = NULL;
@@ -76,7 +76,7 @@ index 85031de942..7e9241cf42 100644
  }
  
  typedef struct PVEBackupCompeteCallbackData {
-@@ -3313,6 +3318,8 @@ static void coroutine_fn pvebackup_co_complete_cb(void *opaque)
+@@ -3333,6 +3338,8 @@ static void coroutine_fn pvebackup_co_complete_cb(void *opaque)
  
      PVEBackupCompeteCallbackData *cb_data = opaque;
  
@@ -85,7 +85,7 @@ index 85031de942..7e9241cf42 100644
      PVEBackupDevInfo *di = cb_data->di;
      int ret = cb_data->result;
  
-@@ -3331,12 +3338,14 @@ static void coroutine_fn pvebackup_co_complete_cb(void *opaque)
+@@ -3351,12 +3358,14 @@ static void coroutine_fn pvebackup_co_complete_cb(void *opaque)
      }
  
      // remove self from job queue
@@ -103,7 +103,7 @@ index 85031de942..7e9241cf42 100644
          pvebackup_co_run_next_job();
      }
  }
-@@ -3356,11 +3365,13 @@ static void coroutine_fn pvebackup_co_cancel(void *opaque)
+@@ -3376,11 +3385,13 @@ static void coroutine_fn pvebackup_co_cancel(void *opaque)
  {
      assert(qemu_in_coroutine());
  
@@ -119,7 +119,7 @@ index 85031de942..7e9241cf42 100644
          return;
      }
  
-@@ -3373,6 +3384,7 @@ static void coroutine_fn pvebackup_co_cancel(void *opaque)
+@@ -3393,6 +3404,7 @@ static void coroutine_fn pvebackup_co_cancel(void *opaque)
          vma_writer_set_error(backup_state.vmaw, "backup cancelled");
      }
  
@@ -127,7 +127,7 @@ index 85031de942..7e9241cf42 100644
      GList *l = backup_state.di_list;
      while (l) {
          PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
-@@ -3383,6 +3395,7 @@ static void coroutine_fn pvebackup_co_cancel(void *opaque)
+@@ -3403,6 +3415,7 @@ static void coroutine_fn pvebackup_co_cancel(void *opaque)
                  AioContext *aio_context = blk_get_aio_context(job->blk);
                  aio_context_acquire(aio_context);
                  if (!di->completed) {
@@ -135,7 +135,7 @@ index 85031de942..7e9241cf42 100644
                      job_cancel(&job->job, false);
                  }
                  aio_context_release(aio_context);
-@@ -3391,7 +3404,8 @@ static void coroutine_fn pvebackup_co_cancel(void *opaque)
+@@ -3411,7 +3424,8 @@ static void coroutine_fn pvebackup_co_cancel(void *opaque)
      }
  
      qemu_co_mutex_unlock(&backup_state.backup_mutex);
@@ -145,7 +145,7 @@ index 85031de942..7e9241cf42 100644
  }
  
  void qmp_backup_cancel(Error **errp)
-@@ -3445,7 +3459,7 @@ static void coroutine_fn pvebackup_co_run_next_job(void)
+@@ -3465,7 +3479,7 @@ static void coroutine_fn pvebackup_co_run_next_job(void)
  {
      assert(qemu_in_coroutine());
  
@@ -154,7 +154,7 @@ index 85031de942..7e9241cf42 100644
  
      GList *l = backup_state.di_list;
      while (l) {
-@@ -3454,11 +3468,13 @@ static void coroutine_fn pvebackup_co_run_next_job(void)
+@@ -3474,11 +3488,13 @@ static void coroutine_fn pvebackup_co_run_next_job(void)
          if (!di->completed && di->bs && di->bs->job) {
              BlockJob *job = di->bs->job;
              AioContext *aio_context = blk_get_aio_context(job->blk);
@@ -171,7 +171,7 @@ index 85031de942..7e9241cf42 100644
                  } else {
                      job_resume(&job->job);
                  }
-@@ -3467,7 +3483,7 @@ static void coroutine_fn pvebackup_co_run_next_job(void)
+@@ -3487,7 +3503,7 @@ static void coroutine_fn pvebackup_co_run_next_job(void)
              return;
          }
      }
@@ -180,7 +180,7 @@ index 85031de942..7e9241cf42 100644
  
      // no more jobs, run the cleanup
      pvebackup_co_cleanup();
-@@ -3510,11 +3526,14 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -3530,11 +3546,14 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
      BlockJob *job;
  
      if (!backup_state.backup_mutex_initialized) {
@@ -196,7 +196,7 @@ index 85031de942..7e9241cf42 100644
          error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
                    "previous backup not finished");
          return;
-@@ -3686,7 +3705,6 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -3706,7 +3725,6 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
      uuid_copy(backup_state.uuid, uuid);
      uuid_unparse_lower(uuid, backup_state.uuid_str);
  
@@ -204,7 +204,7 @@ index 85031de942..7e9241cf42 100644
      backup_state.di_list = di_list;
  
      backup_state.total = total;
-@@ -3704,20 +3722,21 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -3724,20 +3742,21 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
                                  1, NULL, &local_err);
          if (!job || local_err != NULL) {
              error_setg(&backup_state.error, "backup_job_create failed");
@@ -230,7 +230,7 @@ index 85031de942..7e9241cf42 100644
      }
  
      uuid_info = g_malloc0(sizeof(*uuid_info));
-@@ -3758,6 +3777,8 @@ err:
+@@ -3778,6 +3797,8 @@ err:
          rmdir(backup_dir);
      }
  
@@ -239,7 +239,7 @@ index 85031de942..7e9241cf42 100644
      task->result = NULL;
      return;
  }
-@@ -3785,6 +3806,7 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3805,6 +3826,7 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      };
  
      block_on_coroutine_fn(pvebackup_co_start, &task);
@@ -247,7 +247,7 @@ index 85031de942..7e9241cf42 100644
      return task.result;
  }
  
-@@ -3802,9 +3824,15 @@ static void coroutine_fn pvebackup_co_query(void *opaque)
+@@ -3822,9 +3844,15 @@ static void coroutine_fn pvebackup_co_query(void *opaque)
  
      BackupStatus *info = g_malloc0(sizeof(*info));
  
@@ -263,7 +263,7 @@ index 85031de942..7e9241cf42 100644
          return;
      }
  
-@@ -3842,6 +3870,8 @@ static void coroutine_fn pvebackup_co_query(void *opaque)
+@@ -3862,6 +3890,8 @@ static void coroutine_fn pvebackup_co_query(void *opaque)
      info->transferred = backup_state.transferred;
  
      task->result = info;

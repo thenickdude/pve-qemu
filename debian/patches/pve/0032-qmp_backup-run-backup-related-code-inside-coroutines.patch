@@ -11,10 +11,10 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  1 file changed, 180 insertions(+), 70 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index 2466a02cbd..85031de942 100644
+index cee7952bbb..cec0f770e8 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3153,6 +3153,34 @@ out:
+@@ -3173,6 +3173,34 @@ out:
  
  /* PVE backup related function */
  
@@ -49,7 +49,7 @@ index 2466a02cbd..85031de942 100644
  static struct PVEBackupState {
      Error *error;
      bool cancel;
-@@ -3180,12 +3208,14 @@ typedef struct PVEBackupDevInfo {
+@@ -3200,12 +3228,14 @@ typedef struct PVEBackupDevInfo {
      BlockDriverState *target;
  } PVEBackupDevInfo;
  
@@ -66,7 +66,7 @@ index 2466a02cbd..85031de942 100644
      const uint64_t size = bytes;
      const unsigned char *buf = pbuf;
      PVEBackupDevInfo *di = opaque;
-@@ -3247,8 +3277,10 @@ static int pvebackup_dump_cb(void *opaque, BlockBackend *target,
+@@ -3267,8 +3297,10 @@ static int pvebackup_dump_cb(void *opaque, BlockBackend *target,
      return size;
  }
  
@@ -78,7 +78,7 @@ index 2466a02cbd..85031de942 100644
      qemu_mutex_lock(&backup_state.backup_mutex);
      // Avoid race between block jobs and backup-cancel command:
      if (!backup_state.vmaw) {
-@@ -3270,18 +3302,19 @@ static void pvebackup_cleanup(void)
+@@ -3290,18 +3322,19 @@ static void pvebackup_cleanup(void)
      qemu_mutex_unlock(&backup_state.backup_mutex);
  }
  
@@ -107,7 +107,7 @@ index 2466a02cbd..85031de942 100644
  
      di->completed = true;
  
-@@ -3294,8 +3327,7 @@ static void pvebackup_complete_cb(void *opaque, int ret)
+@@ -3314,8 +3347,7 @@ static void pvebackup_complete_cb(void *opaque, int ret)
      di->target = NULL;
  
      if (backup_state.vmaw) {
@@ -117,7 +117,7 @@ index 2466a02cbd..85031de942 100644
      }
  
      // remove self from job queue
-@@ -3305,12 +3337,25 @@ static void pvebackup_complete_cb(void *opaque, int ret)
+@@ -3325,12 +3357,25 @@ static void pvebackup_complete_cb(void *opaque, int ret)
      qemu_mutex_unlock(&backup_state.backup_mutex);
  
      if (!backup_state.cancel) {
@@ -145,7 +145,7 @@ index 2466a02cbd..85031de942 100644
      backup_state.cancel = true;
      qemu_mutex_lock(&backup_state.backup_mutex);
      // Avoid race between block jobs and backup-cancel command:
-@@ -3345,21 +3390,16 @@ static void pvebackup_cancel(void *opaque)
+@@ -3365,21 +3410,16 @@ static void pvebackup_cancel(void *opaque)
          }
      }
  
@@ -170,7 +170,7 @@ index 2466a02cbd..85031de942 100644
  }
  
  static int config_to_vma(const char *file, BackupFormat format,
-@@ -3400,8 +3440,11 @@ static int config_to_vma(const char *file, BackupFormat format,
+@@ -3420,8 +3460,11 @@ static int config_to_vma(const char *file, BackupFormat format,
  }
  
  bool job_should_pause(Job *job);
@@ -183,7 +183,7 @@ index 2466a02cbd..85031de942 100644
      qemu_mutex_lock(&backup_state.backup_mutex);
  
      GList *l = backup_state.di_list;
-@@ -3427,16 +3470,33 @@ static void pvebackup_run_next_job(void)
+@@ -3447,16 +3490,33 @@ static void pvebackup_run_next_job(void)
      qemu_mutex_unlock(&backup_state.backup_mutex);
  
      // no more jobs, run the cleanup
@@ -224,7 +224,7 @@ index 2466a02cbd..85031de942 100644
      BlockBackend *blk;
      BlockDriverState *bs = NULL;
      const char *backup_dir = NULL;
-@@ -3455,16 +3515,16 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3475,16 +3535,16 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      }
  
      if (backup_state.di_list) {
@@ -246,7 +246,7 @@ index 2466a02cbd..85031de942 100644
  
          gchar **d = devs;
          while (d && *d) {
-@@ -3472,18 +3532,18 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3492,18 +3552,18 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
              if (blk) {
                  bs = blk_bs(blk);
                  if (bdrv_is_read_only(bs)) {
@@ -268,7 +268,7 @@ index 2466a02cbd..85031de942 100644
                            "Device '%s' not found", *d);
                  goto err;
              }
-@@ -3506,7 +3566,7 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3526,7 +3586,7 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      }
  
      if (!di_list) {
@@ -277,7 +277,7 @@ index 2466a02cbd..85031de942 100644
          goto err;
      }
  
-@@ -3516,13 +3576,13 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3536,13 +3596,13 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      while (l) {
          PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
          l = g_list_next(l);
@@ -293,7 +293,7 @@ index 2466a02cbd..85031de942 100644
              goto err;
          }
          di->size = size;
-@@ -3532,10 +3592,10 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3552,10 +3612,10 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      uuid_generate(uuid);
  
      if (format == BACKUP_FORMAT_VMA) {
@@ -306,7 +306,7 @@ index 2466a02cbd..85031de942 100644
              }
              goto err;
          }
-@@ -3549,18 +3609,18 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3569,18 +3629,18 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
              const char *devname = bdrv_get_device_name(di->bs);
              di->dev_id = vma_writer_register_stream(vmaw, devname, di->size);
              if (di->dev_id <= 0) {
@@ -330,7 +330,7 @@ index 2466a02cbd..85031de942 100644
  
          l = di_list;
          while (l) {
-@@ -3574,31 +3634,31 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3594,31 +3654,31 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
              bdrv_img_create(di->targetfile, "raw", NULL, NULL, NULL,
                              di->size, flags, false, &local_err);
              if (local_err) {
@@ -369,7 +369,7 @@ index 2466a02cbd..85031de942 100644
              goto err;
          }
      }
-@@ -3611,7 +3671,7 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3631,7 +3691,7 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
          backup_state.error = NULL;
      }
  
@@ -378,7 +378,7 @@ index 2466a02cbd..85031de942 100644
  
      backup_state.start_time = time(NULL);
      backup_state.end_time = 0;
-@@ -3619,7 +3679,7 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3639,7 +3699,7 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      if (backup_state.backup_file) {
          g_free(backup_state.backup_file);
      }
@@ -387,7 +387,7 @@ index 2466a02cbd..85031de942 100644
  
      backup_state.vmaw = vmaw;
  
-@@ -3638,14 +3698,13 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3658,14 +3718,13 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      while (l) {
          PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
          l = g_list_next(l);
@@ -405,7 +405,7 @@ index 2466a02cbd..85031de942 100644
          } else {
              job_start(&job->job);
          }
-@@ -3658,13 +3717,14 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
+@@ -3678,13 +3737,14 @@ UuidInfo *qmp_backup(const char *backup_file, bool has_format,
      qemu_mutex_unlock(&backup_state.backup_mutex);
  
      if (!backup_state.error) {
@@ -422,7 +422,7 @@ index 2466a02cbd..85031de942 100644
  
  err:
  
-@@ -3691,23 +3751,61 @@ err:
+@@ -3711,23 +3771,61 @@ err:
      if (vmaw) {
          Error *err = NULL;
          vma_writer_close(vmaw, &err);
@@ -488,7 +488,7 @@ index 2466a02cbd..85031de942 100644
      }
  
      info->has_status = true;
-@@ -3743,7 +3841,19 @@ BackupStatus *qmp_query_backup(Error **errp)
+@@ -3763,7 +3861,19 @@ BackupStatus *qmp_query_backup(Error **errp)
      info->has_transferred = true;
      info->transferred = backup_state.transferred;
  

@@ -14,10 +14,10 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  1 file changed, 26 insertions(+), 14 deletions(-)
 
 diff --git a/blockdev.c b/blockdev.c
-index 6d16043131..786921da0a 100644
+index a95beb823e..530b76c82f 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3416,10 +3416,16 @@ void qmp_backup_cancel(Error **errp)
+@@ -3436,10 +3436,16 @@ void qmp_backup_cancel(Error **errp)
      block_on_coroutine_fn(pvebackup_co_cancel, NULL);
  }
  
@@ -37,7 +37,7 @@ index 6d16043131..786921da0a 100644
      char *cdata = NULL;
      gsize clen = 0;
      GError *err = NULL;
-@@ -3429,28 +3435,30 @@ static int config_to_vma(const char *file, BackupFormat format,
+@@ -3449,28 +3455,30 @@ static int config_to_vma(const char *file, BackupFormat format,
      }
  
      char *basename = g_path_get_basename(file);
@@ -77,7 +77,7 @@ index 6d16043131..786921da0a 100644
  }
  
  bool job_should_pause(Job *job);
-@@ -3526,6 +3534,9 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -3546,6 +3554,9 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
      BlockJob *job;
      int dump_cb_block_size = -1;
  
@@ -87,7 +87,7 @@ index 6d16043131..786921da0a 100644
      if (!backup_state.backup_mutex_initialized) {
          qemu_co_mutex_init(&backup_state.backup_mutex);
          backup_state.backup_mutex_initialized = true;
-@@ -3670,16 +3681,17 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -3690,16 +3701,17 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
          goto err;
      }
  
