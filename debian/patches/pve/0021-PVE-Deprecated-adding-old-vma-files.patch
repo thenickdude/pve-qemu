@@ -8,7 +8,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  Makefile                  |   3 +-
  Makefile.objs             |   1 +
- block/backup.c            |  87 ++--
+ block/backup.c            |  88 ++--
  block/replication.c       |   1 +
  blockdev.c                | 208 +++++----
  include/block/block_int.h |   4 +
@@ -17,7 +17,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  vma-writer.c              | 771 ++++++++++++++++++++++++++++++++++
  vma.c                     | 756 +++++++++++++++++++++++++++++++++
  vma.h                     | 150 +++++++
- 11 files changed, 2734 insertions(+), 107 deletions(-)
+ 11 files changed, 2737 insertions(+), 105 deletions(-)
  create mode 100644 vma-reader.c
  create mode 100644 vma-writer.c
  create mode 100644 vma.c
@@ -57,7 +57,7 @@ index 21dd93b58c..87c6033bc1 100644
  block-obj-m = block/
  
 diff --git a/block/backup.c b/block/backup.c
-index 812783d3cb..05569de5d4 100644
+index 30008fcc34..fdcfb0529c 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -41,6 +41,7 @@ typedef struct BackupBlockJob {
@@ -211,33 +211,43 @@ index 812783d3cb..05569de5d4 100644
      job->on_source_error = on_source_error;
      job->on_target_error = on_target_error;
      job->sync_mode = sync_mode;
-@@ -658,16 +678,19 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -658,10 +678,14 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
      job->cluster_size = cluster_size;
      job->copy_bitmap = copy_bitmap;
      copy_bitmap = NULL;
--    job->use_copy_range = !compress; /* compression isn't supported for it */
 -    job->copy_range_size = MIN_NON_ZERO(blk_get_max_transfer(job->common.blk),
 -                                        blk_get_max_transfer(job->target));
--    job->copy_range_size = MAX(job->cluster_size,
--                               QEMU_ALIGN_UP(job->copy_range_size,
--                                             job->cluster_size));
--
--    /* Required permissions are already taken with target's blk_new() */
--    block_job_add_bdrv(&job->common, "target", target, 0, BLK_PERM_ALL,
--                       &error_abort);
-+    job->use_copy_range = target && !compress; /* compression isn't supported for it */
+-    job->copy_range_size = QEMU_ALIGN_DOWN(job->copy_range_size,
+-                                           job->cluster_size);
 +
 +    if (target) {
 +        job->copy_range_size = MIN_NON_ZERO(blk_get_max_transfer(job->common.blk),
 +                                            blk_get_max_transfer(job->target));
-+        job->copy_range_size = MAX(job->cluster_size,
-+                                   QEMU_ALIGN_UP(job->copy_range_size,
-+                                                 job->cluster_size));
++        job->copy_range_size = QEMU_ALIGN_DOWN(job->copy_range_size,
++                                               job->cluster_size);
++    }
 +
+     /*
+      * Set use_copy_range, consider the following:
+      * 1. Compression is not supported for copy_range.
+@@ -669,12 +693,16 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+      *    that in here. If max_transfer is smaller than the job->cluster_size,
+      *    we do not use copy_range (in that case it's zero after aligning down
+      *    above).
++     * 3. If !target, we're using PVE dump_cb callback
+      */
+-    job->use_copy_range = !compress && job->copy_range_size > 0;
++    job->use_copy_range = target && !compress && job->copy_range_size > 0;
++
++    if (target) {
 +        /* Required permissions are already taken with target's blk_new() */
 +        block_job_add_bdrv(&job->common, "target", target, 0, BLK_PERM_ALL,
 +                           &error_abort);
 +    }
+ 
+-    /* Required permissions are already taken with target's blk_new() */
+-    block_job_add_bdrv(&job->common, "target", target, 0, BLK_PERM_ALL,
+-                       &error_abort);
      job->len = len;
      job->common.job.pause_count += pause_count;
  
@@ -670,7 +680,7 @@ index 7047475a3c..cee7952bbb 100644
          error_propagate(errp, local_err);
      }
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 9f4fbad5a6..73a55a7351 100644
+index bb2dddca83..5a8b2e06c1 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -61,6 +61,9 @@
@@ -683,7 +693,7 @@ index 9f4fbad5a6..73a55a7351 100644
  enum BdrvTrackedRequestType {
      BDRV_TRACKED_READ,
      BDRV_TRACKED_WRITE,
-@@ -1168,6 +1171,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -1172,6 +1175,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                              BlockdevOnError on_source_error,
                              BlockdevOnError on_target_error,
                              int creation_flags,
