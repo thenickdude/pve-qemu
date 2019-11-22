@@ -12,10 +12,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  1 file changed, 10 insertions(+)
 
 diff --git a/blockjob.c b/blockjob.c
-index 20b7f557da..c6067474a2 100644
+index 74abb97bfd..75b9180a7f 100644
 --- a/blockjob.c
 +++ b/blockjob.c
-@@ -439,10 +439,20 @@ void *block_job_create(const char *job_id, const BlockJobDriver *driver,
+@@ -448,10 +448,20 @@ void *block_job_create(const char *job_id, const BlockJobDriver *driver,
      notifier_list_add(&job->job.on_ready, &job->ready_notifier);
      notifier_list_add(&job->job.on_idle, &job->idle_notifier);
  

@@ -12,7 +12,7 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/block/backup.c b/block/backup.c
-index a3f0d2c9a5..3e99d23e98 100644
+index 2398a4d602..c682c99f7a 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -131,7 +131,12 @@ static int coroutine_fn backup_cow_with_bounce_buffer(BackupBlockJob *job,

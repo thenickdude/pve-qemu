@@ -18,7 +18,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  5 files changed, 7 insertions(+), 4 deletions(-)
 
 diff --git a/block/backup.c b/block/backup.c
-index b26c22c4b8..812783d3cb 100644
+index 8761f1f9a7..30008fcc34 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -550,6 +550,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
@@ -29,7 +29,7 @@ index b26c22c4b8..812783d3cb 100644
                    JobTxn *txn, Error **errp)
  {
      int64_t len;
-@@ -668,6 +669,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -675,6 +676,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
      block_job_add_bdrv(&job->common, "target", target, 0, BLK_PERM_ALL,
                         &error_abort);
      job->len = len;
@@ -73,10 +73,10 @@ index 4d141e9a1f..a7c97b1585 100644
          error_propagate(errp, local_err);
      }
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 3aa1e832a8..9f4fbad5a6 100644
+index 05ee6b4866..bb2dddca83 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
-@@ -1169,6 +1169,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -1173,6 +1173,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                              BlockdevOnError on_target_error,
                              int creation_flags,
                              BlockCompletionFunc *cb, void *opaque,

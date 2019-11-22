@@ -12,7 +12,7 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  4 files changed, 18 insertions(+), 6 deletions(-)
 
 diff --git a/block/backup.c b/block/backup.c
-index 05569de5d4..a3f0d2c9a5 100644
+index fdcfb0529c..2398a4d602 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -566,6 +566,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
@@ -100,10 +100,10 @@ index 29196c18d8..a95beb823e 100644
          error_propagate(errp, local_err);
      }
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 73a55a7351..13dfee215d 100644
+index 5a8b2e06c1..e7ca823058 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
-@@ -1156,6 +1156,9 @@ void mirror_start(const char *job_id, BlockDriverState *bs,
+@@ -1160,6 +1160,9 @@ void mirror_start(const char *job_id, BlockDriverState *bs,
   * @on_target_error: The action to take upon error writing to the target.
   * @creation_flags: Flags that control the behavior of the Job lifetime.
   *                  See @BlockJobCreateFlags
@@ -113,7 +113,7 @@ index 73a55a7351..13dfee215d 100644
   * @cb: Completion function for the job.
   * @opaque: Opaque pointer value passed to @cb.
   * @txn: Transaction that this job is part of (may be NULL).
-@@ -1172,6 +1175,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -1176,6 +1179,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                              BlockdevOnError on_target_error,
                              int creation_flags,
                              BackupDumpFunc *dump_cb,

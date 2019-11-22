@@ -9,7 +9,7 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  1 file changed, 2 insertions(+), 5 deletions(-)
 
 diff --git a/block/backup.c b/block/backup.c
-index 3e99d23e98..dbdc0a76ca 100644
+index c682c99f7a..556367f8ba 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -642,11 +642,8 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,

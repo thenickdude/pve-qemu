@@ -13,10 +13,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 43 insertions(+), 21 deletions(-)
 
 diff --git a/block/file-posix.c b/block/file-posix.c
-index 760648b78c..e40386384e 100644
+index 71aa45ce5d..ae1cd3980e 100644
 --- a/block/file-posix.c
 +++ b/block/file-posix.c
-@@ -2240,6 +2240,7 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
+@@ -2230,6 +2230,7 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
      int fd;
      uint64_t perm, shared;
      int result = 0;
@@ -24,7 +24,7 @@ index 760648b78c..e40386384e 100644
  
      /* Validate options and set default values */
      assert(options->driver == BLOCKDEV_DRIVER_FILE);
-@@ -2273,19 +2274,22 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
+@@ -2263,19 +2264,22 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
      perm = BLK_PERM_WRITE | BLK_PERM_RESIZE;
      shared = BLK_PERM_ALL & ~BLK_PERM_RESIZE;
  
@@ -59,7 +59,7 @@ index 760648b78c..e40386384e 100644
      }
  
      /* Clear the file by truncating it to 0 */
-@@ -2318,13 +2322,15 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
+@@ -2308,13 +2312,15 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
      }
  
  out_unlock:
@@ -82,7 +82,7 @@ index 760648b78c..e40386384e 100644
      }
  
  out_close:
-@@ -2345,6 +2351,7 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
+@@ -2335,6 +2341,7 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
      PreallocMode prealloc;
      char *buf = NULL;
      Error *local_err = NULL;
@@ -90,7 +90,7 @@ index 760648b78c..e40386384e 100644
  
      /* Skip file: protocol prefix */
      strstart(filename, "file:", &filename);
-@@ -2362,6 +2369,18 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
+@@ -2352,6 +2359,18 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
          return -EINVAL;
      }
  
@@ -109,7 +109,7 @@ index 760648b78c..e40386384e 100644
      options = (BlockdevCreateOptions) {
          .driver     = BLOCKDEV_DRIVER_FILE,
          .u.file     = {
-@@ -2371,6 +2390,8 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
+@@ -2361,6 +2380,8 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
              .preallocation      = prealloc,
              .has_nocow          = true,
              .nocow              = nocow,
@@ -118,7 +118,7 @@ index 760648b78c..e40386384e 100644
          },
      };
      return raw_co_create(&options, errp);
-@@ -2812,7 +2833,7 @@ static int raw_check_perm(BlockDriverState *bs, uint64_t perm, uint64_t shared,
+@@ -2838,7 +2859,7 @@ static int raw_check_perm(BlockDriverState *bs, uint64_t perm, uint64_t shared,
      }
  
      /* Copy locks to the new fd */
