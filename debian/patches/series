@@ -43,3 +43,4 @@ pve/0041-PVE-backup-consider-source-cluster-size-as-well.patch
 pve/0042-PVE-fixup-vma-tool.patch
 pve/0043-PVE-fixup-blockdev-pvebackup-integration-fix-blockjo.patch
 pve/0044-Acquire-aio_context-before-calling-block_job_add_bdr.patch
+pve/0045-PVE-Compat-4.0-used-balloon-qemu-4-0-config-size-fal.patch
