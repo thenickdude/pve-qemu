@@ -1,0 +1,100 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Thu, 14 Nov 2019 17:56:12 +0100
+Subject: [PATCH] PVE: Allow version code in machine type
+
+E.g. pc-i440fx-4.0+pve3 would print 'pve3' as version code while
+selecting pc-i440fx-4.0 as machine type.
+
+Version is made available as 'pve-version' in query-machines (same as,
+and only if 'is-current').
+
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+---
+ hw/core/machine-qmp-cmds.c |  6 ++++++
+ include/hw/boards.h        |  2 ++
+ qapi/machine.json          |  2 +-
+ vl.c                       | 15 ++++++++++++++-
+ 4 files changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/hw/core/machine-qmp-cmds.c b/hw/core/machine-qmp-cmds.c
+index fd68f9baf8..61fcad138d 100644
+--- a/hw/core/machine-qmp-cmds.c
++++ b/hw/core/machine-qmp-cmds.c
+@@ -232,6 +232,12 @@ MachineInfoList *qmp_query_machines(Error **errp)
+         if (strcmp(mc->name, MACHINE_GET_CLASS(current_machine)->name) == 0) {
+             info->has_is_current = true;
+             info->is_current = true;
++
++            // PVE version string only exists for current machine
++            if (mc->pve_version) {
++                info->has_pve_version = true;
++                info->pve_version = g_strdup(mc->pve_version);
++            }
+         }
+ 
+         entry = g_malloc0(sizeof(*entry));
+diff --git a/include/hw/boards.h b/include/hw/boards.h
+index a71d1a53a5..952d2add82 100644
+--- a/include/hw/boards.h
++++ b/include/hw/boards.h
+@@ -178,6 +178,8 @@ struct MachineClass {
+     const char *desc;
+     const char *deprecation_reason;
+ 
++    const char *pve_version;
++
+     void (*init)(MachineState *state);
+     void (*reset)(MachineState *state);
+     void (*hot_add_cpu)(MachineState *state, const int64_t id, Error **errp);
+diff --git a/qapi/machine.json b/qapi/machine.json
+index 7b82c5f7f5..11fef6714e 100644
+--- a/qapi/machine.json
++++ b/qapi/machine.json
+@@ -333,7 +333,7 @@
+   'data': { 'name': 'str', '*alias': 'str',
+             '*is-default': 'bool', '*is-current': 'bool', 'cpu-max': 'int',
+             'hotpluggable-cpus': 'bool',  'numa-mem-supported': 'bool',
+-            'deprecated': 'bool' } }
++            'deprecated': 'bool', '*pve-version': 'str' } }
+ 
+ ##
+ # @query-machines:
+diff --git a/vl.c b/vl.c
+index 7ffcd271f1..1305cdaee7 100644
+--- a/vl.c
++++ b/vl.c
+@@ -2454,6 +2454,8 @@ static MachineClass *machine_parse(const char *name, GSList *machines)
+ {
+     MachineClass *mc;
+     GSList *el;
++    size_t pvever_index = 0;
++    gchar *name_clean;
+ 
+     if (is_help_option(name)) {
+         printf("Supported machines are:\n");
+@@ -2470,12 +2472,23 @@ static MachineClass *machine_parse(const char *name, GSList *machines)
+         exit(0);
+     }
+ 
+-    mc = find_machine(name, machines);
++    // PVE version is specified with '+' as seperator, e.g. pc-i440fx+pvever
++    pvever_index = strcspn(name, "+");
++
++    name_clean = g_strndup(name, pvever_index);
++    mc = find_machine(name_clean, machines);
++    g_free(name_clean);
++
+     if (!mc) {
+         error_report("unsupported machine type");
+         error_printf("Use -machine help to list supported machines\n");
+         exit(1);
+     }
++
++    if (pvever_index < strlen(name)) {
++        mc->pve_version = &name[pvever_index+1];
++    }
++
+     return mc;
+ }
+ 
