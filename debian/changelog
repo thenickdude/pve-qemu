@@ -1,3 +1,10 @@
+pve-qemu-kvm (4.1.1-2) pve; urgency=medium
+
+  * backport: fix for resizing virtio-blk disks with IOThread enabled on
+    running VMs
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 29 Nov 2019 09:05:17 +0100
+
 pve-qemu-kvm (4.1.1-1) pve; urgency=medium
 
   * update to new stable upstream release v4.1.1
