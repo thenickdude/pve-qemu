@@ -17,7 +17,7 @@ index 79983772de..c64f260876 100644
                                     force_share);
      if (!list) {
 -        return 1;
-+ 	// return success if snapshot does not exists
++ 	// return success if snapshot does not exist
 +        return 0;
      }
  
