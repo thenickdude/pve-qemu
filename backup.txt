@@ -108,7 +108,7 @@ files.
 
 We have defined a very simply format with those properties, see:
 
-https://git.proxmox.com/?p=pve-qemu-kvm.git;a=blob;f=vma_spec.txt;
+https://git.proxmox.com/?p=pve-qemu.git;a=blob;f=vma_spec.txt;
 
 Please let us know if you know an existing format which provides the
 same functionality.
