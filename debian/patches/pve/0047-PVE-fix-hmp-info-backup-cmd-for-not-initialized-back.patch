@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tim Marx <t.marx@proxmox.com>
+Date: Wed, 22 Jan 2020 16:22:14 +0100
+Subject: [PATCH] PVE: fix hmp info backup cmd for not initialized
+ backup_state.backup_mutex
+
+Signed-off-by: Tim Marx <t.marx@proxmox.com>
+---
+ monitor/hmp-cmds.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
+index bc9ca346f7..fb820410de 100644
+--- a/monitor/hmp-cmds.c
++++ b/monitor/hmp-cmds.c
+@@ -201,6 +201,12 @@ void hmp_info_backup(Monitor *mon, const QDict *qdict)
+     BackupStatus *info;
+ 
+     info = qmp_query_backup(NULL);
++
++    if (!info) {
++	monitor_printf(mon, "Backup status: not initialized\n");
++	return;
++    }
++
+     if (info->has_status) {
+         if (info->has_errmsg) {
+             monitor_printf(mon, "Backup status: %s - %s\n",
+-- 
+2.20.1
+
