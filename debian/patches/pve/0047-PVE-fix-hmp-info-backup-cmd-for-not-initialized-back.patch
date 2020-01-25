@@ -19,8 +19,8 @@ index bc9ca346f7..fb820410de 100644
      info = qmp_query_backup(NULL);
 +
 +    if (!info) {
-+	monitor_printf(mon, "Backup status: not initialized\n");
-+	return;
++       monitor_printf(mon, "Backup status: not initialized\n");
++       return;
 +    }
 +
      if (info->has_status) {
