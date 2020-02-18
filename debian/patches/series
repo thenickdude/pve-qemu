@@ -47,3 +47,6 @@ pve/0044-Acquire-aio_context-before-calling-block_job_add_bdr.patch
 pve/0045-PVE-Compat-4.0-used-balloon-qemu-4-0-config-size-fal.patch
 pve/0046-PVE-Allow-version-code-in-machine-type.patch
 pve/0047-PVE-fix-hmp-info-backup-cmd-for-not-initialized-back.patch
+pve/0048-PVE-backup-use-separate-CoRwlock-for-data-accessed-b.patch
+pve/0049-PVE-backup-block_on_coroutine_wrapper-call-aio_wait.patch
+pve/0050-PVE-backup-move-backup_state.cancel-to-backup_state.patch

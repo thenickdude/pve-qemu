@@ -1,0 +1,25 @@
+From ca384caae9a0dbbbbab2174ec09935702ac7a067 Mon Sep 17 00:00:00 2001
+From: Dietmar Maurer <dietmar@proxmox.com>
+Date: Fri, 14 Feb 2020 11:51:02 +0100
+Subject: [PATCH qemu 2/7] PVE backup - block_on_coroutine_wrapper: call
+ aio_wait_kick() as described in block/aio-wait.h
+
+---
+ blockdev.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/blockdev.c b/blockdev.c
+index 4367eaf2a7..2f84f8832d 100644
+--- a/blockdev.c
++++ b/blockdev.c
+@@ -3185,6 +3185,7 @@ static void coroutine_fn block_on_coroutine_wrapper(void *opaque)
+     BlockOnCoroutineWrapper *wrapper = opaque;
+     wrapper->entry(wrapper->entry_arg);
+     wrapper->finished = true;
++    aio_wait_kick();
+ }
+ 
+ static void block_on_coroutine_fn(CoroutineEntry *entry, void *entry_arg)
+-- 
+2.20.1
+

@@ -1,0 +1,95 @@
+From c8856d5cbcf3d427cd02c9556f845486ab5362bc Mon Sep 17 00:00:00 2001
+From: Dietmar Maurer <dietmar@proxmox.com>
+Date: Fri, 14 Feb 2020 12:37:27 +0100
+Subject: [PATCH qemu 3/7] PVE backup: move backup_state.cancel to
+ backup_state.stat.cancel
+
+In order to avoid lock contention with qmp_backup_cancel.
+---
+ blockdev.c | 25 +++++++++++++++----------
+ 1 file changed, 15 insertions(+), 10 deletions(-)
+
+diff --git a/blockdev.c b/blockdev.c
+index 2f84f8832d..a4b5b98224 100644
+--- a/blockdev.c
++++ b/blockdev.c
+@@ -3204,9 +3204,9 @@ static void block_on_coroutine_fn(CoroutineEntry *entry, void *entry_arg)
+     AIO_WAIT_WHILE(ctx, !wrapper.finished);
+ }
+ 
+-
+ static struct PVEBackupState {
+     struct {
++        // Everithing accessed from qmp command, protected using rwlock
+         CoRwlock rwlock;
+         Error *error;
+         time_t start_time;
+@@ -3217,8 +3217,8 @@ static struct PVEBackupState {
+         size_t total;
+         size_t transferred;
+         size_t zero_bytes;
++        bool cancel;
+     } stat;
+-    bool cancel;
+     int64_t speed;
+     VmaWriter *vmaw;
+     GList *di_list;
+@@ -3247,13 +3247,16 @@ static int coroutine_fn pvebackup_co_dump_cb(void *opaque, BlockBackend *target,
+     const unsigned char *buf = pbuf;
+     PVEBackupDevInfo *di = opaque;
+ 
+-    qemu_co_mutex_lock(&backup_state.backup_mutex);
++    qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
++    bool cancel = backup_state.stat.cancel;
++    qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
+ 
+-    if (backup_state.cancel) {
+-        qemu_co_mutex_unlock(&backup_state.backup_mutex);
++    if (cancel) {
+         return size; // return success
+     }
+ 
++    qemu_co_mutex_lock(&backup_state.backup_mutex);
++
+     uint64_t cluster_num = start / VMA_CLUSTER_SIZE;
+     if ((cluster_num * VMA_CLUSTER_SIZE) != start) {
+         qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
+@@ -3419,9 +3422,11 @@ static void coroutine_fn pvebackup_co_cancel(void *opaque)
+ {
+     assert(qemu_in_coroutine());
+ 
+-    qemu_co_mutex_lock(&backup_state.backup_mutex);
++    qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
++    backup_state.stat.cancel = true;
++    qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
+ 
+-    backup_state.cancel = true;
++    qemu_co_mutex_lock(&backup_state.backup_mutex);
+ 
+     // Avoid race between block jobs and backup-cancel command:
+     if (!backup_state.vmaw) {
+@@ -3542,7 +3547,7 @@ static void coroutine_fn pvebackup_co_run_next_job(void)
+ 
+                     if (job_should_pause(&job->job)) {
+                         qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
+-                        bool error_or_canceled = backup_state.stat.error || backup_state.cancel;
++                        bool error_or_canceled = backup_state.stat.error || backup_state.stat.cancel;
+                         qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
+ 
+                         if (error_or_canceled) {
+@@ -3761,10 +3766,10 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+     }
+     /* initialize global backup_state now */
+ 
+-    backup_state.cancel = false;
+-
+     qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
+ 
++    backup_state.stat.cancel = false;
++
+     if (backup_state.stat.error) {
+         error_free(backup_state.stat.error);
+         backup_state.stat.error = NULL;
+-- 
+2.20.1
+
