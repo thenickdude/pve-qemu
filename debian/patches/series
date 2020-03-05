@@ -1,5 +1,6 @@
 extra/0001-monitor-qmp-resume-monitor-when-clearing-its-queue.patch
 extra/0002-virtio-blk-schedule-virtio_notify_config-to-run-on-m.patch
+extra/0003-vnc-fix-memory-leak-when-vnc-disconnect.patch
 pve/0001-PVE-Config-block-file-change-locking-default-to-off.patch
 pve/0002-PVE-Config-Adjust-network-script-path-to-etc-kvm.patch
 pve/0003-PVE-Config-set-the-CPU-model-to-kvm64-32-instead-of-.patch
