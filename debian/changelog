@@ -1,3 +1,11 @@
+pve-qemu-kvm (4.1.1-4) pve; urgency=medium
+
+  * fix a memory leak triggered by a VNC disconnect
+
+  * cherry-pick security patches for libslirp (CVE-2020-8608)
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 06 Mar 2020 16:31:27 +0100
+
 pve-qemu-kvm (4.1.1-3) pve; urgency=medium
 
   * reduce lock contention by using CoRwLock
