@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Fri, 23 Jun 2017 12:01:43 +0200
-Subject: [PATCH] PVE: [Up] qemu-img dd: add osize and read from/to
+Date: Tue, 10 Mar 2020 12:55:08 +0100
+Subject: [PATCH 11/32] PVE: [Up] qemu-img dd: add osize and read from/to
  stdin/stdout
 
 Neither convert nor dd were previously able to write to or
@@ -53,10 +53,10 @@ index 1c93e6d185..8094abb3ee 100644
  
  DEF("info", img_info,
 diff --git a/qemu-img.c b/qemu-img.c
-index c64f260876..8129677d7a 100644
+index 12211bed76..d2516968c6 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -4413,10 +4413,12 @@ out:
+@@ -4405,10 +4405,12 @@ out:
  #define C_IF      04
  #define C_OF      010
  #define C_SKIP    020
@@ -69,7 +69,7 @@ index c64f260876..8129677d7a 100644
  };
  
  struct DdIo {
-@@ -4495,6 +4497,20 @@ static int img_dd_skip(const char *arg,
+@@ -4487,6 +4489,20 @@ static int img_dd_skip(const char *arg,
      return 0;
  }
  
@@ -90,7 +90,7 @@ index c64f260876..8129677d7a 100644
  static int img_dd(int argc, char **argv)
  {
      int ret = 0;
-@@ -4535,6 +4551,7 @@ static int img_dd(int argc, char **argv)
+@@ -4527,6 +4543,7 @@ static int img_dd(int argc, char **argv)
          { "if", img_dd_if, C_IF },
          { "of", img_dd_of, C_OF },
          { "skip", img_dd_skip, C_SKIP },
@@ -98,7 +98,7 @@ index c64f260876..8129677d7a 100644
          { NULL, NULL, 0 }
      };
      const struct option long_options[] = {
-@@ -4613,8 +4630,13 @@ static int img_dd(int argc, char **argv)
+@@ -4605,8 +4622,13 @@ static int img_dd(int argc, char **argv)
          arg = NULL;
      }
  
@@ -114,7 +114,7 @@ index c64f260876..8129677d7a 100644
          ret = -1;
          goto out;
      }
-@@ -4626,85 +4648,101 @@ static int img_dd(int argc, char **argv)
+@@ -4618,85 +4640,101 @@ static int img_dd(int argc, char **argv)
          goto out;
      }
  
@@ -280,7 +280,7 @@ index c64f260876..8129677d7a 100644
      }
  
      if (dd.flags & C_SKIP && (in.offset > INT64_MAX / in.bsz ||
-@@ -4722,11 +4760,17 @@ static int img_dd(int argc, char **argv)
+@@ -4714,11 +4752,17 @@ static int img_dd(int argc, char **argv)
  
      for (out_pos = 0; in_pos < size; block_count++) {
          int in_ret, out_ret;
@@ -302,7 +302,7 @@ index c64f260876..8129677d7a 100644
          }
          if (in_ret < 0) {
              error_report("error while reading from input image file: %s",
-@@ -4736,9 +4780,13 @@ static int img_dd(int argc, char **argv)
+@@ -4728,9 +4772,13 @@ static int img_dd(int argc, char **argv)
          }
          in_pos += in_ret;
  

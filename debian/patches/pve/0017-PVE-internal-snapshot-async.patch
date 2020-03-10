@@ -1,9 +1,12 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Wed, 9 Dec 2015 16:04:32 +0100
-Subject: [PATCH] PVE: internal snapshot async
+From: Dietmar Maurer <dietmar@proxmox.com>
+Date: Tue, 10 Mar 2020 13:49:27 +0100
+Subject: [PATCH 17/32] PVE: internal snapshot async
+
+Truncate at 1024 boundary (Fabian Ebner will send a patch for stable)
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
 ---
  Makefile.objs                |   1 +
  hmp-commands-info.hx         |  13 +
@@ -14,13 +17,13 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  qapi/migration.json          |  34 +++
  qapi/misc.json               |  32 +++
  qemu-options.hx              |  13 +
- savevm-async.c               | 460 +++++++++++++++++++++++++++++++++++
+ savevm-async.c               | 464 +++++++++++++++++++++++++++++++++++
  vl.c                         |  10 +
- 11 files changed, 658 insertions(+)
+ 11 files changed, 662 insertions(+)
  create mode 100644 savevm-async.c
 
 diff --git a/Makefile.objs b/Makefile.objs
-index 6a143dcd57..21dd93b58c 100644
+index 11ba1a36bd..f97b40f232 100644
 --- a/Makefile.objs
 +++ b/Makefile.objs
 @@ -48,6 +48,7 @@ common-obj-y += bootdevice.o iothread.o
@@ -32,7 +35,7 @@ index 6a143dcd57..21dd93b58c 100644
  common-obj-y += qdev-monitor.o device-hotplug.o
  common-obj-$(CONFIG_WIN32) += os-win32.o
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index c59444c461..444bd8e43d 100644
+index 257ee7d7a3..139e673bea 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
 @@ -608,6 +608,19 @@ STEXI
@@ -56,10 +59,10 @@ index c59444c461..444bd8e43d 100644
  
      {
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index bfa5681dd2..e075d413c0 100644
+index cfcc044ce4..104288322d 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
-@@ -1944,3 +1944,35 @@ ETEXI
+@@ -1945,3 +1945,35 @@ ETEXI
  STEXI
  @end table
  ETEXI
@@ -130,10 +133,10 @@ index a0e9511440..c6ee8295f0 100644
  void hmp_screendump(Monitor *mon, const QDict *qdict);
  void hmp_nbd_server_start(Monitor *mon, const QDict *qdict);
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 1b32c59329..39a8020367 100644
+index 2e725ed818..90aa34be25 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
-@@ -2640,6 +2640,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
+@@ -2607,6 +2607,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
      hmp_handle_error(mon, &err);
  }
  
@@ -198,10 +201,10 @@ index 1b32c59329..39a8020367 100644
  {
      IOThreadInfoList *info_list = qmp_query_iothreads(NULL);
 diff --git a/qapi/migration.json b/qapi/migration.json
-index 9cfbaf8c6c..e206355d56 100644
+index b7348d0c8b..2792409977 100644
 --- a/qapi/migration.json
 +++ b/qapi/migration.json
-@@ -219,6 +219,40 @@
+@@ -222,6 +222,40 @@
             '*compression': 'CompressionStats',
             '*socket-address': ['SocketAddress'] } }
  
@@ -243,12 +246,12 @@ index 9cfbaf8c6c..e206355d56 100644
  # @query-migrate:
  #
 diff --git a/qapi/misc.json b/qapi/misc.json
-index 2445c950cc..31029e3132 100644
+index ed65ed27e3..4c4618a574 100644
 --- a/qapi/misc.json
 +++ b/qapi/misc.json
-@@ -1384,6 +1384,38 @@
+@@ -1368,6 +1368,38 @@
  ##
- { 'command': 'query-target', 'returns': 'TargetInfo' }
+ { 'command': 'query-fdsets', 'returns': ['FdsetInfo'] }
  
 +##
 +# @savevm-start:
@@ -286,10 +289,10 @@ index 2445c950cc..31029e3132 100644
  # @AcpiTableOptions:
  #
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 9621e934c0..34994daafd 100644
+index 65c9473b73..4cb2681bfc 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -3731,6 +3731,19 @@ STEXI
+@@ -3818,6 +3818,19 @@ STEXI
  Start right away with a saved state (@code{loadvm} in monitor)
  ETEXI
  
@@ -311,10 +314,10 @@ index 9621e934c0..34994daafd 100644
      "-daemonize      daemonize QEMU after initializing\n", QEMU_ARCH_ALL)
 diff --git a/savevm-async.c b/savevm-async.c
 new file mode 100644
-index 0000000000..2149010bb8
+index 0000000000..54ceeae26c
 --- /dev/null
 +++ b/savevm-async.c
-@@ -0,0 +1,460 @@
+@@ -0,0 +1,464 @@
 +#include "qemu/osdep.h"
 +#include "migration/migration.h"
 +#include "migration/savevm.h"
@@ -323,6 +326,7 @@ index 0000000000..2149010bb8
 +#include "migration/ram.h"
 +#include "migration/qemu-file.h"
 +#include "sysemu/sysemu.h"
++#include "sysemu/runstate.h"
 +#include "block/block.h"
 +#include "sysemu/block-backend.h"
 +#include "qapi/error.h"
@@ -332,6 +336,8 @@ index 0000000000..2149010bb8
 +#include "qapi/qapi-commands-misc.h"
 +#include "qapi/qapi-commands-block.h"
 +#include "qemu/cutils.h"
++#include "qemu/main-loop.h"
++#include "qemu/rcu.h"
 +
 +/* #define DEBUG_SAVEVM_STATE */
 +
@@ -421,10 +427,11 @@ index 0000000000..2149010bb8
 +
 +    if (snap_state.target) {
 +        /* try to truncate, but ignore errors (will fail on block devices).
-+         * note: bdrv_read() need whole blocks, so we round up
++         * note1: bdrv_read() need whole blocks, so we need to round up
++         * note2: PVE requires 1024 (BDRV_SECTOR_SIZE*2) alignment
 +         */
-+        size_t size = (snap_state.bs_pos + BDRV_SECTOR_SIZE) & BDRV_SECTOR_MASK;
-+        blk_truncate(snap_state.target, size, PREALLOC_MODE_OFF, NULL);
++        size_t size = QEMU_ALIGN_UP(snap_state.bs_pos, BDRV_SECTOR_SIZE*2);
++        blk_truncate(snap_state.target, size, false, PREALLOC_MODE_OFF, NULL);
 +        blk_op_unblock_all(snap_state.target, snap_state.blocker);
 +        error_free(snap_state.blocker);
 +        snap_state.blocker = NULL;
@@ -455,7 +462,7 @@ index 0000000000..2149010bb8
 +    snap_state.state = SAVE_STATE_ERROR;
 +}
 +
-+static int block_state_close(void *opaque)
++static int block_state_close(void *opaque, Error **errp)
 +{
 +    snap_state.file = NULL;
 +    return blk_flush(snap_state.target);
@@ -474,7 +481,7 @@ index 0000000000..2149010bb8
 +}
 +
 +static ssize_t block_state_writev_buffer(void *opaque, struct iovec *iov,
-+                                         int iovcnt, int64_t pos)
++                                         int iovcnt, int64_t pos, Error **errp)
 +{
 +    QEMUIOVector qiov;
 +    BlkRwCo rwco;
@@ -709,7 +716,7 @@ index 0000000000..2149010bb8
 +}
 +
 +static ssize_t loadstate_get_buffer(void *opaque, uint8_t *buf, int64_t pos,
-+                                    size_t size)
++                                    size_t size, Error **errp)
 +{
 +    BlockBackend *be = opaque;
 +    int64_t maxlen = blk_getlength(be);
@@ -776,10 +783,10 @@ index 0000000000..2149010bb8
 +    return ret;
 +}
 diff --git a/vl.c b/vl.c
-index b426b32134..1c5536e5bb 100644
+index 6a65a64bfd..1616f55a38 100644
 --- a/vl.c
 +++ b/vl.c
-@@ -2869,6 +2869,7 @@ int main(int argc, char **argv, char **envp)
+@@ -2840,6 +2840,7 @@ int main(int argc, char **argv, char **envp)
      int optind;
      const char *optarg;
      const char *loadvm = NULL;
@@ -787,7 +794,7 @@ index b426b32134..1c5536e5bb 100644
      MachineClass *machine_class;
      const char *cpu_option;
      const char *vga_model = NULL;
-@@ -3445,6 +3446,9 @@ int main(int argc, char **argv, char **envp)
+@@ -3430,6 +3431,9 @@ int main(int argc, char **argv, char **envp)
              case QEMU_OPTION_loadvm:
                  loadvm = optarg;
                  break;
@@ -797,7 +804,7 @@ index b426b32134..1c5536e5bb 100644
              case QEMU_OPTION_full_screen:
                  dpy.has_full_screen = true;
                  dpy.full_screen = true;
-@@ -4444,6 +4448,12 @@ int main(int argc, char **argv, char **envp)
+@@ -4442,6 +4446,12 @@ int main(int argc, char **argv, char **envp)
              autostart = 0;
              exit(1);
          }

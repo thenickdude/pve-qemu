@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Wed, 9 Dec 2015 14:16:49 +0100
-Subject: [PATCH] PVE: [Config] Adjust network script path to /etc/kvm/
+Date: Tue, 10 Mar 2020 12:54:59 +0100
+Subject: [PATCH 02/32] PVE: [Config] Adjust network script path to /etc/kvm/
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
@@ -9,10 +9,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/include/net/net.h b/include/net/net.h
-index acf0451fc4..4a64633577 100644
+index e175ba9677..5b9f099d21 100644
 --- a/include/net/net.h
 +++ b/include/net/net.h
-@@ -209,8 +209,9 @@ void qmp_netdev_add(QDict *qdict, QObject **ret, Error **errp);
+@@ -208,8 +208,9 @@ void qmp_netdev_add(QDict *qdict, QObject **ret, Error **errp);
  int net_hub_id_for_client(NetClientState *nc, int *id);
  NetClientState *net_hub_port_find(int hub_id);
  

@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Thomas Lamprecht <t.lamprecht@proxmox.com>
-Date: Fri, 21 Jun 2019 10:38:46 +0200
-Subject: [PATCH] PVE: savevm-async: kick AIO wait on block state write
+Date: Tue, 10 Mar 2020 12:55:20 +0100
+Subject: [PATCH 23/32] PVE: savevm-async: kick AIO wait on block state write
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
@@ -9,10 +9,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 1 insertion(+)
 
 diff --git a/savevm-async.c b/savevm-async.c
-index 2149010bb8..0bbbbf51ba 100644
+index 54ceeae26c..393d55af2a 100644
 --- a/savevm-async.c
 +++ b/savevm-async.c
-@@ -154,6 +154,7 @@ static void coroutine_fn block_state_write_entry(void *opaque) {
+@@ -158,6 +158,7 @@ static void coroutine_fn block_state_write_entry(void *opaque) {
      BlkRwCo *rwco = opaque;
      rwco->ret = blk_co_pwritev(snap_state.target, rwco->offset, rwco->qiov->size,
                                 rwco->qiov, 0);

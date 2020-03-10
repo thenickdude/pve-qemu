@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Thu, 30 Aug 2018 14:52:56 +0200
-Subject: [PATCH] PVE: Add dummy -id command line parameter
+Date: Tue, 10 Mar 2020 12:55:17 +0100
+Subject: [PATCH 20/32] PVE: Add dummy -id command line parameter
 
 This used to be part of the qemu-side PVE authentication for
 VNC. Now this does nothing.
@@ -14,10 +14,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 11 insertions(+)
 
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 34994daafd..6db02fe903 100644
+index 4cb2681bfc..b84e260fa5 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -802,6 +802,9 @@ STEXI
+@@ -826,6 +826,9 @@ STEXI
  @table @option
  ETEXI
  
@@ -28,10 +28,10 @@ index 34994daafd..6db02fe903 100644
      "-fda/-fdb file  use 'file' as floppy disk 0/1 image\n", QEMU_ARCH_ALL)
  DEF("fdb", HAS_ARG, QEMU_OPTION_fdb, "", QEMU_ARCH_ALL)
 diff --git a/vl.c b/vl.c
-index 1c5536e5bb..7ffcd271f1 100644
+index 1616f55a38..4df15640c5 100644
 --- a/vl.c
 +++ b/vl.c
-@@ -2857,6 +2857,7 @@ static void user_register_global_props(void)
+@@ -2828,6 +2828,7 @@ static void user_register_global_props(void)
  int main(int argc, char **argv, char **envp)
  {
      int i;
@@ -39,7 +39,7 @@ index 1c5536e5bb..7ffcd271f1 100644
      int snapshot, linux_boot;
      const char *initrd_filename;
      const char *kernel_filename, *kernel_cmdline;
-@@ -3570,6 +3571,13 @@ int main(int argc, char **argv, char **envp)
+@@ -3560,6 +3561,13 @@ int main(int argc, char **argv, char **envp)
                      exit(1);
                  }
                  break;

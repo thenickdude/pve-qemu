@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Fri, 31 Aug 2018 09:32:55 +0200
-Subject: [PATCH] PVE: [Config] rbd: block: rbd: disable
+Date: Tue, 10 Mar 2020 12:55:04 +0100
+Subject: [PATCH 07/32] PVE: [Config] rbd: block: rbd: disable
  rbd_cache_writethrough_until_flush
 
 Either the cache mode asks for a cache or not. There's no
@@ -18,10 +18,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 2 insertions(+)
 
 diff --git a/block/rbd.c b/block/rbd.c
-index 59757b3120..d00c9d2d12 100644
+index 027cbcc695..3ac7ff7bd5 100644
 --- a/block/rbd.c
 +++ b/block/rbd.c
-@@ -636,6 +636,8 @@ static int qemu_rbd_connect(rados_t *cluster, rados_ioctx_t *io_ctx,
+@@ -637,6 +637,8 @@ static int qemu_rbd_connect(rados_t *cluster, rados_ioctx_t *io_ctx,
          rados_conf_set(*cluster, "rbd_cache", "false");
      }
  

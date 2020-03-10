@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Wed, 9 Dec 2015 14:30:21 +0100
-Subject: [PATCH] PVE: [Config] set the CPU model to kvm64/32 instead of
+Date: Tue, 10 Mar 2020 12:55:00 +0100
+Subject: [PATCH 03/32] PVE: [Config] set the CPU model to kvm64/32 instead of
  qemu64/32
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
@@ -10,10 +10,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/target/i386/cpu.h b/target/i386/cpu.h
-index 8b3dc5533e..1fea162e02 100644
+index cde2a16b94..3e73104bf9 100644
 --- a/target/i386/cpu.h
 +++ b/target/i386/cpu.h
-@@ -1725,9 +1725,9 @@ uint64_t cpu_get_tsc(CPUX86State *env);
+@@ -1940,9 +1940,9 @@ uint64_t cpu_get_tsc(CPUX86State *env);
  #define CPU_RESOLVING_TYPE TYPE_X86_CPU
  
  #ifdef TARGET_X86_64

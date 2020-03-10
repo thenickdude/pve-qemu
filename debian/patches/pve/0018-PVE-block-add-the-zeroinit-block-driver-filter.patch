@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Thu, 17 Mar 2016 11:33:37 +0100
-Subject: [PATCH] PVE: block: add the zeroinit block driver filter
+Date: Tue, 10 Mar 2020 12:55:15 +0100
+Subject: [PATCH 18/32] PVE: block: add the zeroinit block driver filter
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
@@ -11,7 +11,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  create mode 100644 block/zeroinit.c
 
 diff --git a/block/Makefile.objs b/block/Makefile.objs
-index 35f3bca4d9..6022242c3f 100644
+index e394fe0b6c..a10ceabf5b 100644
 --- a/block/Makefile.objs
 +++ b/block/Makefile.objs
 @@ -11,6 +11,7 @@ block-obj-$(CONFIG_QED) += qed.o qed-l2-cache.o qed-table.o qed-cluster.o
@@ -24,7 +24,7 @@ index 35f3bca4d9..6022242c3f 100644
  block-obj-y += blklogwrites.o
 diff --git a/block/zeroinit.c b/block/zeroinit.c
 new file mode 100644
-index 0000000000..e78511d36c
+index 0000000000..b74a78ece6
 --- /dev/null
 +++ b/block/zeroinit.c
 @@ -0,0 +1,204 @@
@@ -186,9 +186,9 @@ index 0000000000..e78511d36c
 +}
 +
 +static int zeroinit_co_truncate(BlockDriverState *bs, int64_t offset,
-+                             PreallocMode prealloc, Error **errp)
++                                _Bool exact, PreallocMode prealloc, Error **errp)
 +{
-+    return bdrv_co_truncate(bs->file, offset, prealloc, errp);
++    return bdrv_co_truncate(bs->file, offset, exact, prealloc, errp);
 +}
 +
 +static int zeroinit_get_info(BlockDriverState *bs, BlockDriverInfo *bdi)

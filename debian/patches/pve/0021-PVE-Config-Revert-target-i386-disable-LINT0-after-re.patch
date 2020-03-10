@@ -1,7 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Mon, 4 Jul 2016 15:02:26 +0200
-Subject: [PATCH] PVE: [Config] Revert "target-i386: disable LINT0 after reset"
+Date: Tue, 10 Mar 2020 12:55:18 +0100
+Subject: [PATCH 21/32] PVE: [Config] Revert "target-i386: disable LINT0 after
+ reset"
 
 This reverts commit b8eb5512fd8a115f164edbbe897cdf8884920ccb.
 
@@ -11,10 +12,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 9 insertions(+)
 
 diff --git a/hw/intc/apic_common.c b/hw/intc/apic_common.c
-index e764a2bb03..f66ea72d78 100644
+index 375cb6abe9..e7d479c7e9 100644
 --- a/hw/intc/apic_common.c
 +++ b/hw/intc/apic_common.c
-@@ -258,6 +258,15 @@ static void apic_reset_common(DeviceState *dev)
+@@ -259,6 +259,15 @@ static void apic_reset_common(DeviceState *dev)
      info->vapic_base_update(s);
  
      apic_init_reset(dev);
@@ -29,4 +30,4 @@ index e764a2bb03..f66ea72d78 100644
 +    }
  }
  
- /* This function is only used for old state version 1 and 2 */
+ static const VMStateDescription vmstate_apic_common;

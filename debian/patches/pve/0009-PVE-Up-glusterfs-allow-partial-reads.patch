@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Wed, 30 Nov 2016 10:27:47 +0100
-Subject: [PATCH] PVE: [Up] glusterfs: allow partial reads
+Date: Tue, 10 Mar 2020 12:55:06 +0100
+Subject: [PATCH 09/32] PVE: [Up] glusterfs: allow partial reads
 
 This should deal with qemu bug #1644754 until upstream
 decides which way to go. The general direction seems to be
@@ -16,7 +16,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 9 insertions(+), 1 deletion(-)
 
 diff --git a/block/gluster.c b/block/gluster.c
-index 061cab48c0..0ed1ec5856 100644
+index bfb57ba098..81fff09c6c 100644
 --- a/block/gluster.c
 +++ b/block/gluster.c
 @@ -57,6 +57,7 @@ typedef struct GlusterAIOCB {
@@ -59,7 +59,7 @@ index 061cab48c0..0ed1ec5856 100644
          ret = glfs_preadv_async(s->fd, qiov->iov, qiov->niov, offset, 0,
                                  gluster_finish_aiocb, &acb);
      }
-@@ -1279,6 +1285,7 @@ static coroutine_fn int qemu_gluster_co_flush_to_disk(BlockDriverState *bs)
+@@ -1280,6 +1286,7 @@ static coroutine_fn int qemu_gluster_co_flush_to_disk(BlockDriverState *bs)
      acb.ret = 0;
      acb.coroutine = qemu_coroutine_self();
      acb.aio_context = bdrv_get_aio_context(bs);
@@ -67,7 +67,7 @@ index 061cab48c0..0ed1ec5856 100644
  
      ret = glfs_fsync_async(s->fd, gluster_finish_aiocb, &acb);
      if (ret < 0) {
-@@ -1325,6 +1332,7 @@ static coroutine_fn int qemu_gluster_co_pdiscard(BlockDriverState *bs,
+@@ -1326,6 +1333,7 @@ static coroutine_fn int qemu_gluster_co_pdiscard(BlockDriverState *bs,
      acb.ret = 0;
      acb.coroutine = qemu_coroutine_self();
      acb.aio_context = bdrv_get_aio_context(bs);

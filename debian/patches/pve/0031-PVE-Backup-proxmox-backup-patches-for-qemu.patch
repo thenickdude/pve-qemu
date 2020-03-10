@@ -1,0 +1,1633 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Dietmar Maurer <dietmar@proxmox.com>
+Date: Tue, 10 Mar 2020 12:55:28 +0100
+Subject: [PATCH 31/32] PVE-Backup: proxmox backup patches for qemu
+
+---
+ Makefile.objs             |   1 +
+ Makefile.target           |   2 +-
+ blockdev.c                |   1 +
+ hmp-commands-info.hx      |  13 +
+ hmp-commands.hx           |  31 ++
+ include/block/block_int.h |   2 +-
+ include/monitor/hmp.h     |   3 +
+ monitor/hmp-cmds.c        |  77 +++
+ proxmox-backup-client.c   | 182 ++++++++
+ proxmox-backup-client.h   |  52 +++
+ pve-backup.c              | 959 ++++++++++++++++++++++++++++++++++++++
+ qapi/block-core.json      | 109 +++++
+ qapi/common.json          |  13 +
+ qapi/misc.json            |  13 -
+ 14 files changed, 1443 insertions(+), 15 deletions(-)
+ create mode 100644 proxmox-backup-client.c
+ create mode 100644 proxmox-backup-client.h
+ create mode 100644 pve-backup.c
+
+diff --git a/Makefile.objs b/Makefile.objs
+index db7fbbe73b..4406dcfeba 100644
+--- a/Makefile.objs
++++ b/Makefile.objs
+@@ -46,6 +46,7 @@ io-obj-y = io/
+ ifeq ($(CONFIG_SOFTMMU),y)
+ common-obj-y = blockdev.o blockdev-nbd.o block/
+ common-obj-y += bootdevice.o iothread.o
++common-obj-y += proxmox-backup-client.o pve-backup.o
+ common-obj-y += dump/
+ common-obj-y += job-qmp.o
+ common-obj-y += monitor/
+diff --git a/Makefile.target b/Makefile.target
+index 24d79d26eb..d7d91085a4 100644
+--- a/Makefile.target
++++ b/Makefile.target
+@@ -160,7 +160,7 @@ obj-y += qapi/
+ obj-y += memory.o
+ obj-y += memory_mapping.o
+ obj-y += migration/ram.o
+-LIBS := $(libs_softmmu) $(LIBS)
++LIBS := $(libs_softmmu) $(LIBS) -lproxmox_backup_qemu
+ 
+ # Hardware support
+ ifeq ($(TARGET_NAME), sparc64)
+diff --git a/blockdev.c b/blockdev.c
+index c7fa663ebf..e5310cb939 100644
+--- a/blockdev.c
++++ b/blockdev.c
+@@ -36,6 +36,7 @@
+ #include "hw/block/block.h"
+ #include "block/blockjob.h"
+ #include "block/qdict.h"
++#include "block/blockjob_int.h"
+ #include "block/throttle-groups.h"
+ #include "monitor/monitor.h"
+ #include "qemu/error-report.h"
+diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
+index 139e673bea..8db5ce03a7 100644
+--- a/hmp-commands-info.hx
++++ b/hmp-commands-info.hx
+@@ -536,6 +536,19 @@ STEXI
+ @item info cpustats
+ @findex info cpustats
+ Show CPU statistics.
++ETEXI
++
++    {
++        .name       = "backup",
++        .args_type  = "",
++        .params     = "",
++        .help       = "show backup status",
++        .cmd = hmp_info_backup,
++    },
++
++STEXI
++@item info backup
++show backup status
+ ETEXI
+ 
+ #if defined(CONFIG_SLIRP)
+diff --git a/hmp-commands.hx b/hmp-commands.hx
+index 104288322d..29d11dd321 100644
+--- a/hmp-commands.hx
++++ b/hmp-commands.hx
+@@ -105,6 +105,37 @@ STEXI
+ @item block_stream
+ @findex block_stream
+ Copy data from a backing file into a block device.
++ETEXI
++
++   {
++        .name       = "backup",
++        .args_type  = "directory:-d,backupfile:s,speed:o?,devlist:s?",
++        .params     = "[-d] backupfile [speed [devlist]]",
++        .help       = "create a VM Backup."
++		    "\n\t\t\t Use -d to dump data into a directory instead"
++		    "\n\t\t\t of using VMA format.",
++        .cmd = hmp_backup,
++    },
++
++STEXI
++@item backup
++@findex backup
++Create a VM backup.
++ETEXI
++
++    {
++        .name       = "backup_cancel",
++        .args_type  = "",
++        .params     = "",
++        .help       = "cancel the current VM backup",
++        .cmd = hmp_backup_cancel,
++    },
++
++STEXI
++@item backup_cancel
++@findex backup_cancel
++Cancel the current VM backup.
++
+ ETEXI
+ 
+     {
+diff --git a/include/block/block_int.h b/include/block/block_int.h
+index 105bffe0f7..43b00c15ac 100644
+--- a/include/block/block_int.h
++++ b/include/block/block_int.h
+@@ -62,7 +62,7 @@
+ 
+ typedef int BackupDumpFunc(void *opaque, uint64_t offset, uint64_t bytes, const void *buf);
+ 
+-BlockDriverState *bdrv_backuo_dump_create(
++BlockDriverState *bdrv_backup_dump_create(
+     int dump_cb_block_size,
+     uint64_t byte_size,
+     BackupDumpFunc *dump_cb,
+diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
+index c6ee8295f0..0f2f96c4af 100644
+--- a/include/monitor/hmp.h
++++ b/include/monitor/hmp.h
+@@ -30,6 +30,7 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_capabilities(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_parameters(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate_cache_size(Monitor *mon, const QDict *qdict);
++void hmp_info_backup(Monitor *mon, const QDict *qdict);
+ void hmp_info_cpus(Monitor *mon, const QDict *qdict);
+ void hmp_info_block(Monitor *mon, const QDict *qdict);
+ void hmp_info_blockstats(Monitor *mon, const QDict *qdict);
+@@ -90,6 +91,8 @@ void hmp_eject(Monitor *mon, const QDict *qdict);
+ void hmp_change(Monitor *mon, const QDict *qdict);
+ void hmp_block_set_io_throttle(Monitor *mon, const QDict *qdict);
+ void hmp_block_stream(Monitor *mon, const QDict *qdict);
++void hmp_backup(Monitor *mon, const QDict *qdict);
++void hmp_backup_cancel(Monitor *mon, const QDict *qdict);
+ void hmp_block_job_set_speed(Monitor *mon, const QDict *qdict);
+ void hmp_block_job_cancel(Monitor *mon, const QDict *qdict);
+ void hmp_block_job_pause(Monitor *mon, const QDict *qdict);
+diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
+index 90aa34be25..1e33c61a2c 100644
+--- a/monitor/hmp-cmds.c
++++ b/monitor/hmp-cmds.c
+@@ -194,6 +194,50 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
+     qapi_free_MouseInfoList(mice_list);
+ }
+ 
++void hmp_info_backup(Monitor *mon, const QDict *qdict)
++{
++    BackupStatus *info;
++
++    info = qmp_query_backup(NULL);
++
++    if (!info) {
++       monitor_printf(mon, "Backup status: not initialized\n");
++       return;
++    }
++
++    if (info->has_status) {
++        if (info->has_errmsg) {
++            monitor_printf(mon, "Backup status: %s - %s\n",
++                           info->status, info->errmsg);
++        } else {
++            monitor_printf(mon, "Backup status: %s\n", info->status);
++        }
++    }
++
++    if (info->has_backup_file) {
++        monitor_printf(mon, "Start time: %s", ctime(&info->start_time));
++        if (info->end_time) {
++            monitor_printf(mon, "End time: %s", ctime(&info->end_time));
++        }
++
++        int per = (info->has_total && info->total &&
++            info->has_transferred && info->transferred) ?
++            (info->transferred * 100)/info->total : 0;
++        int zero_per = (info->has_total && info->total &&
++                        info->has_zero_bytes && info->zero_bytes) ?
++            (info->zero_bytes * 100)/info->total : 0;
++        monitor_printf(mon, "Backup file: %s\n", info->backup_file);
++        monitor_printf(mon, "Backup uuid: %s\n", info->uuid);
++        monitor_printf(mon, "Total size: %zd\n", info->total);
++        monitor_printf(mon, "Transferred bytes: %zd (%d%%)\n",
++                       info->transferred, per);
++        monitor_printf(mon, "Zero bytes: %zd (%d%%)\n",
++                       info->zero_bytes, zero_per);
++    }
++
++    qapi_free_BackupStatus(info);
++}
++
+ static char *SocketAddress_to_str(SocketAddress *addr)
+ {
+     switch (addr->type) {
+@@ -2062,6 +2106,39 @@ void hmp_block_stream(Monitor *mon, const QDict *qdict)
+     hmp_handle_error(mon, &error);
+ }
+ 
++void hmp_backup_cancel(Monitor *mon, const QDict *qdict)
++{
++    Error *error = NULL;
++
++    qmp_backup_cancel(&error);
++
++    hmp_handle_error(mon, &error);
++}
++
++void hmp_backup(Monitor *mon, const QDict *qdict)
++{
++    Error *error = NULL;
++
++    int dir = qdict_get_try_bool(qdict, "directory", 0);
++    const char *backup_file = qdict_get_str(qdict, "backupfile");
++    const char *devlist = qdict_get_try_str(qdict, "devlist");
++    int64_t speed = qdict_get_try_int(qdict, "speed", 0);
++
++    qmp_backup(
++        backup_file,
++        false, NULL, // BPS password
++        false, NULL, // BPS keyfile
++        false, NULL, // BPS key_password
++        false, NULL, // BPS fingerprint
++        false, NULL, // BPS backup-id
++        false, 0, // BPS backup-time
++        true, dir ? BACKUP_FORMAT_DIR : BACKUP_FORMAT_VMA,
++        false, NULL, false, NULL, !!devlist,
++        devlist, qdict_haskey(qdict, "speed"), speed, &error);
++
++    hmp_handle_error(mon, &error);
++}
++
+ void hmp_block_job_set_speed(Monitor *mon, const QDict *qdict)
+ {
+     Error *error = NULL;
+diff --git a/proxmox-backup-client.c b/proxmox-backup-client.c
+new file mode 100644
+index 0000000000..b7bc7f2574
+--- /dev/null
++++ b/proxmox-backup-client.c
+@@ -0,0 +1,182 @@
++#include "proxmox-backup-client.h"
++#include "qemu/main-loop.h"
++#include "block/aio-wait.h"
++#include "qapi/error.h"
++
++/* Proxmox Backup Server client bindings using coroutines */
++
++typedef struct BlockOnCoroutineWrapper {
++    AioContext *ctx;
++    CoroutineEntry *entry;
++    void *entry_arg;
++    bool finished;
++} BlockOnCoroutineWrapper;
++
++// Waker implementaion to syncronice with proxmox backup rust code
++typedef struct ProxmoxBackupWaker {
++    Coroutine *co;
++    AioContext *ctx;
++} ProxmoxBackupWaker;
++
++static void coroutine_fn block_on_coroutine_wrapper(void *opaque)
++{
++    BlockOnCoroutineWrapper *wrapper = opaque;
++    wrapper->entry(wrapper->entry_arg);
++    wrapper->finished = true;
++    aio_wait_kick();
++}
++
++void block_on_coroutine_fn(CoroutineEntry *entry, void *entry_arg)
++{
++    assert(!qemu_in_coroutine());
++
++    AioContext *ctx = qemu_get_current_aio_context();
++    BlockOnCoroutineWrapper wrapper = {
++        .finished = false,
++        .entry = entry,
++        .entry_arg = entry_arg,
++        .ctx = ctx,
++    };
++    Coroutine *wrapper_co = qemu_coroutine_create(block_on_coroutine_wrapper, &wrapper);
++    aio_co_enter(ctx, wrapper_co);
++    AIO_WAIT_WHILE(ctx, !wrapper.finished);
++}
++
++// This is called from another thread, so we use aio_co_schedule()
++static void proxmox_backup_schedule_wake(void *data) {
++    ProxmoxBackupWaker *waker = (ProxmoxBackupWaker *)data;
++    aio_co_schedule(waker->ctx, waker->co);
++}
++
++int coroutine_fn
++proxmox_backup_co_connect(ProxmoxBackupHandle *pbs, Error **errp)
++{
++    Coroutine *co = qemu_coroutine_self();
++    AioContext *ctx = qemu_get_current_aio_context();
++    ProxmoxBackupWaker waker = { .co = co, .ctx = ctx };
++    char *pbs_err = NULL;
++    int pbs_res = -1;
++
++    proxmox_backup_connect_async(pbs, proxmox_backup_schedule_wake, &waker, &pbs_res, &pbs_err);
++    qemu_coroutine_yield();
++    if (pbs_res < 0) {
++        if (errp) error_setg(errp, "backup connect failed: %s", pbs_err ? pbs_err : "unknown error");
++        if (pbs_err) proxmox_backup_free_error(pbs_err);
++    }
++    return pbs_res;
++}
++
++int coroutine_fn
++proxmox_backup_co_add_config(
++    ProxmoxBackupHandle *pbs,
++    const char *name,
++    const uint8_t *data,
++    uint64_t size,
++    Error **errp)
++{
++    Coroutine *co = qemu_coroutine_self();
++    AioContext *ctx = qemu_get_current_aio_context();
++    ProxmoxBackupWaker waker = { .co = co, .ctx = ctx };
++    char *pbs_err = NULL;
++    int pbs_res = -1;
++
++    proxmox_backup_add_config_async(
++        pbs, name, data, size ,proxmox_backup_schedule_wake, &waker, &pbs_res, &pbs_err);
++    qemu_coroutine_yield();
++    if (pbs_res < 0) {
++        if (errp) error_setg(errp, "backup add_config %s failed: %s", name, pbs_err ? pbs_err : "unknown error");
++        if (pbs_err) proxmox_backup_free_error(pbs_err);
++    }
++    return pbs_res;
++}
++
++int coroutine_fn
++proxmox_backup_co_register_image(
++    ProxmoxBackupHandle *pbs,
++    const char *device_name,
++    uint64_t size,
++    Error **errp)
++{
++    Coroutine *co = qemu_coroutine_self();
++    AioContext *ctx = qemu_get_current_aio_context();
++    ProxmoxBackupWaker waker = { .co = co, .ctx = ctx };
++    char *pbs_err = NULL;
++    int pbs_res = -1;
++
++    proxmox_backup_register_image_async(
++        pbs, device_name, size ,proxmox_backup_schedule_wake, &waker, &pbs_res, &pbs_err);
++    qemu_coroutine_yield();
++    if (pbs_res < 0) {
++        if (errp) error_setg(errp, "backup register image failed: %s", pbs_err ? pbs_err : "unknown error");
++        if (pbs_err) proxmox_backup_free_error(pbs_err);
++    }
++    return pbs_res;
++}
++
++int coroutine_fn
++proxmox_backup_co_finish(
++    ProxmoxBackupHandle *pbs,
++    Error **errp)
++{
++    Coroutine *co = qemu_coroutine_self();
++    AioContext *ctx = qemu_get_current_aio_context();
++    ProxmoxBackupWaker waker = { .co = co, .ctx = ctx };
++    char *pbs_err = NULL;
++    int pbs_res = -1;
++
++    proxmox_backup_finish_async(
++        pbs, proxmox_backup_schedule_wake, &waker, &pbs_res, &pbs_err);
++    qemu_coroutine_yield();
++    if (pbs_res < 0) {
++        if (errp) error_setg(errp, "backup finish failed: %s", pbs_err ? pbs_err : "unknown error");
++        if (pbs_err) proxmox_backup_free_error(pbs_err);
++    }
++    return pbs_res;
++}
++
++int coroutine_fn
++proxmox_backup_co_close_image(
++    ProxmoxBackupHandle *pbs,
++    uint8_t dev_id,
++    Error **errp)
++{
++    Coroutine *co = qemu_coroutine_self();
++    AioContext *ctx = qemu_get_current_aio_context();
++    ProxmoxBackupWaker waker = { .co = co, .ctx = ctx };
++    char *pbs_err = NULL;
++    int pbs_res = -1;
++
++    proxmox_backup_close_image_async(
++        pbs, dev_id, proxmox_backup_schedule_wake, &waker, &pbs_res, &pbs_err);
++    qemu_coroutine_yield();
++    if (pbs_res < 0) {
++        if (errp) error_setg(errp, "backup close image failed: %s", pbs_err ? pbs_err : "unknown error");
++        if (pbs_err) proxmox_backup_free_error(pbs_err);
++    }
++    return pbs_res;
++}
++
++int coroutine_fn
++proxmox_backup_co_write_data(
++    ProxmoxBackupHandle *pbs,
++    uint8_t dev_id,
++    const uint8_t *data,
++    uint64_t offset,
++    uint64_t size,
++    Error **errp)
++{
++    Coroutine *co = qemu_coroutine_self();
++    AioContext *ctx = qemu_get_current_aio_context();
++    ProxmoxBackupWaker waker = { .co = co, .ctx = ctx };
++    char *pbs_err = NULL;
++    int pbs_res = -1;
++
++    proxmox_backup_write_data_async(
++        pbs, dev_id, data, offset, size, proxmox_backup_schedule_wake, &waker, &pbs_res, &pbs_err);
++    qemu_coroutine_yield();
++    if (pbs_res < 0) {
++        if (errp) error_setg(errp, "backup write data failed: %s", pbs_err ? pbs_err : "unknown error");
++        if (pbs_err) proxmox_backup_free_error(pbs_err);
++    }
++    return pbs_res;
++}
+diff --git a/proxmox-backup-client.h b/proxmox-backup-client.h
+new file mode 100644
+index 0000000000..b311bf8de8
+--- /dev/null
++++ b/proxmox-backup-client.h
+@@ -0,0 +1,52 @@
++#ifndef PROXMOX_BACKUP_CLIENT_H
++#define PROXMOX_BACKUP_CLIENT_H
++
++#include "qemu/osdep.h"
++#include "qemu/coroutine.h"
++#include "proxmox-backup-qemu.h"
++
++void block_on_coroutine_fn(CoroutineEntry *entry, void *entry_arg);
++
++int coroutine_fn
++proxmox_backup_co_connect(
++    ProxmoxBackupHandle *pbs,
++    Error **errp);
++
++int coroutine_fn
++proxmox_backup_co_add_config(
++    ProxmoxBackupHandle *pbs,
++    const char *name,
++    const uint8_t *data,
++    uint64_t size,
++    Error **errp);
++
++int coroutine_fn
++proxmox_backup_co_register_image(
++    ProxmoxBackupHandle *pbs,
++    const char *device_name,
++    uint64_t size,
++    Error **errp);
++
++
++int coroutine_fn
++proxmox_backup_co_finish(
++    ProxmoxBackupHandle *pbs,
++    Error **errp);
++
++int coroutine_fn
++proxmox_backup_co_close_image(
++    ProxmoxBackupHandle *pbs,
++    uint8_t dev_id,
++    Error **errp);
++
++int coroutine_fn
++proxmox_backup_co_write_data(
++    ProxmoxBackupHandle *pbs,
++    uint8_t dev_id,
++    const uint8_t *data,
++    uint64_t offset,
++    uint64_t size,
++    Error **errp);
++
++
++#endif /* PROXMOX_BACKUP_CLIENT_H */
+diff --git a/pve-backup.c b/pve-backup.c
+new file mode 100644
+index 0000000000..9ae89fb679
+--- /dev/null
++++ b/pve-backup.c
+@@ -0,0 +1,959 @@
++#include "proxmox-backup-client.h"
++#include "vma.h"
++
++#include "qemu/osdep.h"
++#include "qemu/module.h"
++#include "sysemu/block-backend.h"
++#include "sysemu/blockdev.h"
++#include "block/blockjob.h"
++#include "qapi/qapi-commands-block.h"
++#include "qapi/qmp/qerror.h"
++
++/* PVE backup state and related function */
++
++
++static struct PVEBackupState {
++    struct {
++        // Everithing accessed from qmp command, protected using rwlock
++        CoRwlock rwlock;
++        Error *error;
++        time_t start_time;
++        time_t end_time;
++        char *backup_file;
++        uuid_t uuid;
++        char uuid_str[37];
++        size_t total;
++        size_t transferred;
++        size_t zero_bytes;
++        bool cancel;
++    } stat;
++    int64_t speed;
++    VmaWriter *vmaw;
++    ProxmoxBackupHandle *pbs;
++    GList *di_list;
++    CoMutex backup_mutex;
++} backup_state;
++
++static void pvebackup_init(void)
++{
++    qemu_co_rwlock_init(&backup_state.stat.rwlock);
++    qemu_co_mutex_init(&backup_state.backup_mutex);
++}
++
++// initialize PVEBackupState at startup
++opts_init(pvebackup_init);
++
++typedef struct PVEBackupDevInfo {
++    BlockDriverState *bs;
++    size_t size;
++    uint8_t dev_id;
++    bool completed;
++    char targetfile[PATH_MAX];
++    BlockDriverState *target;
++} PVEBackupDevInfo;
++
++static void pvebackup_co_run_next_job(void);
++
++static int coroutine_fn
++pvebackup_co_dump_cb(
++    void *opaque,
++    uint64_t start,
++    uint64_t bytes,
++    const void *pbuf)
++{
++    assert(qemu_in_coroutine());
++
++    const uint64_t size = bytes;
++    const unsigned char *buf = pbuf;
++    PVEBackupDevInfo *di = opaque;
++
++    qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
++    bool cancel = backup_state.stat.cancel;
++    qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++
++    if (cancel) {
++        return size; // return success
++    }
++
++    qemu_co_mutex_lock(&backup_state.backup_mutex);
++
++    int ret = -1;
++
++    if (backup_state.vmaw) {
++        size_t zero_bytes = 0;
++        uint64_t remaining = size;
++
++        uint64_t cluster_num = start / VMA_CLUSTER_SIZE;
++        if ((cluster_num * VMA_CLUSTER_SIZE) != start) {
++            qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
++            if (!backup_state.stat.error) {
++                qemu_co_rwlock_upgrade(&backup_state.stat.rwlock);
++                error_setg(&backup_state.stat.error,
++                           "got unaligned write inside backup dump "
++                           "callback (sector %ld)", start);
++            }
++            qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++            qemu_co_mutex_unlock(&backup_state.backup_mutex);
++            return -1; // not aligned to cluster size
++        }
++
++        while (remaining > 0) {
++            ret = vma_writer_write(backup_state.vmaw, di->dev_id, cluster_num,
++                                   buf, &zero_bytes);
++            ++cluster_num;
++            if (buf) {
++                buf += VMA_CLUSTER_SIZE;
++            }
++            if (ret < 0) {
++                qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
++                if (!backup_state.stat.error) {
++                    qemu_co_rwlock_upgrade(&backup_state.stat.rwlock);
++                    vma_writer_error_propagate(backup_state.vmaw, &backup_state.stat.error);
++                }
++                qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++
++                qemu_co_mutex_unlock(&backup_state.backup_mutex);
++                return ret;
++            } else {
++                qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
++                backup_state.stat.zero_bytes += zero_bytes;
++                if (remaining >= VMA_CLUSTER_SIZE) {
++                    backup_state.stat.transferred += VMA_CLUSTER_SIZE;
++                    remaining -= VMA_CLUSTER_SIZE;
++                } else {
++                    backup_state.stat.transferred += remaining;
++                    remaining = 0;
++                }
++                qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++            }
++        }
++    } else if (backup_state.pbs) {
++        Error *local_err = NULL;
++        int pbs_res = -1;
++
++        pbs_res = proxmox_backup_co_write_data(backup_state.pbs, di->dev_id, buf, start, size, &local_err);
++
++        qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
++
++        if (pbs_res < 0) {
++            error_propagate(&backup_state.stat.error, local_err);
++            qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++            qemu_co_mutex_unlock(&backup_state.backup_mutex);
++            return pbs_res;
++        } else {
++            if (!buf) {
++                backup_state.stat.zero_bytes += size;
++            }
++            backup_state.stat.transferred += size;
++        }
++
++        qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++
++    } else {
++        qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
++        if (!buf) {
++            backup_state.stat.zero_bytes += size;
++        }
++        backup_state.stat.transferred += size;
++        qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++    }
++
++    qemu_co_mutex_unlock(&backup_state.backup_mutex);
++
++    return size;
++}
++
++static void coroutine_fn pvebackup_co_cleanup(void)
++{
++    assert(qemu_in_coroutine());
++
++    qemu_co_mutex_lock(&backup_state.backup_mutex);
++
++    qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
++    backup_state.stat.end_time = time(NULL);
++    qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++
++    if (backup_state.vmaw) {
++        Error *local_err = NULL;
++        vma_writer_close(backup_state.vmaw, &local_err);
++
++        if (local_err != NULL) {
++            qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
++            error_propagate(&backup_state.stat.error, local_err);
++            qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++        }
++
++        backup_state.vmaw = NULL;
++    }
++
++    if (backup_state.pbs) {
++        qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
++        bool error_or_canceled = backup_state.stat.error || backup_state.stat.cancel;
++        if (!error_or_canceled) {
++            Error *local_err = NULL;
++            proxmox_backup_co_finish(backup_state.pbs, &local_err);
++            if (local_err != NULL) {
++                qemu_co_rwlock_upgrade(&backup_state.stat.rwlock);
++                error_propagate(&backup_state.stat.error, local_err);
++             }
++        }
++        qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++
++        proxmox_backup_disconnect(backup_state.pbs);
++        backup_state.pbs = NULL;
++    }
++
++    g_list_free(backup_state.di_list);
++    backup_state.di_list = NULL;
++    qemu_co_mutex_unlock(&backup_state.backup_mutex);
++}
++
++typedef struct PVEBackupCompeteCallbackData {
++    PVEBackupDevInfo *di;
++    int result;
++} PVEBackupCompeteCallbackData;
++
++static void coroutine_fn pvebackup_co_complete_cb(void *opaque)
++{
++    assert(qemu_in_coroutine());
++
++    PVEBackupCompeteCallbackData *cb_data = opaque;
++
++    qemu_co_mutex_lock(&backup_state.backup_mutex);
++
++    PVEBackupDevInfo *di = cb_data->di;
++    int ret = cb_data->result;
++
++    di->completed = true;
++
++    qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
++    bool error_or_canceled = backup_state.stat.error || backup_state.stat.cancel;
++
++    if (ret < 0 && !backup_state.stat.error) {
++        qemu_co_rwlock_upgrade(&backup_state.stat.rwlock);
++        error_setg(&backup_state.stat.error, "job failed with err %d - %s",
++                   ret, strerror(-ret));
++    }
++    qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++
++    di->bs = NULL;
++
++    if (di->target) {
++        bdrv_unref(di->target);
++        di->target = NULL;
++    }
++
++    if (backup_state.vmaw) {
++        vma_writer_close_stream(backup_state.vmaw, di->dev_id);
++    }
++
++    if (backup_state.pbs && !error_or_canceled) {
++        Error *local_err = NULL;
++        proxmox_backup_co_close_image(backup_state.pbs, di->dev_id, &local_err);
++        if (local_err != NULL) {
++            qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
++            error_propagate(&backup_state.stat.error, local_err);
++            qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++        }
++    }
++
++    // remove self from job queue
++    backup_state.di_list = g_list_remove(backup_state.di_list, di);
++    g_free(di);
++
++    int pending_jobs = g_list_length(backup_state.di_list);
++
++    qemu_co_mutex_unlock(&backup_state.backup_mutex);
++
++    if (pending_jobs > 0) {
++        pvebackup_co_run_next_job();
++    } else {
++        pvebackup_co_cleanup();
++    }
++}
++
++static void pvebackup_complete_cb(void *opaque, int ret)
++{
++    // This can be called from the main loop, or from a coroutine
++    PVEBackupCompeteCallbackData cb_data = {
++        .di = opaque,
++        .result = ret,
++    };
++
++    if (qemu_in_coroutine()) {
++        pvebackup_co_complete_cb(&cb_data);
++    } else {
++        block_on_coroutine_fn(pvebackup_co_complete_cb, &cb_data);
++    }
++}
++
++static void coroutine_fn pvebackup_co_cancel(void *opaque)
++{
++    assert(qemu_in_coroutine());
++
++    qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
++    backup_state.stat.cancel = true;
++    qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++
++    qemu_co_mutex_lock(&backup_state.backup_mutex);
++
++    // Avoid race between block jobs and backup-cancel command:
++    if (!(backup_state.vmaw || backup_state.pbs)) {
++        qemu_co_mutex_unlock(&backup_state.backup_mutex);
++        return;
++    }
++
++    qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
++    if (!backup_state.stat.error) {
++        qemu_co_rwlock_upgrade(&backup_state.stat.rwlock);
++        error_setg(&backup_state.stat.error, "backup cancelled");
++    }
++    qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++
++    if (backup_state.vmaw) {
++        /* make sure vma writer does not block anymore */
++        vma_writer_set_error(backup_state.vmaw, "backup cancelled");
++    }
++
++    if (backup_state.pbs) {
++        proxmox_backup_abort(backup_state.pbs, "backup cancelled");
++    }
++
++    bool running_jobs = 0;
++    GList *l = backup_state.di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++        if (!di->completed && di->bs) {
++            for (BlockJob *job = block_job_next(NULL); job; job = block_job_next(job)) {
++                if (job->job.driver->job_type != JOB_TYPE_BACKUP) {
++                    continue;
++                }
++
++                BackupBlockJob *bjob = container_of(job, BackupBlockJob, common);
++                if (bjob && bjob->source_bs == di->bs) {
++                    AioContext *aio_context = job->job.aio_context;
++                    aio_context_acquire(aio_context);
++
++                    if (!di->completed) {
++                        running_jobs += 1;
++                        job_cancel(&job->job, false);
++                    }
++                    aio_context_release(aio_context);
++                }
++            }
++        }
++    }
++
++    qemu_co_mutex_unlock(&backup_state.backup_mutex);
++
++    if (running_jobs == 0) pvebackup_co_cleanup(); // else job will call completion handler
++}
++
++void qmp_backup_cancel(Error **errp)
++{
++    block_on_coroutine_fn(pvebackup_co_cancel, NULL);
++}
++
++static int coroutine_fn pvebackup_co_add_config(
++    const char *file,
++    const char *name,
++    BackupFormat format,
++    const char *backup_dir,
++    VmaWriter *vmaw,
++    ProxmoxBackupHandle *pbs,
++    Error **errp)
++{
++    int res = 0;
++
++    char *cdata = NULL;
++    gsize clen = 0;
++    GError *err = NULL;
++    if (!g_file_get_contents(file, &cdata, &clen, &err)) {
++        error_setg(errp, "unable to read file '%s'", file);
++        return 1;
++    }
++
++    char *basename = g_path_get_basename(file);
++    if (name == NULL) name = basename;
++
++    if (format == BACKUP_FORMAT_VMA) {
++        if (vma_writer_add_config(vmaw, name, cdata, clen) != 0) {
++            error_setg(errp, "unable to add %s config data to vma archive", file);
++            goto err;
++        }
++    } else if (format == BACKUP_FORMAT_PBS) {
++        if (proxmox_backup_co_add_config(pbs, name, (unsigned char *)cdata, clen, errp) < 0)
++            goto err;
++    } else if (format == BACKUP_FORMAT_DIR) {
++        char config_path[PATH_MAX];
++        snprintf(config_path, PATH_MAX, "%s/%s", backup_dir, name);
++        if (!g_file_set_contents(config_path, cdata, clen, &err)) {
++            error_setg(errp, "unable to write config file '%s'", config_path);
++            goto err;
++        }
++    }
++
++ out:
++    g_free(basename);
++    g_free(cdata);
++    return res;
++
++ err:
++    res = -1;
++    goto out;
++}
++
++bool job_should_pause(Job *job);
++
++static void coroutine_fn pvebackup_co_run_next_job(void)
++{
++    assert(qemu_in_coroutine());
++
++    qemu_co_mutex_lock(&backup_state.backup_mutex);
++
++    GList *l = backup_state.di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++        if (!di->completed && di->bs) {
++            for (BlockJob *job = block_job_next(NULL); job; job = block_job_next(job)) {
++                if (job->job.driver->job_type != JOB_TYPE_BACKUP) {
++                    continue;
++                }
++
++                BackupBlockJob *bjob = container_of(job, BackupBlockJob, common);
++                if (bjob && bjob->source_bs == di->bs) {
++                    AioContext *aio_context = job->job.aio_context;
++                    qemu_co_mutex_unlock(&backup_state.backup_mutex);
++                    aio_context_acquire(aio_context);
++
++                    if (job_should_pause(&job->job)) {
++                        qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
++                        bool error_or_canceled = backup_state.stat.error || backup_state.stat.cancel;
++                        qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++
++                        if (error_or_canceled) {
++                            job_cancel(&job->job, false);
++                        } else {
++                            job_resume(&job->job);
++                        }
++                    }
++                    aio_context_release(aio_context);
++                    return;
++                }
++            }
++        }
++    }
++    qemu_co_mutex_unlock(&backup_state.backup_mutex);
++}
++
++typedef struct QmpBackupTask {
++    const char *backup_file;
++    bool has_password;
++    const char *password;
++    bool has_keyfile;
++    const char *keyfile;
++    bool has_key_password;
++    const char *key_password;
++    bool has_backup_id;
++    const char *backup_id;
++    bool has_backup_time;
++    const char *fingerprint;
++    bool has_fingerprint;
++    int64_t backup_time;
++    bool has_format;
++    BackupFormat format;
++    bool has_config_file;
++    const char *config_file;
++    bool has_firewall_file;
++    const char *firewall_file;
++    bool has_devlist;
++    const char *devlist;
++    bool has_speed;
++    int64_t speed;
++    Error **errp;
++    UuidInfo *result;
++} QmpBackupTask;
++
++static void coroutine_fn pvebackup_co_start(void *opaque)
++{
++    assert(qemu_in_coroutine());
++
++    QmpBackupTask *task = opaque;
++
++    task->result = NULL; // just to be sure
++
++    BlockBackend *blk;
++    BlockDriverState *bs = NULL;
++    const char *backup_dir = NULL;
++    Error *local_err = NULL;
++    uuid_t uuid;
++    VmaWriter *vmaw = NULL;
++    ProxmoxBackupHandle *pbs = NULL;
++    gchar **devs = NULL;
++    GList *di_list = NULL;
++    GList *l;
++    UuidInfo *uuid_info;
++    BlockJob *job;
++
++    const char *config_name = "qemu-server.conf";
++    const char *firewall_name = "qemu-server.fw";
++
++    qemu_co_mutex_lock(&backup_state.backup_mutex);
++
++    if (backup_state.di_list) {
++        qemu_co_mutex_unlock(&backup_state.backup_mutex);
++        error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
++                  "previous backup not finished");
++        return;
++    }
++
++    /* Todo: try to auto-detect format based on file name */
++    BackupFormat format = task->has_format ? task->format : BACKUP_FORMAT_VMA;
++
++    if (task->has_devlist) {
++        devs = g_strsplit_set(task->devlist, ",;:", -1);
++
++        gchar **d = devs;
++        while (d && *d) {
++            blk = blk_by_name(*d);
++            if (blk) {
++                bs = blk_bs(blk);
++                if (bdrv_is_read_only(bs)) {
++                    error_setg(task->errp, "Node '%s' is read only", *d);
++                    goto err;
++                }
++                if (!bdrv_is_inserted(bs)) {
++                    error_setg(task->errp, QERR_DEVICE_HAS_NO_MEDIUM, *d);
++                    goto err;
++                }
++                PVEBackupDevInfo *di = g_new0(PVEBackupDevInfo, 1);
++                di->bs = bs;
++                di_list = g_list_append(di_list, di);
++            } else {
++                error_set(task->errp, ERROR_CLASS_DEVICE_NOT_FOUND,
++                          "Device '%s' not found", *d);
++                goto err;
++            }
++            d++;
++        }
++
++    } else {
++        BdrvNextIterator it;
++
++        bs = NULL;
++        for (bs = bdrv_first(&it); bs; bs = bdrv_next(&it)) {
++            if (!bdrv_is_inserted(bs) || bdrv_is_read_only(bs)) {
++                continue;
++            }
++
++            PVEBackupDevInfo *di = g_new0(PVEBackupDevInfo, 1);
++            di->bs = bs;
++            di_list = g_list_append(di_list, di);
++        }
++    }
++
++    if (!di_list) {
++        error_set(task->errp, ERROR_CLASS_GENERIC_ERROR, "empty device list");
++        goto err;
++    }
++
++    size_t total = 0;
++
++    l = di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++        if (bdrv_op_is_blocked(di->bs, BLOCK_OP_TYPE_BACKUP_SOURCE, task->errp)) {
++            goto err;
++        }
++
++        ssize_t size = bdrv_getlength(di->bs);
++        if (size < 0) {
++            error_setg_errno(task->errp, -di->size, "bdrv_getlength failed");
++            goto err;
++        }
++        di->size = size;
++        total += size;
++    }
++
++    uuid_generate(uuid);
++
++    if (format == BACKUP_FORMAT_PBS) {
++        if (!task->has_password) {
++            error_set(task->errp, ERROR_CLASS_GENERIC_ERROR, "missing parameter 'password'");
++            goto err;
++        }
++        if (!task->has_backup_id) {
++            error_set(task->errp, ERROR_CLASS_GENERIC_ERROR, "missing parameter 'backup-id'");
++            goto err;
++        }
++        if (!task->has_backup_time) {
++            error_set(task->errp, ERROR_CLASS_GENERIC_ERROR, "missing parameter 'backup-time'");
++            goto err;
++        }
++
++        int dump_cb_block_size = PROXMOX_BACKUP_DEFAULT_CHUNK_SIZE; // Hardcoded (4M)
++        firewall_name = "fw.conf";
++
++        char *pbs_err = NULL;
++        pbs = proxmox_backup_new(
++            task->backup_file,
++            task->backup_id,
++            task->backup_time,
++            dump_cb_block_size,
++            task->has_password ? task->password : NULL,
++            task->has_keyfile ? task->keyfile : NULL,
++            task->has_key_password ? task->key_password : NULL,
++            task->has_fingerprint ? task->fingerprint : NULL,
++            &pbs_err);
++
++        if (!pbs) {
++            error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
++                      "proxmox_backup_new failed: %s", pbs_err);
++            proxmox_backup_free_error(pbs_err);
++            goto err;
++        }
++
++        if (proxmox_backup_co_connect(pbs, task->errp) < 0)
++            goto err;
++
++        /* register all devices */
++        l = di_list;
++        while (l) {
++            PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++            l = g_list_next(l);
++
++            const char *devname = bdrv_get_device_name(di->bs);
++
++            int dev_id = proxmox_backup_co_register_image(pbs, devname, di->size, task->errp);
++            if (dev_id < 0)
++                goto err;
++
++            if (!(di->target = bdrv_backup_dump_create(dump_cb_block_size, di->size, pvebackup_co_dump_cb, di, task->errp))) {
++                goto err;
++            }
++
++            di->dev_id = dev_id;
++        }
++    } else if (format == BACKUP_FORMAT_VMA) {
++        vmaw = vma_writer_create(task->backup_file, uuid, &local_err);
++        if (!vmaw) {
++            if (local_err) {
++                error_propagate(task->errp, local_err);
++            }
++            goto err;
++        }
++
++        /* register all devices for vma writer */
++        l = di_list;
++        while (l) {
++            PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++            l = g_list_next(l);
++
++            if (!(di->target = bdrv_backup_dump_create(VMA_CLUSTER_SIZE, di->size, pvebackup_co_dump_cb, di, task->errp))) {
++                goto err;
++            }
++
++            const char *devname = bdrv_get_device_name(di->bs);
++            di->dev_id = vma_writer_register_stream(vmaw, devname, di->size);
++            if (di->dev_id <= 0) {
++                error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
++                          "register_stream failed");
++                goto err;
++            }
++        }
++    } else if (format == BACKUP_FORMAT_DIR) {
++        if (mkdir(task->backup_file, 0640) != 0) {
++            error_setg_errno(task->errp, errno, "can't create directory '%s'\n",
++                             task->backup_file);
++            goto err;
++        }
++        backup_dir = task->backup_file;
++
++        l = di_list;
++        while (l) {
++            PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++            l = g_list_next(l);
++
++            const char *devname = bdrv_get_device_name(di->bs);
++            snprintf(di->targetfile, PATH_MAX, "%s/%s.raw", backup_dir, devname);
++
++            int flags = BDRV_O_RDWR;
++            bdrv_img_create(di->targetfile, "raw", NULL, NULL, NULL,
++                            di->size, flags, false, &local_err);
++            if (local_err) {
++                error_propagate(task->errp, local_err);
++                goto err;
++            }
++
++            di->target = bdrv_open(di->targetfile, NULL, NULL, flags, &local_err);
++            if (!di->target) {
++                error_propagate(task->errp, local_err);
++                goto err;
++            }
++        }
++    } else {
++        error_set(task->errp, ERROR_CLASS_GENERIC_ERROR, "unknown backup format");
++        goto err;
++    }
++
++
++    /* add configuration file to archive */
++    if (task->has_config_file) {
++        if (pvebackup_co_add_config(task->config_file, config_name, format, backup_dir,
++                                    vmaw, pbs, task->errp) != 0) {
++            goto err;
++        }
++    }
++
++    /* add firewall file to archive */
++    if (task->has_firewall_file) {
++        if (pvebackup_co_add_config(task->firewall_file, firewall_name, format, backup_dir,
++                                    vmaw, pbs, task->errp) != 0) {
++            goto err;
++        }
++    }
++    /* initialize global backup_state now */
++
++    qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
++
++    backup_state.stat.cancel = false;
++
++    if (backup_state.stat.error) {
++        error_free(backup_state.stat.error);
++        backup_state.stat.error = NULL;
++    }
++
++    backup_state.stat.start_time = time(NULL);
++    backup_state.stat.end_time = 0;
++
++    if (backup_state.stat.backup_file) {
++        g_free(backup_state.stat.backup_file);
++    }
++    backup_state.stat.backup_file = g_strdup(task->backup_file);
++
++    uuid_copy(backup_state.stat.uuid, uuid);
++    uuid_unparse_lower(uuid, backup_state.stat.uuid_str);
++    char *uuid_str = g_strdup(backup_state.stat.uuid_str);
++
++    backup_state.stat.total = total;
++    backup_state.stat.transferred = 0;
++    backup_state.stat.zero_bytes = 0;
++
++    qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++
++    backup_state.speed = (task->has_speed && task->speed > 0) ? task->speed : 0;
++
++    backup_state.vmaw = vmaw;
++    backup_state.pbs = pbs;
++
++    backup_state.di_list = di_list;
++
++    /* start all jobs (paused state) */
++    l = di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++
++        // make sure target runs in same aoi_context as source
++        AioContext *aio_context = bdrv_get_aio_context(di->bs);
++        aio_context_acquire(aio_context);
++        GSList *ignore = NULL;
++        bdrv_set_aio_context_ignore(di->target, aio_context, &ignore);
++        g_slist_free(ignore);
++        aio_context_release(aio_context);
++
++        job = backup_job_create(NULL, di->bs, di->target, backup_state.speed, MIRROR_SYNC_MODE_FULL, NULL,
++                                BITMAP_SYNC_MODE_NEVER, false, NULL, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
++                                JOB_DEFAULT, pvebackup_complete_cb, di, 1, NULL, &local_err);
++        if (!job || local_err != NULL) {
++            qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
++            error_setg(&backup_state.stat.error, "backup_job_create failed");
++            qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++            break;
++        }
++        job_start(&job->job);
++        if (di->target) {
++            bdrv_unref(di->target);
++            di->target = NULL;
++        }
++    }
++
++    qemu_co_mutex_unlock(&backup_state.backup_mutex);
++
++    qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
++    bool no_errors = !backup_state.stat.error;
++    qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++
++    if (no_errors) {
++        pvebackup_co_run_next_job(); // run one job
++    } else {
++        pvebackup_co_cancel(NULL);
++    }
++
++    uuid_info = g_malloc0(sizeof(*uuid_info));
++    uuid_info->UUID = uuid_str;
++
++    task->result = uuid_info;
++    return;
++
++err:
++
++    l = di_list;
++    while (l) {
++        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
++        l = g_list_next(l);
++
++        if (di->target) {
++            bdrv_unref(di->target);
++        }
++
++        if (di->targetfile[0]) {
++            unlink(di->targetfile);
++        }
++        g_free(di);
++    }
++    g_list_free(di_list);
++
++    if (devs) {
++        g_strfreev(devs);
++    }
++
++    if (vmaw) {
++        Error *err = NULL;
++        vma_writer_close(vmaw, &err);
++        unlink(task->backup_file);
++    }
++
++    if (pbs) {
++        proxmox_backup_disconnect(pbs);
++    }
++
++    if (backup_dir) {
++        rmdir(backup_dir);
++    }
++
++    qemu_co_mutex_unlock(&backup_state.backup_mutex);
++
++    task->result = NULL;
++    return;
++}
++
++UuidInfo *qmp_backup(
++    const char *backup_file,
++    bool has_password, const char *password,
++    bool has_keyfile, const char *keyfile,
++    bool has_key_password, const char *key_password,
++    bool has_fingerprint, const char *fingerprint,
++    bool has_backup_id, const char *backup_id,
++    bool has_backup_time, int64_t backup_time,
++    bool has_format, BackupFormat format,
++    bool has_config_file, const char *config_file,
++    bool has_firewall_file, const char *firewall_file,
++    bool has_devlist, const char *devlist,
++    bool has_speed, int64_t speed, Error **errp)
++{
++    QmpBackupTask task = {
++        .backup_file = backup_file,
++        .has_password = has_password,
++        .password = password,
++        .has_key_password = has_key_password,
++        .key_password = key_password,
++        .has_fingerprint = has_fingerprint,
++        .fingerprint = fingerprint,
++        .has_backup_id = has_backup_id,
++        .backup_id = backup_id,
++        .has_backup_time = has_backup_time,
++        .backup_time = backup_time,
++        .has_format = has_format,
++        .format = format,
++        .has_config_file = has_config_file,
++        .config_file = config_file,
++        .has_firewall_file = has_firewall_file,
++        .firewall_file = firewall_file,
++        .has_devlist = has_devlist,
++        .devlist = devlist,
++        .has_speed = has_speed,
++        .speed = speed,
++        .errp = errp,
++    };
++
++    block_on_coroutine_fn(pvebackup_co_start, &task);
++
++    return task.result;
++}
++
++
++typedef struct QmpQueryBackupTask {
++    Error **errp;
++    BackupStatus *result;
++} QmpQueryBackupTask;
++
++static void coroutine_fn pvebackup_co_query(void *opaque)
++{
++    assert(qemu_in_coroutine());
++
++    QmpQueryBackupTask *task = opaque;
++
++    BackupStatus *info = g_malloc0(sizeof(*info));
++
++    qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
++
++    if (!backup_state.stat.start_time) {
++        /* not started, return {} */
++        task->result = info;
++        qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++        return;
++    }
++
++    info->has_status = true;
++    info->has_start_time = true;
++    info->start_time = backup_state.stat.start_time;
++
++    if (backup_state.stat.backup_file) {
++        info->has_backup_file = true;
++        info->backup_file = g_strdup(backup_state.stat.backup_file);
++    }
++
++    info->has_uuid = true;
++    info->uuid = g_strdup(backup_state.stat.uuid_str);
++
++    if (backup_state.stat.end_time) {
++        if (backup_state.stat.error) {
++            info->status = g_strdup("error");
++            info->has_errmsg = true;
++            info->errmsg = g_strdup(error_get_pretty(backup_state.stat.error));
++        } else {
++            info->status = g_strdup("done");
++        }
++        info->has_end_time = true;
++        info->end_time = backup_state.stat.end_time;
++    } else {
++        info->status = g_strdup("active");
++    }
++
++    info->has_total = true;
++    info->total = backup_state.stat.total;
++    info->has_zero_bytes = true;
++    info->zero_bytes = backup_state.stat.zero_bytes;
++    info->has_transferred = true;
++    info->transferred = backup_state.stat.transferred;
++
++    task->result = info;
++
++    qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
++}
++
++BackupStatus *qmp_query_backup(Error **errp)
++{
++    QmpQueryBackupTask task = {
++        .errp = errp,
++        .result = NULL,
++    };
++
++    block_on_coroutine_fn(pvebackup_co_query, &task);
++
++    return task.result;
++}
+diff --git a/qapi/block-core.json b/qapi/block-core.json
+index 783a868eb2..0b987ad6e3 100644
+--- a/qapi/block-core.json
++++ b/qapi/block-core.json
+@@ -800,6 +800,115 @@
+ { 'command': 'query-block', 'returns': ['BlockInfo'] }
+ 
+ 
++##
++# @BackupStatus:
++#
++# Detailed backup status.
++#
++# @status: string describing the current backup status.
++#          This can be 'active', 'done', 'error'. If this field is not
++#          returned, no backup process has been initiated
++#
++# @errmsg: error message (only returned if status is 'error')
++#
++# @total: total amount of bytes involved in the backup process
++#
++# @transferred: amount of bytes already backed up.
++#
++# @zero-bytes: amount of 'zero' bytes detected.
++#
++# @start-time: time (epoch) when backup job started.
++#
++# @end-time: time (epoch) when backup job finished.
++#
++# @backup-file: backup file name
++#
++# @uuid: uuid for this backup job
++#
++##
++{ 'struct': 'BackupStatus',
++  'data': {'*status': 'str', '*errmsg': 'str', '*total': 'int',
++           '*transferred': 'int', '*zero-bytes': 'int',
++           '*start-time': 'int', '*end-time': 'int',
++           '*backup-file': 'str', '*uuid': 'str' } }
++
++##
++# @BackupFormat:
++#
++# An enumeration of supported backup formats.
++#
++# @vma: Proxmox vma backup format
++##
++{ 'enum': 'BackupFormat',
++  'data': [ 'vma', 'dir', 'pbs' ] }
++
++##
++# @backup:
++#
++# Starts a VM backup.
++#
++# @backup-file: the backup file name
++#
++# @format: format of the backup file
++#
++# @config-file: a configuration file to include into
++# the backup archive.
++#
++# @speed: the maximum speed, in bytes per second
++#
++# @devlist: list of block device names (separated by ',', ';'
++# or ':'). By default the backup includes all writable block devices.
++#
++# @password: backup server passsword (required for format 'pbs')
++#
++# @keyfile: keyfile used for encryption (optional for format 'pbs')
++#
++# @key-password: password for keyfile (optional for format 'pbs')
++#
++# @fingerprint: server cert fingerprint (optional for format 'pbs')
++#
++# @backup-id: backup ID (required for format 'pbs')
++#
++# @backup-time: backup timestamp (Unix epoch, required for format 'pbs')
++#
++# Returns: the uuid of the backup job
++#
++##
++{ 'command': 'backup', 'data': { 'backup-file': 'str',
++                                    '*password': 'str',
++                                    '*keyfile': 'str',
++                                    '*key-password': 'str',
++                                    '*fingerprint': 'str',
++                                    '*backup-id': 'str',
++                                    '*backup-time': 'int',
++                                    '*format': 'BackupFormat',
++                                    '*config-file': 'str',
++                                    '*firewall-file': 'str',
++                                    '*devlist': 'str', '*speed': 'int' },
++  'returns': 'UuidInfo' }
++
++##
++# @query-backup:
++#
++# Returns information about current/last backup task.
++#
++# Returns: @BackupStatus
++#
++##
++{ 'command': 'query-backup', 'returns': 'BackupStatus' }
++
++##
++# @backup-cancel:
++#
++# Cancel the current executing backup process.
++#
++# Returns: nothing on success
++#
++# Notes: This command succeeds even if there is no backup process running.
++#
++##
++{ 'command': 'backup-cancel' }
++
+ ##
+ # @BlockDeviceTimedStats:
+ #
+diff --git a/qapi/common.json b/qapi/common.json
+index 7b9cbcd97b..c3b8bb7b48 100644
+--- a/qapi/common.json
++++ b/qapi/common.json
+@@ -144,3 +144,16 @@
+ ##
+ { 'enum': 'PCIELinkWidth',
+   'data': [ '1', '2', '4', '8', '12', '16', '32' ] }
++
++##
++# @UuidInfo:
++#
++# Guest UUID information (Universally Unique Identifier).
++#
++# @UUID: the UUID of the guest
++#
++# Since: 0.14.0
++#
++# Notes: If no UUID was specified for the guest, a null UUID is returned.
++##
++{ 'struct': 'UuidInfo', 'data': {'UUID': 'str'} }
+diff --git a/qapi/misc.json b/qapi/misc.json
+index 4c4618a574..7d506b5300 100644
+--- a/qapi/misc.json
++++ b/qapi/misc.json
+@@ -270,19 +270,6 @@
+ ##
+ { 'command': 'query-kvm', 'returns': 'KvmInfo' }
+ 
+-##
+-# @UuidInfo:
+-#
+-# Guest UUID information (Universally Unique Identifier).
+-#
+-# @UUID: the UUID of the guest
+-#
+-# Since: 0.14.0
+-#
+-# Notes: If no UUID was specified for the guest, a null UUID is returned.
+-##
+-{ 'struct': 'UuidInfo', 'data': {'UUID': 'str'} }
+-
+ ##
+ # @query-uuid:
+ #

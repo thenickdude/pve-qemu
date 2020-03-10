@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Wed, 9 Dec 2015 14:27:49 +0100
-Subject: [PATCH] PVE: virtio-balloon: improve query-balloon
+Date: Tue, 10 Mar 2020 12:55:11 +0100
+Subject: [PATCH 14/32] PVE: virtio-balloon: improve query-balloon
 
 Actually provide memory information via the query-balloon
 command.
@@ -14,10 +14,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  3 files changed, 81 insertions(+), 4 deletions(-)
 
 diff --git a/hw/virtio/virtio-balloon.c b/hw/virtio/virtio-balloon.c
-index 25de154307..7c09716035 100644
+index 40b04f5180..76e907e628 100644
 --- a/hw/virtio/virtio-balloon.c
 +++ b/hw/virtio/virtio-balloon.c
-@@ -712,8 +712,37 @@ static uint64_t virtio_balloon_get_features(VirtIODevice *vdev, uint64_t f,
+@@ -713,8 +713,37 @@ static uint64_t virtio_balloon_get_features(VirtIODevice *vdev, uint64_t f,
  static void virtio_balloon_stat(void *opaque, BalloonInfo *info)
  {
      VirtIOBalloon *dev = opaque;
@@ -58,10 +58,10 @@ index 25de154307..7c09716035 100644
  
  static void virtio_balloon_to_target(void *opaque, ram_addr_t target)
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 5ca3ebe942..1b32c59329 100644
+index b2551c16d1..2e725ed818 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
-@@ -870,7 +870,35 @@ void hmp_info_balloon(Monitor *mon, const QDict *qdict)
+@@ -854,7 +854,35 @@ void hmp_info_balloon(Monitor *mon, const QDict *qdict)
          return;
      }
  
@@ -99,7 +99,7 @@ index 5ca3ebe942..1b32c59329 100644
      qapi_free_BalloonInfo(info);
  }
 diff --git a/qapi/misc.json b/qapi/misc.json
-index a7fba7230c..2445c950cc 100644
+index 33b94e3589..ed65ed27e3 100644
 --- a/qapi/misc.json
 +++ b/qapi/misc.json
 @@ -408,10 +408,30 @@

@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Wed, 9 Dec 2015 16:34:41 +0100
-Subject: [PATCH] PVE: [Up] qmp: add get_link_status
+Date: Tue, 10 Mar 2020 12:55:05 +0100
+Subject: [PATCH 08/32] PVE: [Up] qmp: add get_link_status
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
@@ -11,10 +11,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  3 files changed, 43 insertions(+)
 
 diff --git a/net/net.c b/net/net.c
-index 7d4098254f..c6d5e66bfc 100644
+index 84aa6d8d00..f548202ec6 100644
 --- a/net/net.c
 +++ b/net/net.c
-@@ -1347,6 +1347,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
+@@ -1349,6 +1349,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
      }
  }
  
@@ -49,7 +49,7 @@ index 7d4098254f..c6d5e66bfc 100644
  {
      NetClientState *nc;
 diff --git a/qapi/net.json b/qapi/net.json
-index 728990f4fb..d53c66320b 100644
+index 335295be50..7f3ea194c8 100644
 --- a/qapi/net.json
 +++ b/qapi/net.json
 @@ -34,6 +34,21 @@
@@ -75,7 +75,7 @@ index 728990f4fb..d53c66320b 100644
  # @netdev_add:
  #
 diff --git a/qapi/qapi-schema.json b/qapi/qapi-schema.json
-index 38af54d6b3..d6a4177935 100644
+index 9751b11f8f..a449f158e1 100644
 --- a/qapi/qapi-schema.json
 +++ b/qapi/qapi-schema.json
 @@ -61,6 +61,7 @@

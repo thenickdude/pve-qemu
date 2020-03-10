@@ -1,37 +1,39 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Wed, 9 Dec 2015 14:31:18 +0100
-Subject: [PATCH] PVE: qapi: modify query machines
+From: Dietmar Maurer <dietmar@proxmox.com>
+Date: Tue, 10 Mar 2020 12:55:12 +0100
+Subject: [PATCH 15/32] PVE: qapi: modify query machines
 
 provide '*is-current' in MachineInfo struct
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
 ---
- hw/core/machine-qmp-cmds.c | 5 +++++
+ hw/core/machine-qmp-cmds.c | 6 ++++++
  qapi/machine.json          | 4 +++-
- 2 files changed, 8 insertions(+), 1 deletion(-)
+ 2 files changed, 9 insertions(+), 1 deletion(-)
 
 diff --git a/hw/core/machine-qmp-cmds.c b/hw/core/machine-qmp-cmds.c
-index 5bd95b8ab0..fd68f9baf8 100644
+index eed5aeb2f7..1953633e82 100644
 --- a/hw/core/machine-qmp-cmds.c
 +++ b/hw/core/machine-qmp-cmds.c
-@@ -229,6 +229,11 @@ MachineInfoList *qmp_query_machines(Error **errp)
+@@ -230,6 +230,12 @@ MachineInfoList *qmp_query_machines(Error **errp)
+         info->hotpluggable_cpus = mc->has_hotpluggable_cpus;
          info->numa_mem_supported = mc->numa_mem_supported;
          info->deprecated = !!mc->deprecation_reason;
- 
++
 +        if (strcmp(mc->name, MACHINE_GET_CLASS(current_machine)->name) == 0) {
 +            info->has_is_current = true;
 +            info->is_current = true;
 +        }
 +
-         entry = g_malloc0(sizeof(*entry));
-         entry->value = info;
-         entry->next = mach_list;
+         if (mc->default_cpu_type) {
+             info->default_cpu_type = g_strdup(mc->default_cpu_type);
+             info->has_default_cpu_type = true;
 diff --git a/qapi/machine.json b/qapi/machine.json
-index 6db8a7e2ec..7b82c5f7f5 100644
+index ca26779f1a..cbdb6f6d66 100644
 --- a/qapi/machine.json
 +++ b/qapi/machine.json
-@@ -313,6 +313,8 @@
+@@ -336,6 +336,8 @@
  #
  # @is-default: whether the machine is default
  #
@@ -40,12 +42,12 @@ index 6db8a7e2ec..7b82c5f7f5 100644
  # @cpu-max: maximum number of CPUs supported by the machine type
  #           (since 1.5.0)
  #
-@@ -329,7 +331,7 @@
+@@ -355,7 +357,7 @@
  ##
  { 'struct': 'MachineInfo',
    'data': { 'name': 'str', '*alias': 'str',
 -            '*is-default': 'bool', 'cpu-max': 'int',
 +            '*is-default': 'bool', '*is-current': 'bool', 'cpu-max': 'int',
              'hotpluggable-cpus': 'bool',  'numa-mem-supported': 'bool',
-             'deprecated': 'bool' } }
+             'deprecated': 'bool', '*default-cpu-type': 'str' } }
  

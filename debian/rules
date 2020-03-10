@@ -120,7 +120,6 @@ install: build
 	rm $(destdir)/usr/share/kvm/s390-netboot.img
 	rm $(destdir)/usr/share/kvm/qemu_vga.ndrv
 	rm $(destdir)/usr/share/kvm/slof.bin
-	rm $(destdir)/usr/share/kvm/spapr-rtas.bin
 	rm $(destdir)/usr/share/kvm/u-boot.e500
 	# remove Aplha files
 	rm $(destdir)/usr/share/kvm/palcode-clipper

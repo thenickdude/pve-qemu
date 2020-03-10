@@ -1,7 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Mon, 24 Oct 2016 09:32:36 +0200
-Subject: [PATCH] PVE: [Config] glusterfs: no default logfile if daemonized
+Date: Tue, 10 Mar 2020 12:55:03 +0100
+Subject: [PATCH 06/32] PVE: [Config] glusterfs: no default logfile if
+ daemonized
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
@@ -9,7 +10,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 11 insertions(+), 4 deletions(-)
 
 diff --git a/block/gluster.c b/block/gluster.c
-index f64dc5b01e..061cab48c0 100644
+index 4fa4a77a47..bfb57ba098 100644
 --- a/block/gluster.c
 +++ b/block/gluster.c
 @@ -42,7 +42,7 @@

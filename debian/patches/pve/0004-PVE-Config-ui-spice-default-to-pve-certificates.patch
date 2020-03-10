@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Wed, 9 Dec 2015 14:33:34 +0100
-Subject: [PATCH] PVE: [Config] ui/spice: default to pve certificates
+Date: Tue, 10 Mar 2020 12:55:01 +0100
+Subject: [PATCH 04/32] PVE: [Config] ui/spice: default to pve certificates
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
@@ -9,7 +9,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 9 insertions(+), 6 deletions(-)
 
 diff --git a/ui/spice-core.c b/ui/spice-core.c
-index 2ffc3335f0..c95bbd6c77 100644
+index ecc2ec2c55..ca04965ead 100644
 --- a/ui/spice-core.c
 +++ b/ui/spice-core.c
 @@ -668,32 +668,35 @@ void qemu_spice_init(void)
