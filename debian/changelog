@@ -1,3 +1,14 @@
+pve-qemu-kvm (4.2.0-1) pve; urgency=medium
+
+  * update to QEMU 4.2.0
+
+  * add initial Proxmox Backup Server integration
+
+  * truncate snapshot state at 1024 aligned boundary, as required by some
+    storage plugins
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 11 Mar 2020 07:14:24 +0100
+
 pve-qemu-kvm (4.1.1-4) pve; urgency=medium
 
   * fix a memory leak triggered by a VNC disconnect
