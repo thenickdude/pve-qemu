@@ -23,10 +23,10 @@ pve/0022-PVE-Up-Config-file-posix-make-locking-optiono-on-cre.patch
 pve/0023-PVE-savevm-async-kick-AIO-wait-on-block-state-write.patch
 pve/0024-PVE-move-snapshot-cleanup-into-bottom-half.patch
 pve/0025-PVE-monitor-disable-oob-capability.patch
-pve/0026-PVE-Acquire-aio_context-before-calling-block_job_add.patch
 pve/0027-PVE-Compat-4.0-used-balloon-qemu-4-0-config-size-fal.patch
 pve/0028-PVE-Allow-version-code-in-machine-type.patch
 pve/0029-PVE-Backup-add-vma-backup-format-code.patch
 pve/0030-PVE-Backup-add-backup-dump-block-driver.patch
 pve/0031-PVE-Backup-proxmox-backup-patches-for-qemu.patch
 pve/0032-PVE-Backup-pbs-restore-new-command-to-restore-from-p.patch
+pve/0033-PVE-Backup-aquire-aio_context-before-calling-backup_.patch

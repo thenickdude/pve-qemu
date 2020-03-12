@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Dietmar Maurer <dietmar@proxmox.com>
+Date: Wed, 11 Mar 2020 13:00:56 +0100
+Subject: [PATCH] PVE-Backup: aquire aio_context before calling
+ backup_job_create
+
+And do not set target in same aoi_context as source, because
+this is already done in bdrv_backup_top_append ...
+
+Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
+---
+ pve-backup.c | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
+
+diff --git a/pve-backup.c b/pve-backup.c
+index 9ae89fb679..38dd33e28b 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -757,17 +757,15 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+         PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
+         l = g_list_next(l);
+ 
+-        // make sure target runs in same aoi_context as source
+         AioContext *aio_context = bdrv_get_aio_context(di->bs);
+         aio_context_acquire(aio_context);
+-        GSList *ignore = NULL;
+-        bdrv_set_aio_context_ignore(di->target, aio_context, &ignore);
+-        g_slist_free(ignore);
+-        aio_context_release(aio_context);
+ 
+         job = backup_job_create(NULL, di->bs, di->target, backup_state.speed, MIRROR_SYNC_MODE_FULL, NULL,
+                                 BITMAP_SYNC_MODE_NEVER, false, NULL, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
+                                 JOB_DEFAULT, pvebackup_complete_cb, di, 1, NULL, &local_err);
++
++        aio_context_release(aio_context);
++
+         if (!job || local_err != NULL) {
+             qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
+             error_setg(&backup_state.stat.error, "backup_job_create failed");
+-- 
+2.20.1
+
