@@ -30,3 +30,6 @@ pve/0030-PVE-Backup-add-backup-dump-block-driver.patch
 pve/0031-PVE-Backup-proxmox-backup-patches-for-qemu.patch
 pve/0032-PVE-Backup-pbs-restore-new-command-to-restore-from-p.patch
 pve/0033-PVE-Backup-aquire-aio_context-before-calling-backup_.patch
+security/0001-util-add-slirp_fmt-helpers.patch
+security/0002-tcp_emu-fix-unsafe-snprintf-usages.patch
+security/0003-ip_reass-Fix-use-after-free.patch
