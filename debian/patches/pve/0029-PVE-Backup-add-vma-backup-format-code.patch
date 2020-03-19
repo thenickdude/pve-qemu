@@ -8,9 +8,9 @@ Subject: [PATCH 29/32] PVE-Backup: add vma backup format code
  Makefile.objs |   1 +
  vma-reader.c  | 857 ++++++++++++++++++++++++++++++++++++++++++++++++++
  vma-writer.c  | 771 +++++++++++++++++++++++++++++++++++++++++++++
- vma.c         | 837 ++++++++++++++++++++++++++++++++++++++++++++++++
+ vma.c         | 838 ++++++++++++++++++++++++++++++++++++++++++++++++
  vma.h         | 150 +++++++++
- 6 files changed, 2618 insertions(+), 1 deletion(-)
+ 6 files changed, 2619 insertions(+), 1 deletion(-)
  create mode 100644 vma-reader.c
  create mode 100644 vma-writer.c
  create mode 100644 vma.c
@@ -1694,7 +1694,7 @@ new file mode 100644
 index 0000000000..a82752448a
 --- /dev/null
 +++ b/vma.c
-@@ -0,0 +1,837 @@
+@@ -0,0 +1,838 @@
 +/*
 + * VMA: Virtual Machine Archive
 + *
@@ -2330,6 +2330,7 @@ index 0000000000..a82752448a
 +    }
 +
 +    int devcount = 0;
++    VmaStatus vmastat;
 +    while (optind < argc) {
 +        const char *path = argv[optind++];
 +        char *devname = NULL;
@@ -2347,7 +2348,8 @@ index 0000000000..a82752448a
 +        int dev_id = vma_writer_register_stream(vmaw, devname, size);
 +        if (dev_id <= 0) {
 +            unlink(archivename);
-+            g_error("vma_writer_register_stream '%s' failed", devname);
++            vma_writer_get_status(vmaw, &vmastat);
++            g_error("error for device '%s': %s", devname, vmastat.errmsg);
 +        }
 +
 +        BackupJob *job = g_new0(BackupJob, 1);
@@ -2360,7 +2362,6 @@ index 0000000000..a82752448a
 +        qemu_coroutine_enter(co);
 +    }
 +
-+    VmaStatus vmastat;
 +    int percent = 0;
 +    int last_percent = -1;
 +
