@@ -1,3 +1,11 @@
+pve-qemu-kvm (4.2.0-2) pve; urgency=medium
+
+  * vma_writer: Display more error information
+
+  * add bitmap drive-mirror patches
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 25 Mar 2020 12:20:10 +0100
+
 pve-qemu-kvm (4.2.0-1) pve; urgency=medium
 
   * update to QEMU 4.2.0
