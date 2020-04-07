@@ -1,17 +1,17 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:15 +0100
-Subject: [PATCH 18/32] PVE: block: add the zeroinit block driver filter
+Date: Mon, 6 Apr 2020 12:16:47 +0200
+Subject: [PATCH] PVE: block: add the zeroinit block driver filter
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/Makefile.objs |   1 +
- block/zeroinit.c    | 204 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 205 insertions(+)
+ block/zeroinit.c    | 197 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 198 insertions(+)
  create mode 100644 block/zeroinit.c
 
 diff --git a/block/Makefile.objs b/block/Makefile.objs
-index e394fe0b6c..a10ceabf5b 100644
+index 3635b6b4c1..1282445672 100644
 --- a/block/Makefile.objs
 +++ b/block/Makefile.objs
 @@ -11,6 +11,7 @@ block-obj-$(CONFIG_QED) += qed.o qed-l2-cache.o qed-table.o qed-cluster.o
@@ -24,10 +24,10 @@ index e394fe0b6c..a10ceabf5b 100644
  block-obj-y += blklogwrites.o
 diff --git a/block/zeroinit.c b/block/zeroinit.c
 new file mode 100644
-index 0000000000..b74a78ece6
+index 0000000000..ff38388d94
 --- /dev/null
 +++ b/block/zeroinit.c
-@@ -0,0 +1,204 @@
+@@ -0,0 +1,197 @@
 +/*
 + * Filter to fake a zero-initialized block device.
 + *
@@ -162,12 +162,6 @@ index 0000000000..b74a78ece6
 +    return bdrv_co_pwritev(bs->file, offset, bytes, qiov, flags);
 +}
 +
-+static bool zeroinit_recurse_is_first_non_filter(BlockDriverState *bs,
-+                                                  BlockDriverState *candidate)
-+{
-+    return bdrv_recurse_is_first_non_filter(bs->file->bs, candidate);
-+}
-+
 +static coroutine_fn int zeroinit_co_flush(BlockDriverState *bs)
 +{
 +    return bdrv_co_flush(bs->file->bs);
@@ -214,7 +208,6 @@ index 0000000000..b74a78ece6
 +    .bdrv_co_flush                    = zeroinit_co_flush,
 +
 +    .is_filter                        = true,
-+    .bdrv_recurse_is_first_non_filter = zeroinit_recurse_is_first_non_filter,
 +
 +    .bdrv_has_zero_init               = zeroinit_has_zero_init,
 +

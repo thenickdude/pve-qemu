@@ -1,8 +1,8 @@
-From 4c46f8b0f6fd8efba5e4d0b738b4f01ffcb92d33 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: John Snow <jsnow@redhat.com>
-Date: Tue, 9 Jul 2019 21:12:30 -0400
-Subject: [PATCH qemu 35/39] drive-mirror: add support for conditional and
- always bitmap sync modes
+Date: Mon, 6 Apr 2020 12:17:04 +0200
+Subject: [PATCH] drive-mirror: add support for conditional and always bitmap
+ sync modes
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -23,10 +23,10 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  1 file changed, 18 insertions(+), 6 deletions(-)
 
 diff --git a/block/mirror.c b/block/mirror.c
-index fd7f574365..40d174a625 100644
+index 3c9cd42c50..08ac9827f2 100644
 --- a/block/mirror.c
 +++ b/block/mirror.c
-@@ -645,8 +645,6 @@ static int mirror_exit_common(Job *job)
+@@ -653,8 +653,6 @@ static int mirror_exit_common(Job *job)
          bdrv_unfreeze_backing_chain(mirror_top_bs, target_bs);
      }
  
@@ -35,7 +35,7 @@ index fd7f574365..40d174a625 100644
      /* Make sure that the source BDS doesn't go away during bdrv_replace_node,
       * before we can call bdrv_drained_end */
      bdrv_ref(src);
-@@ -731,6 +729,18 @@ static int mirror_exit_common(Job *job)
+@@ -752,6 +750,18 @@ static int mirror_exit_common(Job *job)
      blk_set_perm(bjob->blk, 0, BLK_PERM_ALL, &error_abort);
      blk_insert_bs(bjob->blk, mirror_top_bs, &error_abort);
  
@@ -54,7 +54,7 @@ index fd7f574365..40d174a625 100644
      bs_opaque->job = NULL;
  
      bdrv_drained_end(src);
-@@ -1562,10 +1572,6 @@ static BlockJob *mirror_start_job(
+@@ -1584,10 +1594,6 @@ static BlockJob *mirror_start_job(
                         " sync mode",
                         MirrorSyncMode_str(sync_mode));
              return NULL;
@@ -65,7 +65,7 @@ index fd7f574365..40d174a625 100644
          }
      } else if (bitmap) {
          error_setg(errp,
-@@ -1582,6 +1588,12 @@ static BlockJob *mirror_start_job(
+@@ -1604,6 +1610,12 @@ static BlockJob *mirror_start_job(
              return NULL;
          }
          granularity = bdrv_dirty_bitmap_granularity(bitmap);
@@ -78,6 +78,3 @@ index fd7f574365..40d174a625 100644
      } else if (granularity == 0) {
          granularity = bdrv_get_default_bitmap_granularity(target);
      }
--- 
-2.20.1
-

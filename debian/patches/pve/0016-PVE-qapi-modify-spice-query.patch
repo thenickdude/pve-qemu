@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:13 +0100
-Subject: [PATCH 16/32] PVE: qapi: modify spice query
+Date: Mon, 6 Apr 2020 12:16:45 +0200
+Subject: [PATCH] PVE: qapi: modify spice query
 
 Provide the last ticket in the SpiceInfo struct optionally.
 
@@ -12,10 +12,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 8 insertions(+)
 
 diff --git a/qapi/ui.json b/qapi/ui.json
-index e04525d8b4..6127990e23 100644
+index e16e98a060..feda6ef090 100644
 --- a/qapi/ui.json
 +++ b/qapi/ui.json
-@@ -211,11 +211,14 @@
+@@ -213,11 +213,14 @@
  #
  # @channels: a list of @SpiceChannel for each active spice channel
  #

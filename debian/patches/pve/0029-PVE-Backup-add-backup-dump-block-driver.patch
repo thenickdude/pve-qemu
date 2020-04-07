@@ -1,28 +1,26 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Dietmar Maurer <dietmar@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:27 +0100
-Subject: [PATCH 30/32] PVE-Backup: add backup-dump block driver
+Date: Mon, 6 Apr 2020 12:16:58 +0200
+Subject: [PATCH] PVE-Backup: add backup-dump block driver
 
 - add backup-dump block driver block/backup-dump.c
 - move BackupBlockJob declaration from block/backup.c to include/block/block_int.h
 - block/backup.c - backup-job-create: also consider source cluster size
-- block/io.c - bdrv_do_drained_begin_quiesce: check for coroutine
 - job.c: make job_should_pause non-static
 ---
  block/Makefile.objs       |   1 +
  block/backup-dump.c       | 169 ++++++++++++++++++++++++++++++++++++++
  block/backup.c            |  23 ++----
- block/io.c                |   8 +-
  include/block/block_int.h |  30 +++++++
  job.c                     |   3 +-
- 6 files changed, 214 insertions(+), 20 deletions(-)
+ 5 files changed, 207 insertions(+), 19 deletions(-)
  create mode 100644 block/backup-dump.c
 
 diff --git a/block/Makefile.objs b/block/Makefile.objs
-index a10ceabf5b..5cd9e40d8d 100644
+index 1282445672..8af7073c83 100644
 --- a/block/Makefile.objs
 +++ b/block/Makefile.objs
-@@ -33,6 +33,7 @@ block-obj-$(CONFIG_RBD) += rbd.o
+@@ -34,6 +34,7 @@ block-obj-$(CONFIG_RBD) += rbd.o
  block-obj-$(CONFIG_GLUSTERFS) += gluster.o
  block-obj-$(CONFIG_VXHS) += vxhs.o
  block-obj-$(CONFIG_LIBSSH) += ssh.o
@@ -206,7 +204,7 @@ index 0000000000..3066ab0698
 +    return bs;
 +}
 diff --git a/block/backup.c b/block/backup.c
-index c155081de2..9d23da027f 100644
+index ecd93e91e0..cf8f5ad25d 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -32,24 +32,6 @@
@@ -234,7 +232,7 @@ index c155081de2..9d23da027f 100644
  static const BlockJobDriver backup_job_driver;
  
  static void backup_progress_bytes_callback(int64_t bytes, void *opaque)
-@@ -420,6 +402,11 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -411,6 +393,11 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
          goto error;
      }
  
@@ -246,27 +244,8 @@ index c155081de2..9d23da027f 100644
      /*
       * If source is in backing chain of target assume that target is going to be
       * used for "image fleecing", i.e. it should represent a kind of snapshot of
-diff --git a/block/io.c b/block/io.c
-index f75777f5ea..75dea5ae33 100644
---- a/block/io.c
-+++ b/block/io.c
-@@ -381,7 +381,13 @@ static void coroutine_fn bdrv_co_yield_to_drain(BlockDriverState *bs,
- void bdrv_do_drained_begin_quiesce(BlockDriverState *bs,
-                                    BdrvChild *parent, bool ignore_bds_parents)
- {
--    assert(!qemu_in_coroutine());
-+    // AFAICT this function is just an optimization, but sadly it doesn't play
-+    // nice with the PVE backup code (when we're in a coroutine, even in
-+    // pvebackup_co_start), so just call the full-blown drain begin instead
-+    if (qemu_in_coroutine()) {
-+        bdrv_do_drained_begin(bs, false, parent, ignore_bds_parents, false);
-+        return;
-+    }
- 
-     /* Stop things in parent-to-child order */
-     if (atomic_fetch_inc(&bs->quiesce_counter) == 0) {
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index b0d5eb9485..105bffe0f7 100644
+index 336f71e69d..62e5579723 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -60,6 +60,36 @@
@@ -307,10 +286,10 @@ index b0d5eb9485..105bffe0f7 100644
      BDRV_TRACKED_READ,
      BDRV_TRACKED_WRITE,
 diff --git a/job.c b/job.c
-index 7554f735e3..b03ef989e2 100644
+index e82253e041..bcbbb0be02 100644
 --- a/job.c
 +++ b/job.c
-@@ -248,7 +248,8 @@ static bool job_started(Job *job)
+@@ -269,7 +269,8 @@ static bool job_started(Job *job)
      return job->co;
  }
  

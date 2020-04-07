@@ -1,8 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:07 +0100
-Subject: [PATCH 10/32] PVE: [Up] qemu-img: return success on info without
- snapshots
+Date: Mon, 6 Apr 2020 12:16:39 +0200
+Subject: [PATCH] PVE: [Up] qemu-img: return success on info without snapshots
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
@@ -10,10 +9,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/qemu-img.c b/qemu-img.c
-index 95a24b9762..12211bed76 100644
+index 821cbf610e..667c540a89 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -2791,7 +2791,8 @@ static int img_info(int argc, char **argv)
+@@ -2821,7 +2821,8 @@ static int img_info(int argc, char **argv)
      list = collect_image_info_list(image_opts, filename, fmt, chain,
                                     force_share);
      if (!list) {

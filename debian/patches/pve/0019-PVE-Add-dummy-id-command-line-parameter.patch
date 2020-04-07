@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:17 +0100
-Subject: [PATCH 20/32] PVE: Add dummy -id command line parameter
+Date: Mon, 6 Apr 2020 12:16:48 +0200
+Subject: [PATCH] PVE: Add dummy -id command line parameter
 
 This used to be part of the qemu-side PVE authentication for
 VNC. Now this does nothing.
@@ -10,16 +10,16 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  qemu-options.hx | 3 +++
- vl.c            | 8 ++++++++
+ softmmu/vl.c    | 8 ++++++++
  2 files changed, 11 insertions(+)
 
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 4cb2681bfc..b84e260fa5 100644
+index ab80cc46fc..726f006576 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -826,6 +826,9 @@ STEXI
- @table @option
- ETEXI
+@@ -904,6 +904,9 @@ DEFHEADING()
+ 
+ DEFHEADING(Block device options:)
  
 +DEF("id", HAS_ARG, QEMU_OPTION_id,
 +    "-id n           set the VMID", QEMU_ARCH_ALL)
@@ -27,19 +27,19 @@ index 4cb2681bfc..b84e260fa5 100644
  DEF("fda", HAS_ARG, QEMU_OPTION_fda,
      "-fda/-fdb file  use 'file' as floppy disk 0/1 image\n", QEMU_ARCH_ALL)
  DEF("fdb", HAS_ARG, QEMU_OPTION_fdb, "", QEMU_ARCH_ALL)
-diff --git a/vl.c b/vl.c
-index 1616f55a38..4df15640c5 100644
---- a/vl.c
-+++ b/vl.c
-@@ -2828,6 +2828,7 @@ static void user_register_global_props(void)
- int main(int argc, char **argv, char **envp)
+diff --git a/softmmu/vl.c b/softmmu/vl.c
+index 312fa8ccda..4dcde069a8 100644
+--- a/softmmu/vl.c
++++ b/softmmu/vl.c
+@@ -2815,6 +2815,7 @@ static void create_default_memdev(MachineState *ms, const char *path)
+ void qemu_init(int argc, char **argv, char **envp)
  {
      int i;
 +    long vm_id;
      int snapshot, linux_boot;
      const char *initrd_filename;
      const char *kernel_filename, *kernel_cmdline;
-@@ -3560,6 +3561,13 @@ int main(int argc, char **argv, char **envp)
+@@ -3518,6 +3519,13 @@ void qemu_init(int argc, char **argv, char **envp)
                      exit(1);
                  }
                  break;

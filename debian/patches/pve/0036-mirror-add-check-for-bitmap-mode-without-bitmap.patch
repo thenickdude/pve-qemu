@@ -1,7 +1,7 @@
-From daec2f64e120a23a8d263f7d058bd84c48397bc8 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
-Date: Mon, 17 Feb 2020 11:59:20 +0100
-Subject: [PATCH qemu 36/39] mirror: add check for bitmap-mode without bitmap
+Date: Mon, 6 Apr 2020 12:17:05 +0200
+Subject: [PATCH] mirror: add check for bitmap-mode without bitmap
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -15,10 +15,10 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  1 file changed, 3 insertions(+)
 
 diff --git a/blockdev.c b/blockdev.c
-index 08285b9e86..768a0b0fd4 100644
+index bbeff9c439..fa3c2f5548 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3861,6 +3861,9 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
+@@ -3257,6 +3257,9 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
          if (bdrv_dirty_bitmap_check(bitmap, BDRV_BITMAP_ALLOW_RO, errp)) {
              return;
          }
@@ -28,6 +28,3 @@ index 08285b9e86..768a0b0fd4 100644
      }
  
      if (has_replaces) {
--- 
-2.20.1
-

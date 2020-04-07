@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:22 +0100
-Subject: [PATCH 25/32] PVE: monitor: disable oob capability
+Date: Mon, 6 Apr 2020 12:16:53 +0200
+Subject: [PATCH] PVE: monitor: disable oob capability
 
 A bisect revealed that commit 8258292e18c3
 ("monitor: Remove "x-oob", offer capability "oob" unconditionally")
@@ -18,11 +18,11 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/monitor/qmp.c b/monitor/qmp.c
-index b67a8e7d1f..8f44fed944 100644
+index f89e7daf27..ed5e39fcf7 100644
 --- a/monitor/qmp.c
 +++ b/monitor/qmp.c
-@@ -395,8 +395,7 @@ void monitor_init_qmp(Chardev *chr, bool pretty)
-     MonitorQMP *mon = g_new0(MonitorQMP, 1);
+@@ -406,8 +406,7 @@ void monitor_init_qmp(Chardev *chr, bool pretty, Error **errp)
+     qemu_chr_fe_set_echo(&mon->common.chr, true);
  
      /* Note: we run QMP monitor in I/O thread when @chr supports that */
 -    monitor_data_init(&mon->common, true, false,

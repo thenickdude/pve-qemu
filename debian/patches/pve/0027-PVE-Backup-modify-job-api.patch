@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:16 +0100
-Subject: [PATCH 19/32] PVE: backup: modify job api
+Date: Mon, 6 Apr 2020 12:16:56 +0200
+Subject: [PATCH] PVE-Backup: modify job api
 
 Introduce a pause_count parameter to start a backup in
 paused mode. This way backups of multiple drives can be
@@ -18,10 +18,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  5 files changed, 8 insertions(+), 3 deletions(-)
 
 diff --git a/block/backup.c b/block/backup.c
-index cf62b1a38c..c155081de2 100644
+index a7a7dcaf4c..ecd93e91e0 100644
 --- a/block/backup.c
 +++ b/block/backup.c
-@@ -347,6 +347,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -338,6 +338,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                    BlockdevOnError on_target_error,
                    int creation_flags,
                    BlockCompletionFunc *cb, void *opaque,
@@ -29,7 +29,7 @@ index cf62b1a38c..c155081de2 100644
                    JobTxn *txn, Error **errp)
  {
      int64_t len;
-@@ -468,6 +469,8 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -459,6 +460,8 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
      block_job_add_bdrv(&job->common, "target", target, 0, BLK_PERM_ALL,
                         &error_abort);
  
@@ -39,10 +39,10 @@ index cf62b1a38c..c155081de2 100644
  
   error:
 diff --git a/block/replication.c b/block/replication.c
-index 99532ce521..ec8de7b427 100644
+index da013c2041..17246a822c 100644
 --- a/block/replication.c
 +++ b/block/replication.c
-@@ -546,7 +546,7 @@ static void replication_start(ReplicationState *rs, ReplicationMode mode,
+@@ -554,7 +554,7 @@ static void replication_start(ReplicationState *rs, ReplicationMode mode,
                                  0, MIRROR_SYNC_MODE_NONE, NULL, 0, false, NULL,
                                  BLOCKDEV_ON_ERROR_REPORT,
                                  BLOCKDEV_ON_ERROR_REPORT, JOB_INTERNAL,
@@ -52,10 +52,10 @@ index 99532ce521..ec8de7b427 100644
              error_propagate(errp, local_err);
              backup_job_cleanup(bs);
 diff --git a/blockdev.c b/blockdev.c
-index 8e029e9c01..c7fa663ebf 100644
+index 5faddaa705..65c358e4ef 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3583,7 +3583,8 @@ static BlockJob *do_backup_common(BackupCommon *backup,
+@@ -3114,7 +3114,8 @@ static BlockJob *do_backup_common(BackupCommon *backup,
                              backup->filter_node_name,
                              backup->on_source_error,
                              backup->on_target_error,
@@ -66,22 +66,22 @@ index 8e029e9c01..c7fa663ebf 100644
  }
  
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index dd033d0b37..b0d5eb9485 100644
+index 4c3587ea19..336f71e69d 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
-@@ -1215,6 +1215,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -1219,6 +1219,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                              BlockdevOnError on_target_error,
                              int creation_flags,
                              BlockCompletionFunc *cb, void *opaque,
 +                            int pause_count,
                              JobTxn *txn, Error **errp);
  
- void hmp_drive_add_node(Monitor *mon, const char *optstr);
+ BdrvChild *bdrv_root_attach_child(BlockDriverState *child_bs,
 diff --git a/job.c b/job.c
-index 04409b40aa..7554f735e3 100644
+index 53be57a3a0..e82253e041 100644
 --- a/job.c
 +++ b/job.c
-@@ -888,7 +888,7 @@ void job_start(Job *job)
+@@ -918,7 +918,7 @@ void job_start(Job *job)
      job->co = qemu_coroutine_create(job_co_entry, job);
      job->pause_count--;
      job->busy = true;

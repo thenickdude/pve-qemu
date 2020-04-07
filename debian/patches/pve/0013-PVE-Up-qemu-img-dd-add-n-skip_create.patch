@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Alexandre Derumier <aderumier@odiso.com>
-Date: Tue, 10 Mar 2020 12:55:10 +0100
-Subject: [PATCH 13/32] PVE: [Up] qemu-img dd : add -n skip_create
+Date: Mon, 6 Apr 2020 12:16:42 +0200
+Subject: [PATCH] PVE: [Up] qemu-img dd : add -n skip_create
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
@@ -9,10 +9,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 14 insertions(+), 9 deletions(-)
 
 diff --git a/qemu-img.c b/qemu-img.c
-index 8da1ea3951..ea3edb4f04 100644
+index 17393b2f53..574bb3c73d 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -4535,7 +4535,7 @@ static int img_dd(int argc, char **argv)
+@@ -4574,7 +4574,7 @@ static int img_dd(int argc, char **argv)
      const char *fmt = NULL;
      int64_t size = 0, readsize = 0;
      int64_t block_count = 0, out_pos, in_pos;
@@ -21,7 +21,7 @@ index 8da1ea3951..ea3edb4f04 100644
      struct DdInfo dd = {
          .flags = 0,
          .count = 0,
-@@ -4573,7 +4573,7 @@ static int img_dd(int argc, char **argv)
+@@ -4612,7 +4612,7 @@ static int img_dd(int argc, char **argv)
          { 0, 0, 0, 0 }
      };
  
@@ -30,7 +30,7 @@ index 8da1ea3951..ea3edb4f04 100644
          if (c == EOF) {
              break;
          }
-@@ -4593,6 +4593,9 @@ static int img_dd(int argc, char **argv)
+@@ -4632,6 +4632,9 @@ static int img_dd(int argc, char **argv)
          case 'h':
              help();
              break;
@@ -40,7 +40,7 @@ index 8da1ea3951..ea3edb4f04 100644
          case 'U':
              force_share = true;
              break;
-@@ -4733,13 +4736,15 @@ static int img_dd(int argc, char **argv)
+@@ -4772,13 +4775,15 @@ static int img_dd(int argc, char **argv)
                                  size - in.bsz * in.offset, &error_abort);
          }
  

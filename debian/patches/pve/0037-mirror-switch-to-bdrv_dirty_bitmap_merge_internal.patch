@@ -1,7 +1,7 @@
-From 31ea5889c25012189aabe51157b32cfbe87a63be Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
-Date: Mon, 17 Feb 2020 10:43:22 +0100
-Subject: [PATCH qemu 37/39] mirror: switch to bdrv_dirty_bitmap_merge_internal
+Date: Mon, 6 Apr 2020 12:17:06 +0200
+Subject: [PATCH] mirror: switch to bdrv_dirty_bitmap_merge_internal
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -15,10 +15,10 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/block/mirror.c b/block/mirror.c
-index 40d174a625..d6aca2874e 100644
+index 08ac9827f2..c56b0f87e3 100644
 --- a/block/mirror.c
 +++ b/block/mirror.c
-@@ -735,8 +735,8 @@ static int mirror_exit_common(Job *job)
+@@ -756,8 +756,8 @@ static int mirror_exit_common(Job *job)
               job->ret == 0 && ret == 0)) {
              /* Success; synchronize copy back to sync. */
              bdrv_clear_dirty_bitmap(s->sync_bitmap, NULL);
@@ -29,7 +29,7 @@ index 40d174a625..d6aca2874e 100644
          }
      }
      bdrv_release_dirty_bitmap(s->dirty_bitmap);
-@@ -1727,8 +1727,8 @@ static BlockJob *mirror_start_job(
+@@ -1749,8 +1749,8 @@ static BlockJob *mirror_start_job(
      }
  
      if (s->sync_mode == MIRROR_SYNC_MODE_BITMAP) {
@@ -40,6 +40,3 @@ index 40d174a625..d6aca2874e 100644
          if (local_err) {
              goto fail;
          }
--- 
-2.20.1
-

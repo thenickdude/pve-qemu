@@ -1,26 +1,26 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Dietmar Maurer <dietmar@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:26 +0100
-Subject: [PATCH 29/32] PVE-Backup: add vma backup format code
+Date: Mon, 6 Apr 2020 12:16:57 +0200
+Subject: [PATCH] PVE-Backup: add vma backup format code
 
 ---
  Makefile      |   3 +-
  Makefile.objs |   1 +
  vma-reader.c  | 857 ++++++++++++++++++++++++++++++++++++++++++++++++++
  vma-writer.c  | 771 +++++++++++++++++++++++++++++++++++++++++++++
- vma.c         | 838 ++++++++++++++++++++++++++++++++++++++++++++++++
+ vma.c         | 837 ++++++++++++++++++++++++++++++++++++++++++++++++
  vma.h         | 150 +++++++++
- 6 files changed, 2619 insertions(+), 1 deletion(-)
+ 6 files changed, 2618 insertions(+), 1 deletion(-)
  create mode 100644 vma-reader.c
  create mode 100644 vma-writer.c
  create mode 100644 vma.c
  create mode 100644 vma.h
 
 diff --git a/Makefile b/Makefile
-index b437a346d7..18d2dba2e4 100644
+index 84ef881600..da4c7d982d 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -453,7 +453,7 @@ dummy := $(call unnest-vars,, \
+@@ -479,7 +479,7 @@ dummy := $(call unnest-vars,, \
  
  include $(SRC_PATH)/tests/Makefile.include
  
@@ -29,16 +29,16 @@ index b437a346d7..18d2dba2e4 100644
  
  qemu-version.h: FORCE
  	$(call quiet-command, \
-@@ -567,6 +567,7 @@ qemu-img.o: qemu-img-cmds.h
- qemu-img$(EXESUF): qemu-img.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
+@@ -608,6 +608,7 @@ qemu-img$(EXESUF): qemu-img.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io
  qemu-nbd$(EXESUF): qemu-nbd.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
  qemu-io$(EXESUF): qemu-io.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
+ qemu-storage-daemon$(EXESUF): qemu-storage-daemon.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(chardev-obj-y) $(io-obj-y) $(qom-obj-y) $(storage-daemon-obj-y) $(COMMON_LDADDS)
 +vma$(EXESUF): vma.o vma-reader.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
  
  qemu-bridge-helper$(EXESUF): qemu-bridge-helper.o $(COMMON_LDADDS)
  
 diff --git a/Makefile.objs b/Makefile.objs
-index f97b40f232..db7fbbe73b 100644
+index d0b4dde836..05031a3da7 100644
 --- a/Makefile.objs
 +++ b/Makefile.objs
 @@ -18,6 +18,7 @@ block-obj-y += block.o blockjob.o job.o
@@ -1694,7 +1694,7 @@ new file mode 100644
 index 0000000000..a82752448a
 --- /dev/null
 +++ b/vma.c
-@@ -0,0 +1,838 @@
+@@ -0,0 +1,837 @@
 +/*
 + * VMA: Virtual Machine Archive
 + *
@@ -2330,7 +2330,6 @@ index 0000000000..a82752448a
 +    }
 +
 +    int devcount = 0;
-+    VmaStatus vmastat;
 +    while (optind < argc) {
 +        const char *path = argv[optind++];
 +        char *devname = NULL;
@@ -2348,8 +2347,7 @@ index 0000000000..a82752448a
 +        int dev_id = vma_writer_register_stream(vmaw, devname, size);
 +        if (dev_id <= 0) {
 +            unlink(archivename);
-+            vma_writer_get_status(vmaw, &vmastat);
-+            g_error("error for device '%s': %s", devname, vmastat.errmsg);
++            g_error("vma_writer_register_stream '%s' failed", devname);
 +        }
 +
 +        BackupJob *job = g_new0(BackupJob, 1);
@@ -2362,6 +2360,7 @@ index 0000000000..a82752448a
 +        qemu_coroutine_enter(co);
 +    }
 +
++    VmaStatus vmastat;
 +    int percent = 0;
 +    int last_percent = -1;
 +

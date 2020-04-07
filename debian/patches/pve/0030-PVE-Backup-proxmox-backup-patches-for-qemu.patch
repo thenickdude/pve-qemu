@@ -1,33 +1,55 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Dietmar Maurer <dietmar@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:28 +0100
-Subject: [PATCH 31/32] PVE-Backup: proxmox backup patches for qemu
+Date: Mon, 6 Apr 2020 12:16:59 +0200
+Subject: [PATCH] PVE-Backup: proxmox backup patches for qemu
 
 ---
- Makefile.objs             |   1 +
- Makefile.target           |   2 +-
- blockdev.c                |   1 +
- hmp-commands-info.hx      |  13 +
- hmp-commands.hx           |  31 ++
- include/block/block_int.h |   2 +-
- include/monitor/hmp.h     |   3 +
- monitor/hmp-cmds.c        |  77 +++
- proxmox-backup-client.c   | 182 ++++++++
- proxmox-backup-client.h   |  52 +++
- pve-backup.c              | 959 ++++++++++++++++++++++++++++++++++++++
- qapi/block-core.json      | 109 +++++
- qapi/common.json          |  13 +
- qapi/misc.json            |  13 -
- 14 files changed, 1443 insertions(+), 15 deletions(-)
+ Makefile                       |   1 +
+ Makefile.objs                  |   2 +
+ Makefile.target                |   2 +-
+ block/monitor/block-hmp-cmds.c |  33 ++
+ blockdev.c                     |   1 +
+ hmp-commands-info.hx           |  13 +
+ hmp-commands.hx                |  29 +
+ include/block/block_int.h      |   2 +-
+ include/monitor/hmp.h          |   3 +
+ monitor/hmp-cmds.c             |  44 ++
+ proxmox-backup-client.c        | 182 +++++++
+ proxmox-backup-client.h        |  52 ++
+ pve-backup.c                   | 959 +++++++++++++++++++++++++++++++++
+ qapi/block-core.json           | 109 ++++
+ qapi/common.json               |  13 +
+ qapi/misc.json                 |  13 -
+ 16 files changed, 1443 insertions(+), 15 deletions(-)
  create mode 100644 proxmox-backup-client.c
  create mode 100644 proxmox-backup-client.h
  create mode 100644 pve-backup.c
 
+diff --git a/Makefile b/Makefile
+index da4c7d982d..49c1d8c1b6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -608,6 +608,7 @@ qemu-img$(EXESUF): qemu-img.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io
+ qemu-nbd$(EXESUF): qemu-nbd.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
+ qemu-io$(EXESUF): qemu-io.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
+ qemu-storage-daemon$(EXESUF): qemu-storage-daemon.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(chardev-obj-y) $(io-obj-y) $(qom-obj-y) $(storage-daemon-obj-y) $(COMMON_LDADDS)
++qemu-storage-daemon$(EXESUF): LIBS += -lproxmox_backup_qemu
+ vma$(EXESUF): vma.o vma-reader.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
+ 
+ qemu-bridge-helper$(EXESUF): qemu-bridge-helper.o $(COMMON_LDADDS)
 diff --git a/Makefile.objs b/Makefile.objs
-index db7fbbe73b..4406dcfeba 100644
+index 05031a3da7..b7d58e592e 100644
 --- a/Makefile.objs
 +++ b/Makefile.objs
-@@ -46,6 +46,7 @@ io-obj-y = io/
+@@ -34,6 +34,7 @@ endif # CONFIG_SOFTMMU or CONFIG_TOOLS
+ 
+ storage-daemon-obj-y = block/ monitor/ qapi/ qom/ storage-daemon/
+ storage-daemon-obj-y += blockdev.o blockdev-nbd.o iothread.o job-qmp.o
++storage-daemon-obj-y += proxmox-backup-client.o pve-backup.o
+ storage-daemon-obj-$(CONFIG_WIN32) += os-win32.o
+ storage-daemon-obj-$(CONFIG_POSIX) += os-posix.o
+ 
+@@ -45,6 +46,7 @@ storage-daemon-obj-$(CONFIG_POSIX) += os-posix.o
  ifeq ($(CONFIG_SOFTMMU),y)
  common-obj-y = blockdev.o blockdev-nbd.o block/
  common-obj-y += bootdevice.o iothread.o
@@ -36,20 +58,61 @@ index db7fbbe73b..4406dcfeba 100644
  common-obj-y += job-qmp.o
  common-obj-y += monitor/
 diff --git a/Makefile.target b/Makefile.target
-index 24d79d26eb..d7d91085a4 100644
+index 8ed1eba95b..f453a95efc 100644
 --- a/Makefile.target
 +++ b/Makefile.target
-@@ -160,7 +160,7 @@ obj-y += qapi/
- obj-y += memory.o
+@@ -162,7 +162,7 @@ obj-y += memory.o
  obj-y += memory_mapping.o
  obj-y += migration/ram.o
+ obj-y += softmmu/
 -LIBS := $(libs_softmmu) $(LIBS)
-+LIBS := $(libs_softmmu) $(LIBS) -lproxmox_backup_qemu
++LIBS := $(libs_softmmu) $(LIBS)  -lproxmox_backup_qemu
  
  # Hardware support
  ifeq ($(TARGET_NAME), sparc64)
+diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
+index 4c8c375172..4f03881286 100644
+--- a/block/monitor/block-hmp-cmds.c
++++ b/block/monitor/block-hmp-cmds.c
+@@ -1011,3 +1011,36 @@ void hmp_info_snapshots(Monitor *mon, const QDict *qdict)
+     g_free(sn_tab);
+     g_free(global_snapshots);
+ }
++
++void hmp_backup_cancel(Monitor *mon, const QDict *qdict)
++{
++    Error *error = NULL;
++
++    qmp_backup_cancel(&error);
++
++    hmp_handle_error(mon, error);
++}
++
++void hmp_backup(Monitor *mon, const QDict *qdict)
++{
++    Error *error = NULL;
++
++    int dir = qdict_get_try_bool(qdict, "directory", 0);
++    const char *backup_file = qdict_get_str(qdict, "backupfile");
++    const char *devlist = qdict_get_try_str(qdict, "devlist");
++    int64_t speed = qdict_get_try_int(qdict, "speed", 0);
++
++    qmp_backup(
++        backup_file,
++        false, NULL, // BPS password
++        false, NULL, // BPS keyfile
++        false, NULL, // BPS key_password
++        false, NULL, // BPS fingerprint
++        false, NULL, // BPS backup-id
++        false, 0, // BPS backup-time
++        true, dir ? BACKUP_FORMAT_DIR : BACKUP_FORMAT_VMA,
++        false, NULL, false, NULL, !!devlist,
++        devlist, qdict_haskey(qdict, "speed"), speed, &error);
++
++    hmp_handle_error(mon, error);
++}
 diff --git a/blockdev.c b/blockdev.c
-index c7fa663ebf..e5310cb939 100644
+index 65c358e4ef..f391c3b3c7 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -36,6 +36,7 @@
@@ -61,38 +124,38 @@ index c7fa663ebf..e5310cb939 100644
  #include "monitor/monitor.h"
  #include "qemu/error-report.h"
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index 139e673bea..8db5ce03a7 100644
+index 89fea71972..64995443d4 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
-@@ -536,6 +536,19 @@ STEXI
- @item info cpustats
- @findex info cpustats
- Show CPU statistics.
-+ETEXI
-+
+@@ -512,6 +512,19 @@ SRST
+     Show CPU statistics.
+ ERST
+ 
 +    {
 +        .name       = "backup",
 +        .args_type  = "",
 +        .params     = "",
 +        .help       = "show backup status",
-+        .cmd = hmp_info_backup,
++        .cmd        = hmp_info_backup,
 +    },
 +
-+STEXI
-+@item info backup
-+show backup status
- ETEXI
- 
++SRST
++  ``info backup``
++    Show backup status.
++ERST
++
  #if defined(CONFIG_SLIRP)
+     {
+         .name       = "usernet",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 104288322d..29d11dd321 100644
+index 81fe305d07..8a03b45c44 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
-@@ -105,6 +105,37 @@ STEXI
- @item block_stream
- @findex block_stream
- Copy data from a backing file into a block device.
-+ETEXI
+@@ -97,6 +97,35 @@ ERST
+ SRST
+ ``block_stream``
+   Copy data from a backing file into a block device.
++ERST
 +
 +   {
 +        .name       = "backup",
@@ -104,30 +167,28 @@ index 104288322d..29d11dd321 100644
 +        .cmd = hmp_backup,
 +    },
 +
-+STEXI
-+@item backup
-+@findex backup
-+Create a VM backup.
-+ETEXI
++SRST
++``backup``
++  Create a VM backup.
++ERST
 +
 +    {
 +        .name       = "backup_cancel",
 +        .args_type  = "",
 +        .params     = "",
 +        .help       = "cancel the current VM backup",
-+        .cmd = hmp_backup_cancel,
++        .cmd        = hmp_backup_cancel,
 +    },
 +
-+STEXI
-+@item backup_cancel
-+@findex backup_cancel
-+Cancel the current VM backup.
++SRST
++``backup_cancel``
++  Cancel the current VM backup.
 +
- ETEXI
+ ERST
  
      {
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 105bffe0f7..43b00c15ac 100644
+index 62e5579723..6d234f1de9 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -62,7 +62,7 @@
@@ -140,7 +201,7 @@ index 105bffe0f7..43b00c15ac 100644
      uint64_t byte_size,
      BackupDumpFunc *dump_cb,
 diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
-index c6ee8295f0..0f2f96c4af 100644
+index 601827d43f..6653d04c3c 100644
 --- a/include/monitor/hmp.h
 +++ b/include/monitor/hmp.h
 @@ -30,6 +30,7 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict);
@@ -149,22 +210,22 @@ index c6ee8295f0..0f2f96c4af 100644
  void hmp_info_migrate_cache_size(Monitor *mon, const QDict *qdict);
 +void hmp_info_backup(Monitor *mon, const QDict *qdict);
  void hmp_info_cpus(Monitor *mon, const QDict *qdict);
- void hmp_info_block(Monitor *mon, const QDict *qdict);
- void hmp_info_blockstats(Monitor *mon, const QDict *qdict);
-@@ -90,6 +91,8 @@ void hmp_eject(Monitor *mon, const QDict *qdict);
+ void hmp_info_vnc(Monitor *mon, const QDict *qdict);
+ void hmp_info_spice(Monitor *mon, const QDict *qdict);
+@@ -76,6 +77,8 @@ void hmp_x_colo_lost_heartbeat(Monitor *mon, const QDict *qdict);
+ void hmp_set_password(Monitor *mon, const QDict *qdict);
+ void hmp_expire_password(Monitor *mon, const QDict *qdict);
  void hmp_change(Monitor *mon, const QDict *qdict);
- void hmp_block_set_io_throttle(Monitor *mon, const QDict *qdict);
- void hmp_block_stream(Monitor *mon, const QDict *qdict);
 +void hmp_backup(Monitor *mon, const QDict *qdict);
 +void hmp_backup_cancel(Monitor *mon, const QDict *qdict);
- void hmp_block_job_set_speed(Monitor *mon, const QDict *qdict);
- void hmp_block_job_cancel(Monitor *mon, const QDict *qdict);
- void hmp_block_job_pause(Monitor *mon, const QDict *qdict);
+ void hmp_migrate(Monitor *mon, const QDict *qdict);
+ void hmp_device_add(Monitor *mon, const QDict *qdict);
+ void hmp_device_del(Monitor *mon, const QDict *qdict);
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 90aa34be25..1e33c61a2c 100644
+index 39c7474cea..7fd59b1c22 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
-@@ -194,6 +194,50 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
+@@ -192,6 +192,50 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
      qapi_free_MouseInfoList(mice_list);
  }
  
@@ -215,46 +276,6 @@ index 90aa34be25..1e33c61a2c 100644
  static char *SocketAddress_to_str(SocketAddress *addr)
  {
      switch (addr->type) {
-@@ -2062,6 +2106,39 @@ void hmp_block_stream(Monitor *mon, const QDict *qdict)
-     hmp_handle_error(mon, &error);
- }
- 
-+void hmp_backup_cancel(Monitor *mon, const QDict *qdict)
-+{
-+    Error *error = NULL;
-+
-+    qmp_backup_cancel(&error);
-+
-+    hmp_handle_error(mon, &error);
-+}
-+
-+void hmp_backup(Monitor *mon, const QDict *qdict)
-+{
-+    Error *error = NULL;
-+
-+    int dir = qdict_get_try_bool(qdict, "directory", 0);
-+    const char *backup_file = qdict_get_str(qdict, "backupfile");
-+    const char *devlist = qdict_get_try_str(qdict, "devlist");
-+    int64_t speed = qdict_get_try_int(qdict, "speed", 0);
-+
-+    qmp_backup(
-+        backup_file,
-+        false, NULL, // BPS password
-+        false, NULL, // BPS keyfile
-+        false, NULL, // BPS key_password
-+        false, NULL, // BPS fingerprint
-+        false, NULL, // BPS backup-id
-+        false, 0, // BPS backup-time
-+        true, dir ? BACKUP_FORMAT_DIR : BACKUP_FORMAT_VMA,
-+        false, NULL, false, NULL, !!devlist,
-+        devlist, qdict_haskey(qdict, "speed"), speed, &error);
-+
-+    hmp_handle_error(mon, &error);
-+}
-+
- void hmp_block_job_set_speed(Monitor *mon, const QDict *qdict)
- {
-     Error *error = NULL;
 diff --git a/proxmox-backup-client.c b/proxmox-backup-client.c
 new file mode 100644
 index 0000000000..b7bc7f2574
@@ -1467,10 +1488,10 @@ index 0000000000..9ae89fb679
 +    return task.result;
 +}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 783a868eb2..0b987ad6e3 100644
+index 4c55464f86..97d1f64636 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -800,6 +800,115 @@
+@@ -744,6 +744,115 @@
  { 'command': 'query-block', 'returns': ['BlockInfo'] }
  
  
@@ -1608,10 +1629,10 @@ index 7b9cbcd97b..c3b8bb7b48 100644
 +##
 +{ 'struct': 'UuidInfo', 'data': {'UUID': 'str'} }
 diff --git a/qapi/misc.json b/qapi/misc.json
-index 4c4618a574..7d506b5300 100644
+index 0868de22b7..c690a3707d 100644
 --- a/qapi/misc.json
 +++ b/qapi/misc.json
-@@ -270,19 +270,6 @@
+@@ -129,19 +129,6 @@
  ##
  { 'command': 'query-kvm', 'returns': 'KvmInfo' }
  

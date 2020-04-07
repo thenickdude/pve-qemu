@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Dietmar Maurer <dietmar@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:12 +0100
-Subject: [PATCH 15/32] PVE: qapi: modify query machines
+Date: Mon, 6 Apr 2020 12:16:44 +0200
+Subject: [PATCH] PVE: qapi: modify query machines
 
 provide '*is-current' in MachineInfo struct
 
@@ -30,10 +30,10 @@ index eed5aeb2f7..1953633e82 100644
              info->default_cpu_type = g_strdup(mc->default_cpu_type);
              info->has_default_cpu_type = true;
 diff --git a/qapi/machine.json b/qapi/machine.json
-index ca26779f1a..cbdb6f6d66 100644
+index ff7b5032e3..f6cf28f9fd 100644
 --- a/qapi/machine.json
 +++ b/qapi/machine.json
-@@ -336,6 +336,8 @@
+@@ -340,6 +340,8 @@
  #
  # @is-default: whether the machine is default
  #
@@ -42,7 +42,7 @@ index ca26779f1a..cbdb6f6d66 100644
  # @cpu-max: maximum number of CPUs supported by the machine type
  #           (since 1.5.0)
  #
-@@ -355,7 +357,7 @@
+@@ -359,7 +361,7 @@
  ##
  { 'struct': 'MachineInfo',
    'data': { 'name': 'str', '*alias': 'str',

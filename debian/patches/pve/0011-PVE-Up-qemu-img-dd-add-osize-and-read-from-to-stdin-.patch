@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:08 +0100
-Subject: [PATCH 11/32] PVE: [Up] qemu-img dd: add osize and read from/to
+Date: Mon, 6 Apr 2020 12:16:40 +0200
+Subject: [PATCH] PVE: [Up] qemu-img dd: add osize and read from/to
  stdin/stdout
 
 Neither convert nor dd were previously able to write to or
@@ -37,26 +37,26 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 122 insertions(+), 74 deletions(-)
 
 diff --git a/qemu-img-cmds.hx b/qemu-img-cmds.hx
-index 1c93e6d185..8094abb3ee 100644
+index c9c54de1df..0f98033658 100644
 --- a/qemu-img-cmds.hx
 +++ b/qemu-img-cmds.hx
-@@ -56,9 +56,9 @@ STEXI
- ETEXI
+@@ -51,9 +51,9 @@ SRST
+ ERST
  
  DEF("dd", img_dd,
 -    "dd [--image-opts] [-U] [-f fmt] [-O output_fmt] [bs=block_size] [count=blocks] [skip=blocks] if=input of=output")
 +    "dd [--image-opts] [-U] [-f fmt] [-O output_fmt] [bs=block_size] [count=blocks] [skip=blocks] [osize=output_size] if=input of=output")
- STEXI
--@item dd [--image-opts] [-U] [-f @var{fmt}] [-O @var{output_fmt}] [bs=@var{block_size}] [count=@var{blocks}] [skip=@var{blocks}] if=@var{input} of=@var{output}
-+@item dd [--image-opts] [-U] [-f @var{fmt}] [-O @var{output_fmt}] [bs=@var{block_size}] [count=@var{blocks}] [skip=@var{blocks}] [osize=output_size] if=@var{input} of=@var{output}
- ETEXI
+ SRST
+-.. option:: dd [--image-opts] [-U] [-f FMT] [-O OUTPUT_FMT] [bs=BLOCK_SIZE] [count=BLOCKS] [skip=BLOCKS] if=INPUT of=OUTPUT
++.. option:: dd [--image-opts] [-U] [-f FMT] [-O OUTPUT_FMT] [bs=BLOCK_SIZE] [count=BLOCKS] [skip=BLOCKS] [osize=OUTPUT_SIZE] if=INPUT of=OUTPUT
+ ERST
  
  DEF("info", img_info,
 diff --git a/qemu-img.c b/qemu-img.c
-index 12211bed76..d2516968c6 100644
+index 667c540a89..6b7d1fcb51 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -4405,10 +4405,12 @@ out:
+@@ -4444,10 +4444,12 @@ out:
  #define C_IF      04
  #define C_OF      010
  #define C_SKIP    020
@@ -69,7 +69,7 @@ index 12211bed76..d2516968c6 100644
  };
  
  struct DdIo {
-@@ -4487,6 +4489,20 @@ static int img_dd_skip(const char *arg,
+@@ -4526,6 +4528,20 @@ static int img_dd_skip(const char *arg,
      return 0;
  }
  
@@ -90,7 +90,7 @@ index 12211bed76..d2516968c6 100644
  static int img_dd(int argc, char **argv)
  {
      int ret = 0;
-@@ -4527,6 +4543,7 @@ static int img_dd(int argc, char **argv)
+@@ -4566,6 +4582,7 @@ static int img_dd(int argc, char **argv)
          { "if", img_dd_if, C_IF },
          { "of", img_dd_of, C_OF },
          { "skip", img_dd_skip, C_SKIP },
@@ -98,7 +98,7 @@ index 12211bed76..d2516968c6 100644
          { NULL, NULL, 0 }
      };
      const struct option long_options[] = {
-@@ -4605,8 +4622,13 @@ static int img_dd(int argc, char **argv)
+@@ -4644,8 +4661,13 @@ static int img_dd(int argc, char **argv)
          arg = NULL;
      }
  
@@ -114,7 +114,7 @@ index 12211bed76..d2516968c6 100644
          ret = -1;
          goto out;
      }
-@@ -4618,85 +4640,101 @@ static int img_dd(int argc, char **argv)
+@@ -4657,85 +4679,101 @@ static int img_dd(int argc, char **argv)
          goto out;
      }
  
@@ -280,7 +280,7 @@ index 12211bed76..d2516968c6 100644
      }
  
      if (dd.flags & C_SKIP && (in.offset > INT64_MAX / in.bsz ||
-@@ -4714,11 +4752,17 @@ static int img_dd(int argc, char **argv)
+@@ -4753,11 +4791,17 @@ static int img_dd(int argc, char **argv)
  
      for (out_pos = 0; in_pos < size; block_count++) {
          int in_ret, out_ret;
@@ -302,7 +302,7 @@ index 12211bed76..d2516968c6 100644
          }
          if (in_ret < 0) {
              error_report("error while reading from input image file: %s",
-@@ -4728,9 +4772,13 @@ static int img_dd(int argc, char **argv)
+@@ -4767,9 +4811,13 @@ static int img_dd(int argc, char **argv)
          }
          in_pos += in_ret;
  

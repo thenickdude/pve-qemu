@@ -1,20 +1,20 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:05 +0100
-Subject: [PATCH 08/32] PVE: [Up] qmp: add get_link_status
+Date: Mon, 6 Apr 2020 12:16:37 +0200
+Subject: [PATCH] PVE: [Up] qmp: add get_link_status
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- net/net.c             | 27 +++++++++++++++++++++++++++
- qapi/net.json         | 15 +++++++++++++++
- qapi/qapi-schema.json |  1 +
+ net/net.c        | 27 +++++++++++++++++++++++++++
+ qapi/net.json    | 15 +++++++++++++++
+ qapi/pragma.json |  1 +
  3 files changed, 43 insertions(+)
 
 diff --git a/net/net.c b/net/net.c
-index 84aa6d8d00..f548202ec6 100644
+index 38778e831d..dabfb482f0 100644
 --- a/net/net.c
 +++ b/net/net.c
-@@ -1349,6 +1349,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
+@@ -1331,6 +1331,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
      }
  }
  
@@ -49,7 +49,7 @@ index 84aa6d8d00..f548202ec6 100644
  {
      NetClientState *nc;
 diff --git a/qapi/net.json b/qapi/net.json
-index 335295be50..7f3ea194c8 100644
+index cebb1b52e3..f6854483b1 100644
 --- a/qapi/net.json
 +++ b/qapi/net.json
 @@ -34,6 +34,21 @@
@@ -69,20 +69,20 @@ index 335295be50..7f3ea194c8 100644
 +#
 +# Notes: this is an Proxmox VE extension and not offical part of Qemu.
 +##
-+{ 'command': 'get_link_status', 'data': {'name': 'str'}, 'returns': 'int'}
++{ 'command': 'get_link_status', 'data': {'name': 'str'} , 'returns': 'int' }
 +
  ##
  # @netdev_add:
  #
-diff --git a/qapi/qapi-schema.json b/qapi/qapi-schema.json
-index 9751b11f8f..a449f158e1 100644
---- a/qapi/qapi-schema.json
-+++ b/qapi/qapi-schema.json
-@@ -61,6 +61,7 @@
+diff --git a/qapi/pragma.json b/qapi/pragma.json
+index cffae27666..5a3e3de95f 100644
+--- a/qapi/pragma.json
++++ b/qapi/pragma.json
+@@ -5,6 +5,7 @@
+ { 'pragma': {
+     # Commands allowed to return a non-dictionary:
+     'returns-whitelist': [
++	'get_link_status',
+         'human-monitor-command',
+         'qom-get',
          'query-migrate-cache-size',
-         'query-tpm-models',
-         'query-tpm-types',
-+        'get_link_status',
-         'ringbuf-read' ],
-     'name-case-whitelist': [
-         'ACPISlotType',             # DIMM, visible through query-acpi-ospm-status

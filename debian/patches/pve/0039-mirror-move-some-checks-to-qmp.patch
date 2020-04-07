@@ -1,7 +1,7 @@
-From 1beb9c370adff5e8c674d57e7a17672c0a8eaa2a Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabian=20Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>
-Date: Mon, 10 Feb 2020 10:15:16 +0100
-Subject: [PATCH qemu 39/39] mirror: move some checks to qmp
+Date: Mon, 6 Apr 2020 12:17:08 +0200
+Subject: [PATCH] mirror: move some checks to qmp
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -14,14 +14,14 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 ---
  block/mirror.c             | 28 +++------------
  blockdev.c                 | 29 +++++++++++++++
- tests/qemu-iotests/284.out | 72 +++++++++++++++++++-------------------
+ tests/qemu-iotests/384.out | 72 +++++++++++++++++++-------------------
  3 files changed, 70 insertions(+), 59 deletions(-)
 
 diff --git a/block/mirror.c b/block/mirror.c
-index d6aca2874e..7a3373fca7 100644
+index c56b0f87e3..dbba6fc80e 100644
 --- a/block/mirror.c
 +++ b/block/mirror.c
-@@ -1562,31 +1562,13 @@ static BlockJob *mirror_start_job(
+@@ -1584,31 +1584,13 @@ static BlockJob *mirror_start_job(
      Error *local_err = NULL;
      int ret;
  
@@ -59,10 +59,10 @@ index d6aca2874e..7a3373fca7 100644
  
          if (bitmap_mode != BITMAP_SYNC_MODE_NEVER) {
 diff --git a/blockdev.c b/blockdev.c
-index 768a0b0fd4..4b196a2785 100644
+index fa3c2f5548..206de2b6c2 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3840,7 +3840,36 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
+@@ -3236,7 +3236,36 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
          sync = MIRROR_SYNC_MODE_FULL;
      }
  
@@ -99,10 +99,10 @@ index 768a0b0fd4..4b196a2785 100644
          if (granularity) {
              error_setg(errp, "Granularity and bitmap cannot both be set");
              return;
-diff --git a/tests/qemu-iotests/284.out b/tests/qemu-iotests/284.out
+diff --git a/tests/qemu-iotests/384.out b/tests/qemu-iotests/384.out
 index 9b7408b6d6..06a2e29058 100644
---- a/tests/qemu-iotests/284.out
-+++ b/tests/qemu-iotests/284.out
+--- a/tests/qemu-iotests/384.out
++++ b/tests/qemu-iotests/384.out
 @@ -2681,45 +2681,45 @@ qemu_img compare "TEST_DIR/PID-img" "TEST_DIR/PID-fmirror3" ==> Identical, OK!
  -- Sync mode incremental tests --
  
@@ -270,6 +270,3 @@ index 9b7408b6d6..06a2e29058 100644
 -{"error": {"class": "GenericError", "desc": "bitmap-mode must be specified if a bitmap is provided"}}
 +{"error": {"class": "GenericError", "desc": "Sync mode 'none' not supported with bitmap."}}
  
--- 
-2.20.1
-

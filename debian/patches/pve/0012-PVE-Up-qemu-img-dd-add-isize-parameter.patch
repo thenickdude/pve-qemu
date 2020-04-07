@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:09 +0100
-Subject: [PATCH 12/32] PVE: [Up] qemu-img dd: add isize parameter
+Date: Mon, 6 Apr 2020 12:16:41 +0200
+Subject: [PATCH] PVE: [Up] qemu-img dd: add isize parameter
 
 for writing small images from stdin to bigger ones
 
@@ -15,10 +15,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 26 insertions(+), 3 deletions(-)
 
 diff --git a/qemu-img.c b/qemu-img.c
-index d2516968c6..8da1ea3951 100644
+index 6b7d1fcb51..17393b2f53 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -4406,11 +4406,13 @@ out:
+@@ -4445,11 +4445,13 @@ out:
  #define C_OF      010
  #define C_SKIP    020
  #define C_OSIZE   040
@@ -32,7 +32,7 @@ index d2516968c6..8da1ea3951 100644
  };
  
  struct DdIo {
-@@ -4503,6 +4505,20 @@ static int img_dd_osize(const char *arg,
+@@ -4542,6 +4544,20 @@ static int img_dd_osize(const char *arg,
      return 0;
  }
  
@@ -53,7 +53,7 @@ index d2516968c6..8da1ea3951 100644
  static int img_dd(int argc, char **argv)
  {
      int ret = 0;
-@@ -4517,12 +4533,14 @@ static int img_dd(int argc, char **argv)
+@@ -4556,12 +4572,14 @@ static int img_dd(int argc, char **argv)
      int c, i;
      const char *out_fmt = "raw";
      const char *fmt = NULL;
@@ -69,7 +69,7 @@ index d2516968c6..8da1ea3951 100644
      };
      struct DdIo in = {
          .bsz = 512, /* Block size is by default 512 bytes */
-@@ -4544,6 +4562,7 @@ static int img_dd(int argc, char **argv)
+@@ -4583,6 +4601,7 @@ static int img_dd(int argc, char **argv)
          { "of", img_dd_of, C_OF },
          { "skip", img_dd_skip, C_SKIP },
          { "osize", img_dd_osize, C_OSIZE },
@@ -77,7 +77,7 @@ index d2516968c6..8da1ea3951 100644
          { NULL, NULL, 0 }
      };
      const struct option long_options[] = {
-@@ -4750,14 +4769,18 @@ static int img_dd(int argc, char **argv)
+@@ -4789,14 +4808,18 @@ static int img_dd(int argc, char **argv)
  
      in.buf = g_new(uint8_t, in.bsz);
  

@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Dietmar Maurer <dietmar@proxmox.com>
-Date: Wed, 11 Mar 2020 13:00:56 +0100
+Date: Mon, 6 Apr 2020 12:17:00 +0200
 Subject: [PATCH] PVE-Backup: aquire aio_context before calling
  backup_job_create
 
@@ -37,6 +37,3 @@ index 9ae89fb679..38dd33e28b 100644
          if (!job || local_err != NULL) {
              qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
              error_setg(&backup_state.stat.error, "backup_job_create failed");
--- 
-2.20.1
-

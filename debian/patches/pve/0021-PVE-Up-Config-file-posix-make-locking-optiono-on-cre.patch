@@ -1,8 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:19 +0100
-Subject: [PATCH 22/32] PVE: [Up+Config] file-posix: make locking optiono on
- create
+Date: Mon, 6 Apr 2020 12:16:50 +0200
+Subject: [PATCH] PVE: [Up+Config] file-posix: make locking optiono on create
 
 Otherwise creating images on nfs/cifs can be problematic.
 
@@ -14,10 +13,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 43 insertions(+), 21 deletions(-)
 
 diff --git a/block/file-posix.c b/block/file-posix.c
-index 44b49265ae..0722b0f529 100644
+index b527e82a82..36ebd0967e 100644
 --- a/block/file-posix.c
 +++ b/block/file-posix.c
-@@ -2250,6 +2250,7 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
+@@ -2309,6 +2309,7 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
      int fd;
      uint64_t perm, shared;
      int result = 0;
@@ -25,7 +24,7 @@ index 44b49265ae..0722b0f529 100644
  
      /* Validate options and set default values */
      assert(options->driver == BLOCKDEV_DRIVER_FILE);
-@@ -2283,19 +2284,22 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
+@@ -2342,19 +2343,22 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
      perm = BLK_PERM_WRITE | BLK_PERM_RESIZE;
      shared = BLK_PERM_ALL & ~BLK_PERM_RESIZE;
  
@@ -60,7 +59,7 @@ index 44b49265ae..0722b0f529 100644
      }
  
      /* Clear the file by truncating it to 0 */
-@@ -2328,13 +2332,15 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
+@@ -2387,13 +2391,15 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
      }
  
  out_unlock:
@@ -83,7 +82,7 @@ index 44b49265ae..0722b0f529 100644
      }
  
  out_close:
-@@ -2355,6 +2361,7 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
+@@ -2416,6 +2422,7 @@ static int coroutine_fn raw_co_create_opts(BlockDriver *drv,
      PreallocMode prealloc;
      char *buf = NULL;
      Error *local_err = NULL;
@@ -91,7 +90,7 @@ index 44b49265ae..0722b0f529 100644
  
      /* Skip file: protocol prefix */
      strstart(filename, "file:", &filename);
-@@ -2372,6 +2379,18 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
+@@ -2433,6 +2440,18 @@ static int coroutine_fn raw_co_create_opts(BlockDriver *drv,
          return -EINVAL;
      }
  
@@ -110,7 +109,7 @@ index 44b49265ae..0722b0f529 100644
      options = (BlockdevCreateOptions) {
          .driver     = BLOCKDEV_DRIVER_FILE,
          .u.file     = {
-@@ -2381,6 +2400,8 @@ static int coroutine_fn raw_co_create_opts(const char *filename, QemuOpts *opts,
+@@ -2442,6 +2461,8 @@ static int coroutine_fn raw_co_create_opts(BlockDriver *drv,
              .preallocation      = prealloc,
              .has_nocow          = true,
              .nocow              = nocow,
@@ -119,7 +118,7 @@ index 44b49265ae..0722b0f529 100644
          },
      };
      return raw_co_create(&options, errp);
-@@ -2901,7 +2922,7 @@ static int raw_check_perm(BlockDriverState *bs, uint64_t perm, uint64_t shared,
+@@ -2983,7 +3004,7 @@ static int raw_check_perm(BlockDriverState *bs, uint64_t perm, uint64_t shared,
      }
  
      /* Copy locks to the new fd */
@@ -129,10 +128,10 @@ index 44b49265ae..0722b0f529 100644
                                     false, errp);
          if (ret < 0) {
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 0cf68fea14..783a868eb2 100644
+index 943df1926a..4c55464f86 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -4259,7 +4259,8 @@
+@@ -4183,7 +4183,8 @@
    'data': { 'filename':         'str',
              'size':             'size',
              '*preallocation':   'PreallocMode',

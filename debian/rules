@@ -115,7 +115,6 @@ install: build
 	rm -rf $(destdir)/usr/share/kvm/openbios-*
 	# remove ppc files
 	rm $(destdir)/usr/share/kvm/*.dtb
-	rm $(destdir)/usr/share/kvm/ppc_rom.bin
 	rm $(destdir)/usr/share/kvm/s390-ccw.img
 	rm $(destdir)/usr/share/kvm/s390-netboot.img
 	rm $(destdir)/usr/share/kvm/qemu_vga.ndrv

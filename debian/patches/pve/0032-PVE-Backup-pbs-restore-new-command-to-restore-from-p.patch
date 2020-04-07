@@ -1,8 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Dietmar Maurer <dietmar@proxmox.com>
-Date: Tue, 10 Mar 2020 12:55:29 +0100
-Subject: [PATCH 32/32] PVE-Backup: pbs-restore - new command to restore from
- proxmox backup server
+Date: Mon, 6 Apr 2020 12:17:01 +0200
+Subject: [PATCH] PVE-Backup: pbs-restore - new command to restore from proxmox
+ backup server
 
 ---
  Makefile      |   4 +-
@@ -11,10 +11,10 @@ Subject: [PATCH 32/32] PVE-Backup: pbs-restore - new command to restore from
  create mode 100644 pbs-restore.c
 
 diff --git a/Makefile b/Makefile
-index 18d2dba2e4..469a1e3666 100644
+index 49c1d8c1b6..0096b83be5 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -453,7 +453,7 @@ dummy := $(call unnest-vars,, \
+@@ -479,7 +479,7 @@ dummy := $(call unnest-vars,, \
  
  include $(SRC_PATH)/tests/Makefile.include
  
@@ -23,9 +23,9 @@ index 18d2dba2e4..469a1e3666 100644
  
  qemu-version.h: FORCE
  	$(call quiet-command, \
-@@ -568,6 +568,8 @@ qemu-img$(EXESUF): qemu-img.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io
- qemu-nbd$(EXESUF): qemu-nbd.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
- qemu-io$(EXESUF): qemu-io.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
+@@ -610,6 +610,8 @@ qemu-io$(EXESUF): qemu-io.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-o
+ qemu-storage-daemon$(EXESUF): qemu-storage-daemon.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(chardev-obj-y) $(io-obj-y) $(qom-obj-y) $(storage-daemon-obj-y) $(COMMON_LDADDS)
+ qemu-storage-daemon$(EXESUF): LIBS += -lproxmox_backup_qemu
  vma$(EXESUF): vma.o vma-reader.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
 +pbs-restore$(EXESUF): pbs-restore.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
 +pbs-restore$(EXESUF): LIBS += -lproxmox_backup_qemu
