@@ -1,3 +1,9 @@
+pve-qemu-kvm (5.0.0~rc2-1) pve; urgency=medium
+
+  * update to release candidate 2 of upcoming QEMU v5.0.0 release
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 08 Apr 2020 09:44:20 +0200
+
 pve-qemu-kvm (4.2.0-2) pve; urgency=medium
 
   * vma_writer: Display more error information
