@@ -62,7 +62,7 @@ index f6cf28f9fd..a7f9c79a59 100644
  ##
  # @query-machines:
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 4dcde069a8..b08956ac90 100644
+index 9de81875fd..8340c4ca53 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
 @@ -2300,6 +2300,8 @@ static MachineClass *machine_parse(const char *name, GSList *machines)

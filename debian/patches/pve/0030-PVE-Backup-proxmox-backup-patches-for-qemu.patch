@@ -26,7 +26,7 @@ Subject: [PATCH] PVE-Backup: proxmox backup patches for qemu
  create mode 100644 pve-backup.c
 
 diff --git a/Makefile b/Makefile
-index da4c7d982d..49c1d8c1b6 100644
+index 74c2039005..dbd9542ae4 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -608,6 +608,7 @@ qemu-img$(EXESUF): qemu-img.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io

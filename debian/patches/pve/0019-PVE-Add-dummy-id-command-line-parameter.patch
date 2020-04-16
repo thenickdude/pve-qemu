@@ -14,7 +14,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 11 insertions(+)
 
 diff --git a/qemu-options.hx b/qemu-options.hx
-index ab80cc46fc..726f006576 100644
+index 55eef64ddf..e11b4f8ff5 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
 @@ -904,6 +904,9 @@ DEFHEADING()
@@ -28,7 +28,7 @@ index ab80cc46fc..726f006576 100644
      "-fda/-fdb file  use 'file' as floppy disk 0/1 image\n", QEMU_ARCH_ALL)
  DEF("fdb", HAS_ARG, QEMU_OPTION_fdb, "", QEMU_ARCH_ALL)
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 312fa8ccda..4dcde069a8 100644
+index 4b45eb0c37..9de81875fd 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
 @@ -2815,6 +2815,7 @@ static void create_default_memdev(MachineState *ms, const char *path)

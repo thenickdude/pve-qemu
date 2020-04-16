@@ -17,7 +17,7 @@ Subject: [PATCH] PVE-Backup: add vma backup format code
  create mode 100644 vma.h
 
 diff --git a/Makefile b/Makefile
-index 84ef881600..da4c7d982d 100644
+index 8a9113e666..74c2039005 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -479,7 +479,7 @@ dummy := $(call unnest-vars,, \

@@ -11,7 +11,7 @@ Subject: [PATCH] PVE-Backup: pbs-restore - new command to restore from proxmox
  create mode 100644 pbs-restore.c
 
 diff --git a/Makefile b/Makefile
-index 49c1d8c1b6..0096b83be5 100644
+index dbd9542ae4..7c1fb58e18 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -479,7 +479,7 @@ dummy := $(call unnest-vars,, \

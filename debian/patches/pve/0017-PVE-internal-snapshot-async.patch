@@ -289,10 +289,10 @@ index e2a6678eae..0868de22b7 100644
  # @AcpiTableOptions:
  #
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 16debd03cb..ab80cc46fc 100644
+index 292d4e7c0c..55eef64ddf 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -3820,6 +3820,18 @@ SRST
+@@ -3832,6 +3832,18 @@ SRST
      Start right away with a saved state (``loadvm`` in monitor)
  ERST
  
@@ -782,7 +782,7 @@ index 0000000000..54ceeae26c
 +    return ret;
 +}
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 58a40bcfc1..312fa8ccda 100644
+index 32c0047889..4b45eb0c37 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
 @@ -2827,6 +2827,7 @@ void qemu_init(int argc, char **argv, char **envp)
@@ -803,7 +803,7 @@ index 58a40bcfc1..312fa8ccda 100644
              case QEMU_OPTION_full_screen:
                  dpy.has_full_screen = true;
                  dpy.full_screen = true;
-@@ -4442,6 +4446,12 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -4447,6 +4451,12 @@ void qemu_init(int argc, char **argv, char **envp)
              autostart = 0;
              exit(1);
          }
