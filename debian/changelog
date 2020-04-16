@@ -1,3 +1,11 @@
+pve-qemu-kvm (5.0.0~rc3-1) pve; urgency=medium
+
+  * update to release candidate 3 of upcoming QEMU v5.0.0 release
+
+  * PVE: avoid recursive locks
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 16 Apr 2020 15:15:31 +0200
+
 pve-qemu-kvm (5.0.0~rc2-1) pve; urgency=medium
 
   * update to release candidate 2 of upcoming QEMU v5.0.0 release
