@@ -38,4 +38,5 @@ pve/0037-mirror-switch-to-bdrv_dirty_bitmap_merge_internal.patch
 pve/0038-iotests-add-test-for-bitmap-mirror.patch
 pve/0039-mirror-move-some-checks-to-qmp.patch
 pve/0040-PVE-savevm-async-set-up-migration-state.patch
-pve/0041-PVE-Use-non-recursive-locks.patch
+pve/0041-PVE-Backup-avoid-use-QemuRecMutex-inside-coroutines.patch
+pve/0042-PVE-Backup-use-QemuMutex-instead-of-QemuRecMutex.patch
