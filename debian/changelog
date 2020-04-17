@@ -1,10 +1,10 @@
-pve-qemu-kvm (5.0.0~rc3-1) pve; urgency=medium
+pve-qemu-kvm (5.0.0~rc3-2) pve; urgency=medium
 
   * update to release candidate 3 of upcoming QEMU v5.0.0 release
 
-  * PVE: avoid recursive locks
+  * PVE Backup: avoid use QemuRecMutex inside coroutines
 
- -- Proxmox Support Team <support@proxmox.com>  Thu, 16 Apr 2020 15:15:31 +0200
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 17 Apr 2020 09:11:20 +0200
 
 pve-qemu-kvm (5.0.0~rc2-1) pve; urgency=medium
 
