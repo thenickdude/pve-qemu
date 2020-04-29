@@ -1,3 +1,9 @@
+pve-qemu-kvm (5.0.0-1) pve; urgency=medium
+
+  * update to QEMU 5.0.0
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 29 Apr 2020 09:54:12 +0200
+
 pve-qemu-kvm (5.0.0~rc3-2) pve; urgency=medium
 
   * update to release candidate 3 of upcoming QEMU v5.0.0 release
