@@ -1,0 +1,111 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Thu, 30 Apr 2020 15:55:37 +0200
+Subject: [PATCH] move savevm-async back into a coroutine
+
+Move qemu_savevm_state_{header,setup} into the main loop and
+the rest of the iteration into a coroutine. The former need
+to lock the iothread (and we can't unlock it in the
+coroutine), and the latter can't deal with being in a
+separate thread, so a coroutine it must be.
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+---
+ savevm-async.c | 28 +++++++++-------------------
+ 1 file changed, 9 insertions(+), 19 deletions(-)
+
+diff --git a/savevm-async.c b/savevm-async.c
+index a38b15d652..af865b9a0a 100644
+--- a/savevm-async.c
++++ b/savevm-async.c
+@@ -51,7 +51,7 @@ static struct SnapshotState {
+     QEMUFile *file;
+     int64_t total_time;
+     QEMUBH *cleanup_bh;
+-    QemuThread thread;
++    Coroutine *co;
+ } snap_state;
+ 
+ SaveVMInfo *qmp_query_savevm(Error **errp)
+@@ -201,11 +201,9 @@ static void process_savevm_cleanup(void *opaque)
+     int ret;
+     qemu_bh_delete(snap_state.cleanup_bh);
+     snap_state.cleanup_bh = NULL;
++    snap_state.co = NULL;
+     qemu_savevm_state_cleanup();
+ 
+-    qemu_mutex_unlock_iothread();
+-    qemu_thread_join(&snap_state.thread);
+-    qemu_mutex_lock_iothread();
+     ret = save_snapshot_cleanup();
+     if (ret < 0) {
+         save_snapshot_error("save_snapshot_cleanup error %d", ret);
+@@ -221,18 +219,13 @@ static void process_savevm_cleanup(void *opaque)
+     }
+ }
+ 
+-static void *process_savevm_thread(void *opaque)
++static void process_savevm_coro(void *opaque)
+ {
+     int ret;
+     int64_t maxlen;
+     MigrationState *ms = migrate_get_current();
+ 
+-    rcu_register_thread();
+-
+-    qemu_savevm_state_header(snap_state.file);
+-    qemu_savevm_state_setup(snap_state.file);
+     ret = qemu_file_get_error(snap_state.file);
+-
+     if (ret < 0) {
+         save_snapshot_error("qemu_savevm_state_setup failed");
+         goto out;
+@@ -247,16 +240,13 @@ static void *process_savevm_thread(void *opaque)
+         maxlen = blk_getlength(snap_state.target) - 30*1024*1024;
+ 
+         if (pending_size > 400000 && snap_state.bs_pos + pending_size < maxlen) {
+-            qemu_mutex_lock_iothread();
+             ret = qemu_savevm_state_iterate(snap_state.file, false);
+             if (ret < 0) {
+                 save_snapshot_error("qemu_savevm_state_iterate error %d", ret);
+                 break;
+             }
+-            qemu_mutex_unlock_iothread();
+             DPRINTF("savevm inerate pending size %lu ret %d\n", pending_size, ret);
+         } else {
+-            qemu_mutex_lock_iothread();
+             qemu_system_wakeup_request(QEMU_WAKEUP_REASON_OTHER, NULL);
+             ret = global_state_store();
+             if (ret) {
+@@ -285,16 +275,12 @@ static void *process_savevm_thread(void *opaque)
+     }
+ 
+     qemu_bh_schedule(snap_state.cleanup_bh);
+-    qemu_mutex_unlock_iothread();
+ 
+ out:
+     /* set migration state accordingly and clear soon-to-be stale file */
+     migrate_set_state(&ms->state, MIGRATION_STATUS_SETUP,
+                       ret ? MIGRATION_STATUS_FAILED : MIGRATION_STATUS_COMPLETED);
+     ms->to_dst_file = NULL;
+-
+-    rcu_unregister_thread();
+-    return NULL;
+ }
+ 
+ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
+@@ -373,8 +359,12 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
+ 
+     snap_state.state = SAVE_STATE_ACTIVE;
+     snap_state.cleanup_bh = qemu_bh_new(process_savevm_cleanup, &snap_state);
+-    qemu_thread_create(&snap_state.thread, "savevm-async", process_savevm_thread,
+-                       NULL, QEMU_THREAD_JOINABLE);
++    snap_state.co = qemu_coroutine_create(&process_savevm_coro, NULL);
++    qemu_mutex_unlock_iothread();
++    qemu_savevm_state_header(snap_state.file);
++    qemu_savevm_state_setup(snap_state.file);
++    qemu_mutex_lock_iothread();
++    aio_co_schedule(iohandler_get_aio_context(), snap_state.co);
+ 
+     return;
+ 
