@@ -1,3 +1,13 @@
+pve-qemu-kvm (5.0.0-2) pve; urgency=medium
+
+  * fix saving a VM-state (snapshot, suspend-to-disk) in combination with
+    IOThreads
+
+  * try to use bigger chunks for saving a VM-state to improve performance on
+    storage backends like Ceph RBD
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 04 May 2020 15:23:33 +0200
+
 pve-qemu-kvm (5.0.0-1) pve; urgency=medium
 
   * update to QEMU 5.0.0
