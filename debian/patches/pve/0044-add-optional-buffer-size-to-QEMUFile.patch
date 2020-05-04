@@ -1,0 +1,183 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Mon, 4 May 2020 11:05:08 +0200
+Subject: [PATCH] add optional buffer size to QEMUFile
+
+So we can use a 4M buffer for savevm-async which should
+increase performance storing the state onto ceph.
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+---
+ migration/qemu-file.c | 36 ++++++++++++++++++++++++------------
+ migration/qemu-file.h |  1 +
+ savevm-async.c        |  4 ++--
+ 3 files changed, 27 insertions(+), 14 deletions(-)
+
+diff --git a/migration/qemu-file.c b/migration/qemu-file.c
+index 1c3a358a14..7362e51c71 100644
+--- a/migration/qemu-file.c
++++ b/migration/qemu-file.c
+@@ -30,7 +30,7 @@
+ #include "trace.h"
+ #include "qapi/error.h"
+ 
+-#define IO_BUF_SIZE 32768
++#define DEFAULT_IO_BUF_SIZE 32768
+ #define MAX_IOV_SIZE MIN(IOV_MAX, 64)
+ 
+ struct QEMUFile {
+@@ -45,7 +45,8 @@ struct QEMUFile {
+                     when reading */
+     int buf_index;
+     int buf_size; /* 0 when writing */
+-    uint8_t buf[IO_BUF_SIZE];
++    size_t buf_allocated_size;
++    uint8_t *buf;
+ 
+     DECLARE_BITMAP(may_free, MAX_IOV_SIZE);
+     struct iovec iov[MAX_IOV_SIZE];
+@@ -101,7 +102,7 @@ bool qemu_file_mode_is_not_valid(const char *mode)
+     return false;
+ }
+ 
+-QEMUFile *qemu_fopen_ops(void *opaque, const QEMUFileOps *ops)
++QEMUFile *qemu_fopen_ops_sized(void *opaque, const QEMUFileOps *ops, size_t buffer_size)
+ {
+     QEMUFile *f;
+ 
+@@ -109,9 +110,17 @@ QEMUFile *qemu_fopen_ops(void *opaque, const QEMUFileOps *ops)
+ 
+     f->opaque = opaque;
+     f->ops = ops;
++    f->buf_allocated_size = buffer_size;
++    f->buf = malloc(buffer_size);
++
+     return f;
+ }
+ 
++QEMUFile *qemu_fopen_ops(void *opaque, const QEMUFileOps *ops)
++{
++    return qemu_fopen_ops_sized(opaque, ops, DEFAULT_IO_BUF_SIZE);
++}
++
+ 
+ void qemu_file_set_hooks(QEMUFile *f, const QEMUFileHooks *hooks)
+ {
+@@ -346,7 +355,7 @@ static ssize_t qemu_fill_buffer(QEMUFile *f)
+     }
+ 
+     len = f->ops->get_buffer(f->opaque, f->buf + pending, f->pos,
+-                             IO_BUF_SIZE - pending, &local_error);
++                             f->buf_allocated_size - pending, &local_error);
+     if (len > 0) {
+         f->buf_size += len;
+         f->pos += len;
+@@ -386,6 +395,9 @@ int qemu_fclose(QEMUFile *f)
+             ret = ret2;
+         }
+     }
++
++    free(f->buf);
++
+     /* If any error was spotted before closing, we should report it
+      * instead of the close() return value.
+      */
+@@ -435,7 +447,7 @@ static void add_buf_to_iovec(QEMUFile *f, size_t len)
+ {
+     if (!add_to_iovec(f, f->buf + f->buf_index, len, false)) {
+         f->buf_index += len;
+-        if (f->buf_index == IO_BUF_SIZE) {
++        if (f->buf_index == f->buf_allocated_size) {
+             qemu_fflush(f);
+         }
+     }
+@@ -461,7 +473,7 @@ void qemu_put_buffer(QEMUFile *f, const uint8_t *buf, size_t size)
+     }
+ 
+     while (size > 0) {
+-        l = IO_BUF_SIZE - f->buf_index;
++        l = f->buf_allocated_size - f->buf_index;
+         if (l > size) {
+             l = size;
+         }
+@@ -508,8 +520,8 @@ size_t qemu_peek_buffer(QEMUFile *f, uint8_t **buf, size_t size, size_t offset)
+     size_t index;
+ 
+     assert(!qemu_file_is_writable(f));
+-    assert(offset < IO_BUF_SIZE);
+-    assert(size <= IO_BUF_SIZE - offset);
++    assert(offset < f->buf_allocated_size);
++    assert(size <= f->buf_allocated_size - offset);
+ 
+     /* The 1st byte to read from */
+     index = f->buf_index + offset;
+@@ -559,7 +571,7 @@ size_t qemu_get_buffer(QEMUFile *f, uint8_t *buf, size_t size)
+         size_t res;
+         uint8_t *src;
+ 
+-        res = qemu_peek_buffer(f, &src, MIN(pending, IO_BUF_SIZE), 0);
++        res = qemu_peek_buffer(f, &src, MIN(pending, f->buf_allocated_size), 0);
+         if (res == 0) {
+             return done;
+         }
+@@ -593,7 +605,7 @@ size_t qemu_get_buffer(QEMUFile *f, uint8_t *buf, size_t size)
+  */
+ size_t qemu_get_buffer_in_place(QEMUFile *f, uint8_t **buf, size_t size)
+ {
+-    if (size < IO_BUF_SIZE) {
++    if (size < f->buf_allocated_size) {
+         size_t res;
+         uint8_t *src;
+ 
+@@ -618,7 +630,7 @@ int qemu_peek_byte(QEMUFile *f, int offset)
+     int index = f->buf_index + offset;
+ 
+     assert(!qemu_file_is_writable(f));
+-    assert(offset < IO_BUF_SIZE);
++    assert(offset < f->buf_allocated_size);
+ 
+     if (index >= f->buf_size) {
+         qemu_fill_buffer(f);
+@@ -770,7 +782,7 @@ static int qemu_compress_data(z_stream *stream, uint8_t *dest, size_t dest_len,
+ ssize_t qemu_put_compression_data(QEMUFile *f, z_stream *stream,
+                                   const uint8_t *p, size_t size)
+ {
+-    ssize_t blen = IO_BUF_SIZE - f->buf_index - sizeof(int32_t);
++    ssize_t blen = f->buf_allocated_size - f->buf_index - sizeof(int32_t);
+ 
+     if (blen < compressBound(size)) {
+         return -1;
+diff --git a/migration/qemu-file.h b/migration/qemu-file.h
+index a9b6d6ccb7..8752d27c74 100644
+--- a/migration/qemu-file.h
++++ b/migration/qemu-file.h
+@@ -120,6 +120,7 @@ typedef struct QEMUFileHooks {
+ } QEMUFileHooks;
+ 
+ QEMUFile *qemu_fopen_ops(void *opaque, const QEMUFileOps *ops);
++QEMUFile *qemu_fopen_ops_sized(void *opaque, const QEMUFileOps *ops, size_t buffer_size);
+ void qemu_file_set_hooks(QEMUFile *f, const QEMUFileHooks *hooks);
+ int qemu_get_fd(QEMUFile *f);
+ int qemu_fclose(QEMUFile *f);
+diff --git a/savevm-async.c b/savevm-async.c
+index af865b9a0a..c3fe741c38 100644
+--- a/savevm-async.c
++++ b/savevm-async.c
+@@ -338,7 +338,7 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
+         goto restart;
+     }
+ 
+-    snap_state.file = qemu_fopen_ops(&snap_state, &block_file_ops);
++    snap_state.file = qemu_fopen_ops_sized(&snap_state, &block_file_ops, 4 * 1024 * 1024);
+ 
+     if (!snap_state.file) {
+         error_set(errp, ERROR_CLASS_GENERIC_ERROR, "failed to open '%s'", statefile);
+@@ -454,7 +454,7 @@ int load_snapshot_from_blockdev(const char *filename, Error **errp)
+     blk_op_block_all(be, blocker);
+ 
+     /* restore the VM state */
+-    f = qemu_fopen_ops(be, &loadstate_file_ops);
++    f = qemu_fopen_ops_sized(be, &loadstate_file_ops, 4 * 1024 * 1024);
+     if (!f) {
+         error_setg(errp, "Could not open VM state file");
+         goto the_end;
