@@ -1,0 +1,86 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Kevin Wolf <kwolf@redhat.com>
+Date: Wed, 27 May 2020 11:33:20 +0200
+Subject: [PATCH] util/async: Add aio_co_reschedule_self()
+
+From: Kevin Wolf <kwolf@redhat.com>
+
+Add a function that can be used to move the currently running coroutine
+to a different AioContext (and therefore potentially a different
+thread).
+
+Signed-off-by: Kevin Wolf <kwolf@redhat.com>
+---
+ include/block/aio.h | 10 ++++++++++
+ util/async.c        | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 40 insertions(+)
+
+diff --git a/include/block/aio.h b/include/block/aio.h
+index 62ed954344..d5399c67d6 100644
+--- a/include/block/aio.h
++++ b/include/block/aio.h
+@@ -17,6 +17,7 @@
+ #ifdef CONFIG_LINUX_IO_URING
+ #include <liburing.h>
+ #endif
++#include "qemu/coroutine.h"
+ #include "qemu/queue.h"
+ #include "qemu/event_notifier.h"
+ #include "qemu/thread.h"
+@@ -654,6 +655,15 @@ static inline bool aio_node_check(AioContext *ctx, bool is_external)
+  */
+ void aio_co_schedule(AioContext *ctx, struct Coroutine *co);
+ 
++/**
++ * aio_co_reschedule_self:
++ * @new_ctx: the new context
++ *
++ * Move the currently running coroutine to new_ctx. If the coroutine is already
++ * running in new_ctx, do nothing.
++ */
++void coroutine_fn aio_co_reschedule_self(AioContext *new_ctx);
++
+ /**
+  * aio_co_wake:
+  * @co: the coroutine
+diff --git a/util/async.c b/util/async.c
+index 3165a28f2f..4eba1e6f1b 100644
+--- a/util/async.c
++++ b/util/async.c
+@@ -558,6 +558,36 @@ void aio_co_schedule(AioContext *ctx, Coroutine *co)
+     aio_context_unref(ctx);
+ }
+ 
++typedef struct AioCoRescheduleSelf {
++    Coroutine *co;
++    AioContext *new_ctx;
++} AioCoRescheduleSelf;
++
++static void aio_co_reschedule_self_bh(void *opaque)
++{
++    AioCoRescheduleSelf *data = opaque;
++    aio_co_schedule(data->new_ctx, data->co);
++}
++
++void coroutine_fn aio_co_reschedule_self(AioContext *new_ctx)
++{
++    AioContext *old_ctx = qemu_get_current_aio_context();
++
++    if (old_ctx != new_ctx) {
++        AioCoRescheduleSelf data = {
++            .co = qemu_coroutine_self(),
++            .new_ctx = new_ctx,
++        };
++        /*
++         * We can't directly schedule the coroutine in the target context
++         * because this would be racy: The other thread could try to enter the
++         * coroutine before it has yielded in this one.
++         */
++        aio_bh_schedule_oneshot(old_ctx, aio_co_reschedule_self_bh, &data);
++        qemu_coroutine_yield();
++    }
++}
++
+ void aio_co_wake(struct Coroutine *co)
+ {
+     AioContext *ctx;

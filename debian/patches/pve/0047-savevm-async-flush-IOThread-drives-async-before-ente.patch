@@ -1,0 +1,58 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Wed, 27 May 2020 11:33:21 +0200
+Subject: [PATCH] savevm-async: flush IOThread-drives async before entering
+ blocking part
+
+By flushing all drives where its possible to so before entering the
+blocking part (where the VM is stopped), we can reduce the time spent in
+said part for every disk that has an IOThread (other drives cannot be
+flushed async anyway).
+
+Suggested-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+---
+ savevm-async.c | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+
+diff --git a/savevm-async.c b/savevm-async.c
+index 2894c94233..4ce83a0691 100644
+--- a/savevm-async.c
++++ b/savevm-async.c
+@@ -253,6 +253,8 @@ static void coroutine_fn process_savevm_co(void *opaque)
+ {
+     int ret;
+     int64_t maxlen;
++    BdrvNextIterator it;
++    BlockDriverState *bs = NULL;
+ 
+     ret = qemu_file_get_error(snap_state.file);
+     if (ret < 0) {
+@@ -288,6 +290,27 @@ static void coroutine_fn process_savevm_co(void *opaque)
+         }
+     }
+ 
++    /* If a drive runs in an IOThread we can flush it async, and only
++     * need to sync-flush whatever IO happens between now and
++     * vm_stop_force_state. bdrv_next can only be called from main AioContext,
++     * so move there now and after every flush.
++     */
++    aio_co_reschedule_self(qemu_get_aio_context());
++    for (bs = bdrv_first(&it); bs; bs = bdrv_next(&it)) {
++        /* target has BDRV_O_NO_FLUSH, no sense calling bdrv_flush on it */
++        if (bs == blk_bs(snap_state.target)) {
++            continue;
++        }
++
++        AioContext *bs_ctx = bdrv_get_aio_context(bs);
++        if (bs_ctx != qemu_get_aio_context()) {
++            DPRINTF("savevm: async flushing drive %s\n", bs->filename);
++            aio_co_reschedule_self(bs_ctx);
++            bdrv_flush(bs);
++            aio_co_reschedule_self(qemu_get_aio_context());
++        }
++    }
++
+     qemu_bh_schedule(snap_state.finalize_bh);
+ }
+ 

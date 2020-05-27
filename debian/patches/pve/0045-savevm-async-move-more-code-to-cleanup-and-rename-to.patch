@@ -1,0 +1,188 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Wed, 27 May 2020 11:33:19 +0200
+Subject: [PATCH] savevm-async: move more code to cleanup and rename to
+ finalize
+
+process_savevm_cleanup is renamed to process_savevm_finalize to
+accomodate more code that is not all cleanup related.
+
+The benefit of this is that it allows us to call functions which need to
+run in the main AIOContext directly. It doesn't majorly affect snapshot
+performance, since the first instruction that is moved stops the VM,
+so the downtime stays about the same.
+
+The target bdrv is additionally moved to the IOHandler context before
+process_savevm_co to make sure the coroutine can call functions that
+require it to own the bdrv's context. process_savevm_finalize then moves
+it back to the main context to run its part.
+
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+---
+ savevm-async.c | 87 +++++++++++++++++++++++++++++---------------------
+ 1 file changed, 51 insertions(+), 36 deletions(-)
+
+diff --git a/savevm-async.c b/savevm-async.c
+index c3fe741c38..2894c94233 100644
+--- a/savevm-async.c
++++ b/savevm-async.c
+@@ -50,7 +50,7 @@ static struct SnapshotState {
+     int saved_vm_running;
+     QEMUFile *file;
+     int64_t total_time;
+-    QEMUBH *cleanup_bh;
++    QEMUBH *finalize_bh;
+     Coroutine *co;
+ } snap_state;
+ 
+@@ -196,12 +196,42 @@ static const QEMUFileOps block_file_ops = {
+     .close =          block_state_close,
+ };
+ 
+-static void process_savevm_cleanup(void *opaque)
++static void process_savevm_finalize(void *opaque)
+ {
+     int ret;
+-    qemu_bh_delete(snap_state.cleanup_bh);
+-    snap_state.cleanup_bh = NULL;
++    AioContext *iohandler_ctx = iohandler_get_aio_context();
++    MigrationState *ms = migrate_get_current();
++
++    qemu_bh_delete(snap_state.finalize_bh);
++    snap_state.finalize_bh = NULL;
+     snap_state.co = NULL;
++
++    /* We need to own the target bdrv's context for the following functions,
++     * so move it back. It can stay in the main context and live out its live
++     * there, since we're done with it after this method ends anyway.
++     */
++    aio_context_acquire(iohandler_ctx);
++    blk_set_aio_context(snap_state.target, qemu_get_aio_context(), NULL);
++    aio_context_release(iohandler_ctx);
++
++    ret = vm_stop_force_state(RUN_STATE_FINISH_MIGRATE);
++    if (ret < 0) {
++        save_snapshot_error("vm_stop_force_state error %d", ret);
++    }
++
++    (void)qemu_savevm_state_complete_precopy(snap_state.file, false, false);
++    ret = qemu_file_get_error(snap_state.file);
++    if (ret < 0) {
++            save_snapshot_error("qemu_savevm_state_iterate error %d", ret);
++    }
++
++    DPRINTF("state saving complete\n");
++
++    /* clear migration state */
++    migrate_set_state(&ms->state, MIGRATION_STATUS_SETUP,
++                      ret ? MIGRATION_STATUS_FAILED : MIGRATION_STATUS_COMPLETED);
++    ms->to_dst_file = NULL;
++
+     qemu_savevm_state_cleanup();
+ 
+     ret = save_snapshot_cleanup();
+@@ -219,16 +249,15 @@ static void process_savevm_cleanup(void *opaque)
+     }
+ }
+ 
+-static void process_savevm_coro(void *opaque)
++static void coroutine_fn process_savevm_co(void *opaque)
+ {
+     int ret;
+     int64_t maxlen;
+-    MigrationState *ms = migrate_get_current();
+ 
+     ret = qemu_file_get_error(snap_state.file);
+     if (ret < 0) {
+         save_snapshot_error("qemu_savevm_state_setup failed");
+-        goto out;
++        return;
+     }
+ 
+     while (snap_state.state == SAVE_STATE_ACTIVE) {
+@@ -245,7 +274,7 @@ static void process_savevm_coro(void *opaque)
+                 save_snapshot_error("qemu_savevm_state_iterate error %d", ret);
+                 break;
+             }
+-            DPRINTF("savevm inerate pending size %lu ret %d\n", pending_size, ret);
++            DPRINTF("savevm iterate pending size %lu ret %d\n", pending_size, ret);
+         } else {
+             qemu_system_wakeup_request(QEMU_WAKEUP_REASON_OTHER, NULL);
+             ret = global_state_store();
+@@ -253,40 +282,20 @@ static void process_savevm_coro(void *opaque)
+                 save_snapshot_error("global_state_store error %d", ret);
+                 break;
+             }
+-            ret = vm_stop_force_state(RUN_STATE_FINISH_MIGRATE);
+-            if (ret < 0) {
+-                save_snapshot_error("vm_stop_force_state error %d", ret);
+-                break;
+-            }
+-            DPRINTF("savevm inerate finished\n");
+-            /* upstream made the return value here inconsistent
+-             * (-1 instead of 'ret' in one case and 0 after flush which can
+-             * still set a file error...)
+-             */
+-            (void)qemu_savevm_state_complete_precopy(snap_state.file, false, false);
+-            ret = qemu_file_get_error(snap_state.file);
+-            if (ret < 0) {
+-                    save_snapshot_error("qemu_savevm_state_iterate error %d", ret);
+-                    break;
+-            }
+-            DPRINTF("save complete\n");
++
++            DPRINTF("savevm iterate complete\n");
+             break;
+         }
+     }
+ 
+-    qemu_bh_schedule(snap_state.cleanup_bh);
+-
+-out:
+-    /* set migration state accordingly and clear soon-to-be stale file */
+-    migrate_set_state(&ms->state, MIGRATION_STATUS_SETUP,
+-                      ret ? MIGRATION_STATUS_FAILED : MIGRATION_STATUS_COMPLETED);
+-    ms->to_dst_file = NULL;
++    qemu_bh_schedule(snap_state.finalize_bh);
+ }
+ 
+ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
+ {
+     Error *local_err = NULL;
+     MigrationState *ms = migrate_get_current();
++    AioContext *iohandler_ctx = iohandler_get_aio_context();
+ 
+     int bdrv_oflags = BDRV_O_RDWR | BDRV_O_RESIZE | BDRV_O_NO_FLUSH;
+ 
+@@ -347,7 +356,7 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
+ 
+     /*
+      * qemu_savevm_* paths use migration code and expect a migration state.
+-     * State is cleared in process_savevm_thread, but has to be initialized
++     * State is cleared in process_savevm_co, but has to be initialized
+      * here (blocking main thread, from QMP) to avoid race conditions.
+      */
+     migrate_init(ms);
+@@ -358,13 +367,19 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
+     blk_op_block_all(snap_state.target, snap_state.blocker);
+ 
+     snap_state.state = SAVE_STATE_ACTIVE;
+-    snap_state.cleanup_bh = qemu_bh_new(process_savevm_cleanup, &snap_state);
+-    snap_state.co = qemu_coroutine_create(&process_savevm_coro, NULL);
++    snap_state.finalize_bh = qemu_bh_new(process_savevm_finalize, &snap_state);
++    snap_state.co = qemu_coroutine_create(&process_savevm_co, NULL);
+     qemu_mutex_unlock_iothread();
+     qemu_savevm_state_header(snap_state.file);
+     qemu_savevm_state_setup(snap_state.file);
+     qemu_mutex_lock_iothread();
+-    aio_co_schedule(iohandler_get_aio_context(), snap_state.co);
++
++    /* Async processing from here on out happens in iohandler context, so let
++     * the target bdrv have its home there.
++     */
++    blk_set_aio_context(snap_state.target, iohandler_ctx, &local_err);
++
++    aio_co_schedule(iohandler_ctx, snap_state.co);
+ 
+     return;
+ 

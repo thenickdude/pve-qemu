@@ -42,3 +42,7 @@ pve/0041-PVE-Backup-avoid-use-QemuRecMutex-inside-coroutines.patch
 pve/0042-PVE-Backup-use-QemuMutex-instead-of-QemuRecMutex.patch
 pve/0043-move-savevm-async-back-into-a-coroutine.patch
 pve/0044-add-optional-buffer-size-to-QEMUFile.patch
+pve/0045-savevm-async-move-more-code-to-cleanup-and-rename-to.patch
+pve/0046-util-async-Add-aio_co_reschedule_self.patch
+pve/0047-savevm-async-flush-IOThread-drives-async-before-ente.patch
+pve/0048-savevm-async-add-debug-timing-prints.patch
