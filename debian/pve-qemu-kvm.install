@@ -1,5 +1,6 @@
 # install the userspace utilities
 vma usr/bin/
+pbs-restore usr/bin/
 debian/kvm-ifup etc/kvm/
 debian/kvm-ifdown etc/kvm/
 
