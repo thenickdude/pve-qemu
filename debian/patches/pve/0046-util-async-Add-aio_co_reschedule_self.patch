@@ -3,8 +3,6 @@ From: Kevin Wolf <kwolf@redhat.com>
 Date: Wed, 27 May 2020 11:33:20 +0200
 Subject: [PATCH] util/async: Add aio_co_reschedule_self()
 
-From: Kevin Wolf <kwolf@redhat.com>
-
 Add a function that can be used to move the currently running coroutine
 to a different AioContext (and therefore potentially a different
 thread).

@@ -6,8 +6,8 @@ Subject: [PATCH] PVE-Backup: pbs-restore - new command to restore from proxmox
 
 ---
  Makefile      |   4 +-
- pbs-restore.c | 208 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 211 insertions(+), 1 deletion(-)
+ pbs-restore.c | 206 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 209 insertions(+), 1 deletion(-)
  create mode 100644 pbs-restore.c
 
 diff --git a/Makefile b/Makefile
@@ -34,10 +34,10 @@ index dbd9542ae4..7c1fb58e18 100644
  
 diff --git a/pbs-restore.c b/pbs-restore.c
 new file mode 100644
-index 0000000000..f65de8b890
+index 0000000000..0b24e35403
 --- /dev/null
 +++ b/pbs-restore.c
-@@ -0,0 +1,208 @@
+@@ -0,0 +1,206 @@
 +/*
 + * Qemu image restore helper for Proxmox Backup
 + *
@@ -124,7 +124,7 @@ index 0000000000..f65de8b890
 +
 +    error_init(argv[0]);
 +
-+    for(;;) {
++    for (;;) {
 +        static const struct option long_options[] = {
 +            {"help", no_argument, 0, 'h'},
 +            {"skip-zero", no_argument, 0, 'S'},
@@ -138,31 +138,31 @@ index 0000000000..f65de8b890
 +        if (c == -1) {
 +            break;
 +        }
-+        switch(c) {
-+        case ':':
-+            fprintf(stderr, "missing argument for option '%s'", argv[optind - 1]);
-+            return -1;
-+        case '?':
-+            fprintf(stderr, "unrecognized option '%s'", argv[optind - 1]);
-+            return -1;
-+        case 'f':
-+            format = g_strdup(argv[optind - 1]);
-+            break;
-+        case 'r':
-+            repository = g_strdup(argv[optind - 1]);
-+            break;
-+        case 'k':
-+            keyfile = g_strdup(argv[optind - 1]);
-+            break;
-+        case 'v':
-+            verbose = true;
-+            break;
-+        case 'S':
-+            skip_zero = true;
-+            break;
-+        case 'h':
-+            help();
-+            return 0;
++        switch (c) {
++            case ':':
++                fprintf(stderr, "missing argument for option '%s'\n", argv[optind - 1]);
++                return -1;
++            case '?':
++                fprintf(stderr, "unrecognized option '%s'\n", argv[optind - 1]);
++                return -1;
++            case 'f':
++                format = g_strdup(argv[optind - 1]);
++                break;
++            case 'r':
++                repository = g_strdup(argv[optind - 1]);
++                break;
++            case 'k':
++                keyfile = g_strdup(argv[optind - 1]);
++                break;
++            case 'v':
++                verbose = true;
++                break;
++            case 'S':
++                skip_zero = true;
++                break;
++            case 'h':
++                help();
++                return 0;
 +        }
 +    }
 +
@@ -206,7 +206,6 @@ index 0000000000..f65de8b890
 +    }
 +
 +    QDict *options = qdict_new();
-+    qdict_put_str(options, "driver", format);
 +
 +    if (format) {
 +        qdict_put_str(options, "driver", format);
@@ -214,14 +213,13 @@ index 0000000000..f65de8b890
 +
 +    Error *local_err = NULL;
 +    int flags = BDRV_O_RDWR;
-+
 +    BlockBackend *blk = blk_new_open(target, NULL, options, flags, &local_err);
 +    if (!blk) {
 +        fprintf(stderr, "%s\n", error_get_pretty(local_err));
 +        return -1;
 +    }
 +
-+    CallbackData *callback_data = calloc(sizeof( CallbackData), 1);
++    CallbackData *callback_data = calloc(sizeof(CallbackData), 1);
 +
 +    callback_data->target = blk;
 +    callback_data->skip_zero = skip_zero;
