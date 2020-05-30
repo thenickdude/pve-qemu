@@ -4,10 +4,11 @@ Date: Mon, 6 Apr 2020 12:17:01 +0200
 Subject: [PATCH] PVE-Backup: pbs-restore - new command to restore from proxmox
  backup server
 
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  Makefile      |   4 +-
- pbs-restore.c | 206 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 209 insertions(+), 1 deletion(-)
+ pbs-restore.c | 216 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 219 insertions(+), 1 deletion(-)
  create mode 100644 pbs-restore.c
 
 diff --git a/Makefile b/Makefile
@@ -34,10 +35,10 @@ index dbd9542ae4..7c1fb58e18 100644
  
 diff --git a/pbs-restore.c b/pbs-restore.c
 new file mode 100644
-index 0000000000..0b24e35403
+index 0000000000..ecf4cb5c22
 --- /dev/null
 +++ b/pbs-restore.c
-@@ -0,0 +1,206 @@
+@@ -0,0 +1,216 @@
 +/*
 + * Qemu image restore helper for Proxmox Backup
 + *
@@ -197,6 +198,9 @@ index 0000000000..0b24e35403
 +    bdrv_init();
 +    module_call_init(MODULE_INIT_QOM);
 +
++    if (verbose) {
++        fprintf(stderr, "connecting to repository '%s'\n", repository);
++    }
 +    char *pbs_error = NULL;
 +    ProxmoxRestoreHandle *conn = proxmox_restore_connect(
 +        repository, snapshot, password, keyfile, key_password, fingerprint, &pbs_error);
@@ -211,6 +215,10 @@ index 0000000000..0b24e35403
 +        qdict_put_str(options, "driver", format);
 +    }
 +
++
++    if (verbose) {
++        fprintf(stderr, "open block backend for target '%s'\n", target);
++    }
 +    Error *local_err = NULL;
 +    int flags = BDRV_O_RDWR;
 +    BlockBackend *blk = blk_new_open(target, NULL, options, flags, &local_err);
@@ -227,6 +235,9 @@ index 0000000000..0b24e35403
 +
 +    // blk_set_enable_write_cache(blk, !writethrough);
 +
++    if (verbose) {
++        fprintf(stderr, "starting to restore snapshot '%s'\n", snapshot);
++    }
 +    int res = proxmox_restore_image(
 +        conn,
 +        archive_name,
