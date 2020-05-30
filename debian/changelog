@@ -1,3 +1,9 @@
+pve-qemu-kvm (5.0.0-4) pve; urgency=medium
+
+  * install missing restore helper binary
+
+ -- Proxmox Support Team <support@proxmox.com>  Sat, 30 May 2020 15:25:38 +0200
+
 pve-qemu-kvm (5.0.0-3) pve; urgency=medium
 
   * ensure that a data-flush for all drives uses the correct AioContext. Fixes
