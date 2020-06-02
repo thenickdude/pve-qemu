@@ -7,8 +7,8 @@ Subject: [PATCH] PVE-Backup: pbs-restore - new command to restore from proxmox
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  Makefile      |   4 +-
- pbs-restore.c | 216 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 219 insertions(+), 1 deletion(-)
+ pbs-restore.c | 217 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 220 insertions(+), 1 deletion(-)
  create mode 100644 pbs-restore.c
 
 diff --git a/Makefile b/Makefile
@@ -35,10 +35,10 @@ index dbd9542ae4..7c1fb58e18 100644
  
 diff --git a/pbs-restore.c b/pbs-restore.c
 new file mode 100644
-index 0000000000..ecf4cb5c22
+index 0000000000..fc881de560
 --- /dev/null
 +++ b/pbs-restore.c
-@@ -0,0 +1,216 @@
+@@ -0,0 +1,217 @@
 +/*
 + * Qemu image restore helper for Proxmox Backup
 + *
@@ -237,6 +237,7 @@ index 0000000000..ecf4cb5c22
 +
 +    if (verbose) {
 +        fprintf(stderr, "starting to restore snapshot '%s'\n", snapshot);
++        fflush(stderr); // ensure we do not get printed after the progress log
 +    }
 +    int res = proxmox_restore_image(
 +        conn,
