@@ -35,7 +35,7 @@ index dbd9542ae4..7c1fb58e18 100644
  
 diff --git a/pbs-restore.c b/pbs-restore.c
 new file mode 100644
-index 0000000000..fc881de560
+index 0000000000..4bf37ef1fa
 --- /dev/null
 +++ b/pbs-restore.c
 @@ -0,0 +1,217 @@

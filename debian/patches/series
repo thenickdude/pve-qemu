@@ -46,3 +46,5 @@ pve/0045-savevm-async-move-more-code-to-cleanup-and-rename-to.patch
 pve/0046-util-async-Add-aio_co_reschedule_self.patch
 pve/0047-savevm-async-flush-IOThread-drives-async-before-ente.patch
 pve/0048-savevm-async-add-debug-timing-prints.patch
+pve/0049-Add-some-qemu_vfree-statements-to-prevent-memory-lea.patch
+pve/0050-Fix-backup-for-not-64k-aligned-storages.patch

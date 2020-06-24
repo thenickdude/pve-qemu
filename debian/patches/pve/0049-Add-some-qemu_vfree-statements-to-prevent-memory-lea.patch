@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Mon, 22 Jun 2020 14:54:00 +0200
+Subject: [PATCH] Add some qemu_vfree statements to prevent memory leaks
+
+Suggested-by: Lars Ellenberg <lars.ellenberg@linbit.com>
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+---
+ vma-writer.c | 2 ++
+ vma.c        | 2 ++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/vma-writer.c b/vma-writer.c
+index fe86b18a60..06cbc02b1e 100644
+--- a/vma-writer.c
++++ b/vma-writer.c
+@@ -767,5 +767,7 @@ void vma_writer_destroy(VmaWriter *vmaw)
+         g_checksum_free(vmaw->md5csum);
+     }
+ 
++    qemu_vfree(vmaw->headerbuf);
++    qemu_vfree(vmaw->outbuf);
+     g_free(vmaw);
+ }
+diff --git a/vma.c b/vma.c
+index a82752448a..2eea2fc281 100644
+--- a/vma.c
++++ b/vma.c
+@@ -565,6 +565,7 @@ out:
+             g_warning("vma_writer_close failed %s", error_get_pretty(err));
+         }
+     }
++    qemu_vfree(buf);
+ }
+ 
+ static int create_archive(int argc, char **argv)
+@@ -732,6 +733,7 @@ static int create_archive(int argc, char **argv)
+         g_error("creating vma archive failed");
+     }
+ 
++    vma_writer_destroy(vmaw);
+     return 0;
+ }
+ 

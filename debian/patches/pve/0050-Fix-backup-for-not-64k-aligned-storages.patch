@@ -1,0 +1,80 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Mon, 22 Jun 2020 14:54:02 +0200
+Subject: [PATCH] Fix backup for not 64k-aligned storages
+
+Zero out clusters after the end of the device, this makes restore handle
+it correctly (even if it may try to write those zeros, it won't fail and
+just ignore the out-of-bounds write to disk).
+
+For not even 4k-aligned disks, there is a potential buffer overrun in
+the memcpy (since always 4k are copied), which causes host-memory
+leakage into VMA archives. Fix this by always zeroing the affected area
+in the output-buffer.
+
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Reported-by: Roland Kammerer <roland.kammerer@linbit.com>
+Suggested-by: Lars Ellenberg <lars.ellenberg@linbit.com>
+Tested-by: Roland Kammerer <roland.kammerer@linbit.com>
+---
+ vma-writer.c | 23 ++++++++++++++++++++---
+ 1 file changed, 20 insertions(+), 3 deletions(-)
+
+diff --git a/vma-writer.c b/vma-writer.c
+index 06cbc02b1e..f5d2c5d23c 100644
+--- a/vma-writer.c
++++ b/vma-writer.c
+@@ -633,17 +633,33 @@ vma_writer_write(VmaWriter *vmaw, uint8_t dev_id, int64_t cluster_num,
+ 
+     DPRINTF("VMA WRITE %d %zd\n", dev_id, cluster_num);
+ 
++    uint64_t dev_size = vmaw->stream_info[dev_id].size;
+     uint16_t mask = 0;
+ 
+     if (buf) {
+         int i;
+         int bit = 1;
++        uint64_t byte_offset = cluster_num * VMA_CLUSTER_SIZE;
+         for (i = 0; i < 16; i++) {
+             const unsigned char *vmablock = buf + (i*VMA_BLOCK_SIZE);
+-            if (!buffer_is_zero(vmablock, VMA_BLOCK_SIZE)) {
++
++            // Note: If the source is not 64k-aligned, we might reach 4k blocks
++            // after the end of the device. Always mark these as zero in the
++            // mask, so the restore handles them correctly.
++            if (byte_offset < dev_size &&
++                !buffer_is_zero(vmablock, VMA_BLOCK_SIZE))
++            {
+                 mask |= bit;
+                 memcpy(vmaw->outbuf + vmaw->outbuf_pos, vmablock,
+                        VMA_BLOCK_SIZE);
++
++                // prevent memory leakage on unaligned last block
++                if (byte_offset + VMA_BLOCK_SIZE > dev_size) {
++                    uint64_t real_data_in_block = dev_size - byte_offset;
++                    memset(vmaw->outbuf + vmaw->outbuf_pos + real_data_in_block,
++                           0, VMA_BLOCK_SIZE - real_data_in_block);
++                }
++
+                 vmaw->outbuf_pos += VMA_BLOCK_SIZE;
+             } else {
+                 DPRINTF("VMA WRITE %zd ZERO BLOCK %d\n", cluster_num, i);
+@@ -651,6 +667,7 @@ vma_writer_write(VmaWriter *vmaw, uint8_t dev_id, int64_t cluster_num,
+                 *zero_bytes += VMA_BLOCK_SIZE;
+             }
+ 
++            byte_offset += VMA_BLOCK_SIZE;
+             bit = bit << 1;
+         }
+     } else {
+@@ -676,8 +693,8 @@ vma_writer_write(VmaWriter *vmaw, uint8_t dev_id, int64_t cluster_num,
+ 
+     if (dev_id != vmaw->vmstate_stream) {
+         uint64_t last = (cluster_num + 1) * VMA_CLUSTER_SIZE;
+-        if (last > vmaw->stream_info[dev_id].size) {
+-            uint64_t diff = last - vmaw->stream_info[dev_id].size;
++        if (last > dev_size) {
++            uint64_t diff = last - dev_size;
+             if (diff >= VMA_CLUSTER_SIZE) {
+                 vma_writer_set_error(vmaw, "vma_writer_write: "
+                                      "read after last cluster");
