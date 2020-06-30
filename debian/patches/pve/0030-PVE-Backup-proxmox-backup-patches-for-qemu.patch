@@ -99,12 +99,12 @@ index 4c8c375172..4f03881286 100644
 +
 +    qmp_backup(
 +        backup_file,
-+        false, NULL, // BPS password
-+        false, NULL, // BPS keyfile
-+        false, NULL, // BPS key_password
-+        false, NULL, // BPS fingerprint
-+        false, NULL, // BPS backup-id
-+        false, 0, // BPS backup-time
++        false, NULL, // PBS password
++        false, NULL, // PBS keyfile
++        false, NULL, // PBS key_password
++        false, NULL, // PBS fingerprint
++        false, NULL, // PBS backup-id
++        false, 0, // PBS backup-time
 +        true, dir ? BACKUP_FORMAT_DIR : BACKUP_FORMAT_VMA,
 +        false, NULL, false, NULL, !!devlist,
 +        devlist, qdict_haskey(qdict, "speed"), speed, &error);

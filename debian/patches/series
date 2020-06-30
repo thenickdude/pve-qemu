@@ -49,3 +49,4 @@ pve/0047-savevm-async-flush-IOThread-drives-async-before-ente.patch
 pve/0048-savevm-async-add-debug-timing-prints.patch
 pve/0049-Add-some-qemu_vfree-statements-to-prevent-memory-lea.patch
 pve/0050-Fix-backup-for-not-64k-aligned-storages.patch
+pve/0051-PVE-Backup-Add-dirty-bitmap-tracking-for-incremental.patch
