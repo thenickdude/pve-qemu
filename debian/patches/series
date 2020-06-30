@@ -48,3 +48,4 @@ pve/0046-pbs-fix-missing-crypt-and-compress-parameters.patch
 pve/0047-PVE-handle-PBS-write-callback-with-big-blocks-correc.patch
 pve/0048-PVE-add-zero-block-handling-to-PBS-dump-callback.patch
 pve/0049-PVE-add-query-pbs-bitmap-info-QMP-call.patch
+pve/0050-PVE-redirect-stderr-to-journal-when-daemonized.patch
