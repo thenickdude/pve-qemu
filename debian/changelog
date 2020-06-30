@@ -1,3 +1,14 @@
+pve-qemu-kvm (5.0.0-5) pve; urgency=medium
+
+  * fix backup for not 64k-aligned storages
+
+  * fix #2794: Include legacy-igd passthrough fix
+
+  * add initial support for incremental backup for running VMs and
+    Proxmox Backup Server as a target
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 30 Jun 2020 11:12:55 +0200
+
 pve-qemu-kvm (5.0.0-4) pve; urgency=medium
 
   * install missing restore helper binary
