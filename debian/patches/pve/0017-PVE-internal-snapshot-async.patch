@@ -5,21 +5,30 @@ Subject: [PATCH] PVE: internal snapshot async
 
 Truncate at 1024 boundary (Fabian Ebner will send a patch for stable)
 
+Put qemu_savevm_state_{header,setup} into the main loop and the rest
+of the iteration into a coroutine. The former need to lock the
+iothread (and we can't unlock it in the coroutine), and the latter
+can't deal with being in a separate thread, so a coroutine it must
+be.
+
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
 ---
  Makefile.objs                |   1 +
  hmp-commands-info.hx         |  13 +
  hmp-commands.hx              |  32 +++
+ include/block/aio.h          |  10 +
  include/migration/snapshot.h |   1 +
  include/monitor/hmp.h        |   5 +
- monitor/hmp-cmds.c           |  57 +++++
+ monitor/hmp-cmds.c           |  57 ++++
  qapi/migration.json          |  34 +++
  qapi/misc.json               |  32 +++
  qemu-options.hx              |  12 +
- savevm-async.c               | 464 +++++++++++++++++++++++++++++++++++
+ savevm-async.c               | 542 +++++++++++++++++++++++++++++++++++
  softmmu/vl.c                 |  10 +
- 11 files changed, 661 insertions(+)
+ util/async.c                 |  30 ++
+ 13 files changed, 779 insertions(+)
  create mode 100644 savevm-async.c
 
 diff --git a/Makefile.objs b/Makefile.objs
@@ -98,6 +107,34 @@ index 7f0f3974ad..81fe305d07 100644
 +        .help       = "Resume VM after snaphot.",
 +        .cmd = hmp_savevm_end,
 +    },
+diff --git a/include/block/aio.h b/include/block/aio.h
+index 62ed954344..d5399c67d6 100644
+--- a/include/block/aio.h
++++ b/include/block/aio.h
+@@ -17,6 +17,7 @@
+ #ifdef CONFIG_LINUX_IO_URING
+ #include <liburing.h>
+ #endif
++#include "qemu/coroutine.h"
+ #include "qemu/queue.h"
+ #include "qemu/event_notifier.h"
+ #include "qemu/thread.h"
+@@ -654,6 +655,15 @@ static inline bool aio_node_check(AioContext *ctx, bool is_external)
+  */
+ void aio_co_schedule(AioContext *ctx, struct Coroutine *co);
+ 
++/**
++ * aio_co_reschedule_self:
++ * @new_ctx: the new context
++ *
++ * Move the currently running coroutine to new_ctx. If the coroutine is already
++ * running in new_ctx, do nothing.
++ */
++void coroutine_fn aio_co_reschedule_self(AioContext *new_ctx);
++
+ /**
+  * aio_co_wake:
+  * @co: the coroutine
 diff --git a/include/migration/snapshot.h b/include/migration/snapshot.h
 index c85b6ec75b..4411b7121d 100644
 --- a/include/migration/snapshot.h
@@ -313,10 +350,10 @@ index 292d4e7c0c..55eef64ddf 100644
      "-daemonize      daemonize QEMU after initializing\n", QEMU_ARCH_ALL)
 diff --git a/savevm-async.c b/savevm-async.c
 new file mode 100644
-index 0000000000..54ceeae26c
+index 0000000000..7fd8a69374
 --- /dev/null
 +++ b/savevm-async.c
-@@ -0,0 +1,464 @@
+@@ -0,0 +1,542 @@
 +#include "qemu/osdep.h"
 +#include "migration/migration.h"
 +#include "migration/savevm.h"
@@ -369,8 +406,8 @@ index 0000000000..54ceeae26c
 +    int saved_vm_running;
 +    QEMUFile *file;
 +    int64_t total_time;
-+    QEMUBH *cleanup_bh;
-+    QemuThread thread;
++    QEMUBH *finalize_bh;
++    Coroutine *co;
 +} snap_state;
 +
 +SaveVMInfo *qmp_query_savevm(Error **errp)
@@ -477,6 +514,7 @@ index 0000000000..54ceeae26c
 +    BlkRwCo *rwco = opaque;
 +    rwco->ret = blk_co_pwritev(snap_state.target, rwco->offset, rwco->qiov->size,
 +                               rwco->qiov, 0);
++    aio_wait_kick();
 +}
 +
 +static ssize_t block_state_writev_buffer(void *opaque, struct iovec *iov,
@@ -514,14 +552,50 @@ index 0000000000..54ceeae26c
 +    .close =          block_state_close,
 +};
 +
-+static void process_savevm_cleanup(void *opaque)
++static void process_savevm_finalize(void *opaque)
 +{
 +    int ret;
-+    qemu_bh_delete(snap_state.cleanup_bh);
-+    snap_state.cleanup_bh = NULL;
-+    qemu_mutex_unlock_iothread();
-+    qemu_thread_join(&snap_state.thread);
-+    qemu_mutex_lock_iothread();
++    AioContext *iohandler_ctx = iohandler_get_aio_context();
++    MigrationState *ms = migrate_get_current();
++
++#ifdef DEBUG_SAVEVM_STATE
++    int64_t start_time = qemu_clock_get_ms(QEMU_CLOCK_REALTIME);
++#endif
++
++    qemu_bh_delete(snap_state.finalize_bh);
++    snap_state.finalize_bh = NULL;
++    snap_state.co = NULL;
++
++    /* We need to own the target bdrv's context for the following functions,
++     * so move it back. It can stay in the main context and live out its live
++     * there, since we're done with it after this method ends anyway.
++     */
++    aio_context_acquire(iohandler_ctx);
++    blk_set_aio_context(snap_state.target, qemu_get_aio_context(), NULL);
++    aio_context_release(iohandler_ctx);
++
++    ret = vm_stop_force_state(RUN_STATE_FINISH_MIGRATE);
++    if (ret < 0) {
++        save_snapshot_error("vm_stop_force_state error %d", ret);
++    }
++
++    (void)qemu_savevm_state_complete_precopy(snap_state.file, false, false);
++    ret = qemu_file_get_error(snap_state.file);
++    if (ret < 0) {
++            save_snapshot_error("qemu_savevm_state_iterate error %d", ret);
++    }
++
++    DPRINTF("state saving complete\n");
++    DPRINTF("timing: process_savevm_finalize (state saving) took %ld ms\n",
++        qemu_clock_get_ms(QEMU_CLOCK_REALTIME) - start_time);
++
++    /* clear migration state */
++    migrate_set_state(&ms->state, MIGRATION_STATUS_SETUP,
++                      ret ? MIGRATION_STATUS_FAILED : MIGRATION_STATUS_COMPLETED);
++    ms->to_dst_file = NULL;
++
++    qemu_savevm_state_cleanup();
++
 +    ret = save_snapshot_cleanup();
 +    if (ret < 0) {
 +        save_snapshot_error("save_snapshot_cleanup error %d", ret);
@@ -535,23 +609,26 @@ index 0000000000..54ceeae26c
 +        vm_start();
 +        snap_state.saved_vm_running = false;
 +    }
++
++    DPRINTF("timing: process_savevm_finalize (full) took %ld ms\n",
++        qemu_clock_get_ms(QEMU_CLOCK_REALTIME) - start_time);
 +}
 +
-+static void *process_savevm_thread(void *opaque)
++static void coroutine_fn process_savevm_co(void *opaque)
 +{
 +    int ret;
 +    int64_t maxlen;
++    BdrvNextIterator it;
++    BlockDriverState *bs = NULL;
 +
-+    rcu_register_thread();
++#ifdef DEBUG_SAVEVM_STATE
++    int64_t start_time = qemu_clock_get_ms(QEMU_CLOCK_REALTIME);
++#endif
 +
-+    qemu_savevm_state_header(snap_state.file);
-+    qemu_savevm_state_setup(snap_state.file);
 +    ret = qemu_file_get_error(snap_state.file);
-+
 +    if (ret < 0) {
 +        save_snapshot_error("qemu_savevm_state_setup failed");
-+        rcu_unregister_thread();
-+        return NULL;
++        return;
 +    }
 +
 +    while (snap_state.state == SAVE_STATE_ACTIVE) {
@@ -563,60 +640,80 @@ index 0000000000..54ceeae26c
 +        maxlen = blk_getlength(snap_state.target) - 30*1024*1024;
 +
 +        if (pending_size > 400000 && snap_state.bs_pos + pending_size < maxlen) {
-+            qemu_mutex_lock_iothread();
 +            ret = qemu_savevm_state_iterate(snap_state.file, false);
 +            if (ret < 0) {
 +                save_snapshot_error("qemu_savevm_state_iterate error %d", ret);
 +                break;
 +            }
-+            qemu_mutex_unlock_iothread();
-+            DPRINTF("savevm inerate pending size %lu ret %d\n", pending_size, ret);
++            DPRINTF("savevm iterate pending size %lu ret %d\n", pending_size, ret);
 +        } else {
-+            qemu_mutex_lock_iothread();
 +            qemu_system_wakeup_request(QEMU_WAKEUP_REASON_OTHER, NULL);
 +            ret = global_state_store();
 +            if (ret) {
 +                save_snapshot_error("global_state_store error %d", ret);
 +                break;
 +            }
-+            ret = vm_stop_force_state(RUN_STATE_FINISH_MIGRATE);
-+            if (ret < 0) {
-+                save_snapshot_error("vm_stop_force_state error %d", ret);
-+                break;
-+            }
-+            DPRINTF("savevm inerate finished\n");
-+            /* upstream made the return value here inconsistent
-+             * (-1 instead of 'ret' in one case and 0 after flush which can
-+             * still set a file error...)
-+             */
-+            (void)qemu_savevm_state_complete_precopy(snap_state.file, false, false);
-+            ret = qemu_file_get_error(snap_state.file);
-+            if (ret < 0) {
-+                    save_snapshot_error("qemu_savevm_state_iterate error %d", ret);
-+                    break;
-+            }
-+            qemu_savevm_state_cleanup();
-+            DPRINTF("save complete\n");
++
++            DPRINTF("savevm iterate complete\n");
 +            break;
 +        }
 +    }
 +
-+    qemu_bh_schedule(snap_state.cleanup_bh);
-+    qemu_mutex_unlock_iothread();
++    DPRINTF("timing: process_savevm_co took %ld ms\n",
++        qemu_clock_get_ms(QEMU_CLOCK_REALTIME) - start_time);
 +
-+    rcu_unregister_thread();
-+    return NULL;
++#ifdef DEBUG_SAVEVM_STATE
++    int64_t start_time_flush = qemu_clock_get_ms(QEMU_CLOCK_REALTIME);
++#endif
++    /* If a drive runs in an IOThread we can flush it async, and only
++     * need to sync-flush whatever IO happens between now and
++     * vm_stop_force_state. bdrv_next can only be called from main AioContext,
++     * so move there now and after every flush.
++     */
++    aio_co_reschedule_self(qemu_get_aio_context());
++    for (bs = bdrv_first(&it); bs; bs = bdrv_next(&it)) {
++        /* target has BDRV_O_NO_FLUSH, no sense calling bdrv_flush on it */
++        if (bs == blk_bs(snap_state.target)) {
++            continue;
++        }
++
++        AioContext *bs_ctx = bdrv_get_aio_context(bs);
++        if (bs_ctx != qemu_get_aio_context()) {
++            DPRINTF("savevm: async flushing drive %s\n", bs->filename);
++            aio_co_reschedule_self(bs_ctx);
++            bdrv_flush(bs);
++            aio_co_reschedule_self(qemu_get_aio_context());
++        }
++    }
++
++    DPRINTF("timing: async flushing took %ld ms\n",
++        qemu_clock_get_ms(QEMU_CLOCK_REALTIME) - start_time_flush);
++
++    qemu_bh_schedule(snap_state.finalize_bh);
 +}
 +
 +void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
 +{
 +    Error *local_err = NULL;
++    MigrationState *ms = migrate_get_current();
++    AioContext *iohandler_ctx = iohandler_get_aio_context();
 +
 +    int bdrv_oflags = BDRV_O_RDWR | BDRV_O_RESIZE | BDRV_O_NO_FLUSH;
 +
 +    if (snap_state.state != SAVE_STATE_DONE) {
 +        error_set(errp, ERROR_CLASS_GENERIC_ERROR,
 +                  "VM snapshot already started\n");
++        return;
++    }
++
++    if (migration_is_running(ms->state)) {
++        error_set(errp, ERROR_CLASS_GENERIC_ERROR, QERR_MIGRATION_ACTIVE);
++        return;
++    }
++
++    if (migrate_use_block()) {
++        error_set(errp, ERROR_CLASS_GENERIC_ERROR,
++                  "Block migration and snapshots are incompatible");
 +        return;
 +    }
 +
@@ -658,14 +755,32 @@ index 0000000000..54ceeae26c
 +        goto restart;
 +    }
 +
++    /*
++     * qemu_savevm_* paths use migration code and expect a migration state.
++     * State is cleared in process_savevm_co, but has to be initialized
++     * here (blocking main thread, from QMP) to avoid race conditions.
++     */
++    migrate_init(ms);
++    memset(&ram_counters, 0, sizeof(ram_counters));
++    ms->to_dst_file = snap_state.file;
 +
 +    error_setg(&snap_state.blocker, "block device is in use by savevm");
 +    blk_op_block_all(snap_state.target, snap_state.blocker);
 +
 +    snap_state.state = SAVE_STATE_ACTIVE;
-+    snap_state.cleanup_bh = qemu_bh_new(process_savevm_cleanup, &snap_state);
-+    qemu_thread_create(&snap_state.thread, "savevm-async", process_savevm_thread,
-+                       NULL, QEMU_THREAD_JOINABLE);
++    snap_state.finalize_bh = qemu_bh_new(process_savevm_finalize, &snap_state);
++    snap_state.co = qemu_coroutine_create(&process_savevm_co, NULL);
++    qemu_mutex_unlock_iothread();
++    qemu_savevm_state_header(snap_state.file);
++    qemu_savevm_state_setup(snap_state.file);
++    qemu_mutex_lock_iothread();
++
++    /* Async processing from here on out happens in iohandler context, so let
++     * the target bdrv have its home there.
++     */
++    blk_set_aio_context(snap_state.target, iohandler_ctx, &local_err);
++
++    aio_co_schedule(iohandler_ctx, snap_state.co);
 +
 +    return;
 +
@@ -816,3 +931,44 @@ index 32c0047889..4b45eb0c37 100644
      }
      if (replay_mode != REPLAY_MODE_NONE) {
          replay_vmstate_init();
+diff --git a/util/async.c b/util/async.c
+index 3165a28f2f..4eba1e6f1b 100644
+--- a/util/async.c
++++ b/util/async.c
+@@ -558,6 +558,36 @@ void aio_co_schedule(AioContext *ctx, Coroutine *co)
+     aio_context_unref(ctx);
+ }
+ 
++typedef struct AioCoRescheduleSelf {
++    Coroutine *co;
++    AioContext *new_ctx;
++} AioCoRescheduleSelf;
++
++static void aio_co_reschedule_self_bh(void *opaque)
++{
++    AioCoRescheduleSelf *data = opaque;
++    aio_co_schedule(data->new_ctx, data->co);
++}
++
++void coroutine_fn aio_co_reschedule_self(AioContext *new_ctx)
++{
++    AioContext *old_ctx = qemu_get_current_aio_context();
++
++    if (old_ctx != new_ctx) {
++        AioCoRescheduleSelf data = {
++            .co = qemu_coroutine_self(),
++            .new_ctx = new_ctx,
++        };
++        /*
++         * We can't directly schedule the coroutine in the target context
++         * because this would be racy: The other thread could try to enter the
++         * coroutine before it has yielded in this one.
++         */
++        aio_bh_schedule_oneshot(old_ctx, aio_co_reschedule_self_bh, &data);
++        qemu_coroutine_yield();
++    }
++}
++
+ void aio_co_wake(struct Coroutine *co)
+ {
+     AioContext *ctx;

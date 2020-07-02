@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Alexandre Derumier <aderumier@odiso.com>
 Date: Mon, 6 Apr 2020 12:16:42 +0200
-Subject: [PATCH] PVE: [Up] qemu-img dd : add -n skip_create
+Subject: [PATCH] PVE: [Up] qemu-img dd: add -n skip_create
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---

@@ -160,10 +160,10 @@ index a9b6d6ccb7..8752d27c74 100644
  int qemu_get_fd(QEMUFile *f);
  int qemu_fclose(QEMUFile *f);
 diff --git a/savevm-async.c b/savevm-async.c
-index af865b9a0a..c3fe741c38 100644
+index 7fd8a69374..0388cebbe9 100644
 --- a/savevm-async.c
 +++ b/savevm-async.c
-@@ -338,7 +338,7 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
+@@ -392,7 +392,7 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
          goto restart;
      }
  
@@ -172,7 +172,7 @@ index af865b9a0a..c3fe741c38 100644
  
      if (!snap_state.file) {
          error_set(errp, ERROR_CLASS_GENERIC_ERROR, "failed to open '%s'", statefile);
-@@ -454,7 +454,7 @@ int load_snapshot_from_blockdev(const char *filename, Error **errp)
+@@ -514,7 +514,7 @@ int load_snapshot_from_blockdev(const char *filename, Error **errp)
      blk_op_block_all(be, blocker);
  
      /* restore the VM state */

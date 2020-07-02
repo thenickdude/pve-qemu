@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Dietmar Maurer <dietmar@proxmox.com>
-Date: Mon, 6 Apr 2020 12:17:02 +0200
+Date: Mon, 6 Apr 2020 12:17:00 +0200
 Subject: [PATCH] PVE-Backup: avoid coroutines to fix AIO freeze, cleanups
 
 We observed various AIO pool loop freezes, so we decided to avoid
@@ -8,7 +8,8 @@ coroutines and restrict ourselfes using similar code as upstream
 (see blockdev.c: do_backup_common).
 
 * avoid coroutine for job related code (causes hangs with iothreads)
-    - this imply to use normal QemuRecMutex instead of CoMutex
+    - We then acquire/release all mutexes outside coroutines now, so we can now
+      correctly use a normal mutex.
 
 * split pvebackup_co_dump_cb into:
     - pvebackup_co_dump_pbs_cb and
@@ -25,33 +26,50 @@ coroutines and restrict ourselfes using similar code as upstream
 
 There is progress on upstream to support running qmp commands inside
 coroutines, see:
-
 https://lists.gnu.org/archive/html/qemu-devel/2020-02/msg04852.html
 
 We should consider using that when it is available in upstream qemu.
+
+Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
 ---
- pve-backup.c | 611 +++++++++++++++++++++++++--------------------------
- 1 file changed, 299 insertions(+), 312 deletions(-)
+ pve-backup.c | 638 ++++++++++++++++++++++++++-------------------------
+ 1 file changed, 320 insertions(+), 318 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index 38dd33e28b..169f0c68d0 100644
+index 9ae89fb679..bb917ee972 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
-@@ -11,11 +11,10 @@
+@@ -11,11 +11,27 @@
  
  /* PVE backup state and related function */
  
--
++/*
++ * Note: A resume from a qemu_coroutine_yield can happen in a different thread,
++ * so you may not use normal mutexes within coroutines:
++ *
++ * ---bad-example---
++ * qemu_rec_mutex_lock(lock)
++ * ...
++ * qemu_coroutine_yield() // wait for something
++ * // we are now inside a different thread
++ * qemu_rec_mutex_unlock(lock) // Crash - wrong thread!!
++ * ---end-bad-example--
++ *
++ * ==> Always use CoMutext inside coroutines.
++ * ==> Never acquire/release AioContext withing coroutines (because that use QemuRecMutex)
++ *
++ */
+ 
  static struct PVEBackupState {
      struct {
 -        // Everithing accessed from qmp command, protected using rwlock
 -        CoRwlock rwlock;
 +        // Everithing accessed from qmp_backup_query command is protected using lock
-+        QemuRecMutex lock;
++        QemuMutex lock;
          Error *error;
          time_t start_time;
          time_t end_time;
-@@ -25,19 +24,18 @@ static struct PVEBackupState {
+@@ -25,19 +41,20 @@ static struct PVEBackupState {
          size_t total;
          size_t transferred;
          size_t zero_bytes;
@@ -62,25 +80,27 @@ index 38dd33e28b..169f0c68d0 100644
      ProxmoxBackupHandle *pbs;
      GList *di_list;
 -    CoMutex backup_mutex;
-+    QemuRecMutex backup_mutex;
++    QemuMutex backup_mutex;
++    CoMutex dump_callback_mutex;
  } backup_state;
  
  static void pvebackup_init(void)
  {
 -    qemu_co_rwlock_init(&backup_state.stat.rwlock);
 -    qemu_co_mutex_init(&backup_state.backup_mutex);
-+    qemu_rec_mutex_init(&backup_state.stat.lock);
-+    qemu_rec_mutex_init(&backup_state.backup_mutex);
++    qemu_mutex_init(&backup_state.stat.lock);
++    qemu_mutex_init(&backup_state.backup_mutex);
++    qemu_co_mutex_init(&backup_state.dump_callback_mutex);
  }
  
  // initialize PVEBackupState at startup
-@@ -52,10 +50,54 @@ typedef struct PVEBackupDevInfo {
+@@ -52,10 +69,54 @@ typedef struct PVEBackupDevInfo {
      BlockDriverState *target;
  } PVEBackupDevInfo;
  
 -static void pvebackup_co_run_next_job(void);
 +static void pvebackup_run_next_job(void);
-+
+ 
 +static BlockJob *
 +lookup_active_block_job(PVEBackupDevInfo *di)
 +{
@@ -101,26 +121,26 @@ index 38dd33e28b..169f0c68d0 100644
 +
 +static void pvebackup_propagate_error(Error *err)
 +{
-+    qemu_rec_mutex_lock(&backup_state.stat.lock);
++    qemu_mutex_lock(&backup_state.stat.lock);
 +    error_propagate(&backup_state.stat.error, err);
-+    qemu_rec_mutex_unlock(&backup_state.stat.lock);
++    qemu_mutex_unlock(&backup_state.stat.lock);
 +}
 +
 +static bool pvebackup_error_or_canceled(void)
 +{
-+    qemu_rec_mutex_lock(&backup_state.stat.lock);
++    qemu_mutex_lock(&backup_state.stat.lock);
 +    bool error_or_canceled = !!backup_state.stat.error;
-+    qemu_rec_mutex_unlock(&backup_state.stat.lock);
++    qemu_mutex_unlock(&backup_state.stat.lock);
 +
 +    return error_or_canceled;
 +}
- 
++
 +static void pvebackup_add_transfered_bytes(size_t transferred, size_t zero_bytes)
 +{
-+    qemu_rec_mutex_lock(&backup_state.stat.lock);
++    qemu_mutex_lock(&backup_state.stat.lock);
 +    backup_state.stat.zero_bytes += zero_bytes;
 +    backup_state.stat.transferred += transferred;
-+    qemu_rec_mutex_unlock(&backup_state.stat.lock);
++    qemu_mutex_unlock(&backup_state.stat.lock);
 +}
 +
 +// This may get called from multiple coroutines in multiple io-threads
@@ -131,7 +151,7 @@ index 38dd33e28b..169f0c68d0 100644
      void *opaque,
      uint64_t start,
      uint64_t bytes,
-@@ -67,137 +109,129 @@ pvebackup_co_dump_cb(
+@@ -67,137 +128,127 @@ pvebackup_co_dump_cb(
      const unsigned char *buf = pbuf;
      PVEBackupDevInfo *di = opaque;
  
@@ -143,19 +163,19 @@ index 38dd33e28b..169f0c68d0 100644
 +    Error *local_err = NULL;
 +    int pbs_res = -1;
 +
-+    qemu_rec_mutex_lock(&backup_state.backup_mutex);
++    qemu_co_mutex_lock(&backup_state.dump_callback_mutex);
  
 -    if (cancel) {
 -        return size; // return success
 +    // avoid deadlock if job is cancelled
 +    if (pvebackup_error_or_canceled()) {
-+        qemu_rec_mutex_unlock(&backup_state.backup_mutex);
++        qemu_co_mutex_unlock(&backup_state.dump_callback_mutex);
 +        return -1;
      }
  
 -    qemu_co_mutex_lock(&backup_state.backup_mutex);
 +    pbs_res = proxmox_backup_co_write_data(backup_state.pbs, di->dev_id, buf, start, size, &local_err);
-+    qemu_rec_mutex_unlock(&backup_state.backup_mutex);
++    qemu_co_mutex_unlock(&backup_state.dump_callback_mutex);
  
 -    int ret = -1;
 +    if (pbs_res < 0) {
@@ -232,9 +252,10 @@ index 38dd33e28b..169f0c68d0 100644
 +    PVEBackupDevInfo *di = opaque;
  
 -        pbs_res = proxmox_backup_co_write_data(backup_state.pbs, di->dev_id, buf, start, size, &local_err);
++    int ret = -1;
  
 -        qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
-+    int ret = -1;
++    assert(backup_state.vmaw);
  
 -        if (pbs_res < 0) {
 -            error_propagate(&backup_state.stat.error, local_err);
@@ -246,8 +267,6 @@ index 38dd33e28b..169f0c68d0 100644
 -                backup_state.stat.zero_bytes += size;
 -            }
 -            backup_state.stat.transferred += size;
-+    assert(backup_state.vmaw);
-+
 +    uint64_t remaining = size;
 +
 +    uint64_t cluster_num = start / VMA_CLUSTER_SIZE;
@@ -261,17 +280,17 @@ index 38dd33e28b..169f0c68d0 100644
 +    }
 +
 +    while (remaining > 0) {
-+        qemu_rec_mutex_lock(&backup_state.backup_mutex);
++        qemu_co_mutex_lock(&backup_state.dump_callback_mutex);
 +        // avoid deadlock if job is cancelled
 +        if (pvebackup_error_or_canceled()) {
-+            qemu_rec_mutex_unlock(&backup_state.backup_mutex);
++            qemu_co_mutex_unlock(&backup_state.dump_callback_mutex);
 +            return -1;
          }
  
 -        qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
 +        size_t zero_bytes = 0;
 +        ret = vma_writer_write(backup_state.vmaw, di->dev_id, cluster_num, buf, &zero_bytes);
-+        qemu_rec_mutex_unlock(&backup_state.backup_mutex);
++        qemu_co_mutex_unlock(&backup_state.dump_callback_mutex);
  
 -    } else {
 -        qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
@@ -307,18 +326,18 @@ index 38dd33e28b..169f0c68d0 100644
  }
  
 -static void coroutine_fn pvebackup_co_cleanup(void)
++// assumes the caller holds backup_mutex
 +static void coroutine_fn pvebackup_co_cleanup(void *unused)
  {
      assert(qemu_in_coroutine());
  
 -    qemu_co_mutex_lock(&backup_state.backup_mutex);
-+    qemu_rec_mutex_lock(&backup_state.backup_mutex);
- 
+-
 -    qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
-+    qemu_rec_mutex_lock(&backup_state.stat.lock);
++    qemu_mutex_lock(&backup_state.stat.lock);
      backup_state.stat.end_time = time(NULL);
 -    qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
-+    qemu_rec_mutex_unlock(&backup_state.stat.lock);
++    qemu_mutex_unlock(&backup_state.stat.lock);
  
      if (backup_state.vmaw) {
          Error *local_err = NULL;
@@ -353,12 +372,11 @@ index 38dd33e28b..169f0c68d0 100644
  
          proxmox_backup_disconnect(backup_state.pbs);
          backup_state.pbs = NULL;
-@@ -205,43 +239,14 @@ static void coroutine_fn pvebackup_co_cleanup(void)
+@@ -205,43 +256,14 @@ static void coroutine_fn pvebackup_co_cleanup(void)
  
      g_list_free(backup_state.di_list);
      backup_state.di_list = NULL;
 -    qemu_co_mutex_unlock(&backup_state.backup_mutex);
-+    qemu_rec_mutex_unlock(&backup_state.backup_mutex);
  }
  
 -typedef struct PVEBackupCompeteCallbackData {
@@ -367,6 +385,7 @@ index 38dd33e28b..169f0c68d0 100644
 -} PVEBackupCompeteCallbackData;
 -
 -static void coroutine_fn pvebackup_co_complete_cb(void *opaque)
++// assumes the caller holds backup_mutex
 +static void coroutine_fn pvebackup_complete_stream(void *opaque)
  {
 -    assert(qemu_in_coroutine());
@@ -401,7 +420,7 @@ index 38dd33e28b..169f0c68d0 100644
  
      if (backup_state.vmaw) {
          vma_writer_close_stream(backup_state.vmaw, di->dev_id);
-@@ -251,108 +256,96 @@ static void coroutine_fn pvebackup_co_complete_cb(void *opaque)
+@@ -251,110 +273,101 @@ static void coroutine_fn pvebackup_co_complete_cb(void *opaque)
          Error *local_err = NULL;
          proxmox_backup_co_close_image(backup_state.pbs, di->dev_id, &local_err);
          if (local_err != NULL) {
@@ -419,19 +438,19 @@ index 38dd33e28b..169f0c68d0 100644
 +static void pvebackup_complete_cb(void *opaque, int ret)
 +{
 +    assert(!qemu_in_coroutine());
-+
-+    PVEBackupDevInfo *di = opaque;
  
 -    int pending_jobs = g_list_length(backup_state.di_list);
-+    qemu_rec_mutex_lock(&backup_state.backup_mutex);
++    PVEBackupDevInfo *di = opaque;
  
 -    qemu_co_mutex_unlock(&backup_state.backup_mutex);
-+    di->completed = true;
++    qemu_mutex_lock(&backup_state.backup_mutex);
  
 -    if (pending_jobs > 0) {
 -        pvebackup_co_run_next_job();
 -    } else {
 -        pvebackup_co_cleanup();
++    di->completed = true;
++
 +    if (ret < 0) {
 +        Error *local_err = NULL;
 +        error_setg(&local_err, "job failed with err %d - %s", ret, strerror(-ret));
@@ -475,7 +494,7 @@ index 38dd33e28b..169f0c68d0 100644
 -        qemu_co_mutex_unlock(&backup_state.backup_mutex);
 -        return;
 -    }
-+    qemu_rec_mutex_unlock(&backup_state.backup_mutex);
++    qemu_mutex_unlock(&backup_state.backup_mutex);
  
 -    qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
 -    if (!backup_state.stat.error) {
@@ -488,11 +507,13 @@ index 38dd33e28b..169f0c68d0 100644
 +
 +static void pvebackup_cancel(void)
 +{
++    assert(!qemu_in_coroutine());
++
 +    Error *cancel_err = NULL;
 +    error_setg(&cancel_err, "backup canceled");
 +    pvebackup_propagate_error(cancel_err);
 +
-+    qemu_rec_mutex_lock(&backup_state.backup_mutex);
++    qemu_mutex_lock(&backup_state.backup_mutex);
  
      if (backup_state.vmaw) {
          /* make sure vma writer does not block anymore */
@@ -515,7 +536,7 @@ index 38dd33e28b..169f0c68d0 100644
 -                if (job->job.driver->job_type != JOB_TYPE_BACKUP) {
 -                    continue;
 -                }
-+    qemu_rec_mutex_unlock(&backup_state.backup_mutex);
++    qemu_mutex_unlock(&backup_state.backup_mutex);
  
 -                BackupBlockJob *bjob = container_of(job, BackupBlockJob, common);
 -                if (bjob && bjob->source_bs == di->bs) {
@@ -531,7 +552,7 @@ index 38dd33e28b..169f0c68d0 100644
 -                }
 +        BlockJob *next_job = NULL;
 +
-+        qemu_rec_mutex_lock(&backup_state.backup_mutex);
++        qemu_mutex_lock(&backup_state.backup_mutex);
 +
 +        GList *l = backup_state.di_list;
 +        while (l) {
@@ -547,7 +568,7 @@ index 38dd33e28b..169f0c68d0 100644
 -    }
  
 -    qemu_co_mutex_unlock(&backup_state.backup_mutex);
-+        qemu_rec_mutex_unlock(&backup_state.backup_mutex);
++        qemu_mutex_unlock(&backup_state.backup_mutex);
  
 -    if (running_jobs == 0) pvebackup_co_cleanup(); // else job will call completion handler
 +        if (next_job) {
@@ -567,8 +588,11 @@ index 38dd33e28b..169f0c68d0 100644
 +    pvebackup_cancel();
  }
  
++// assumes the caller holds backup_mutex
  static int coroutine_fn pvebackup_co_add_config(
-@@ -406,46 +399,97 @@ static int coroutine_fn pvebackup_co_add_config(
+     const char *file,
+     const char *name,
+@@ -406,46 +419,97 @@ static int coroutine_fn pvebackup_co_add_config(
  
  bool job_should_pause(Job *job);
  
@@ -579,7 +603,7 @@ index 38dd33e28b..169f0c68d0 100644
 +    assert(!qemu_in_coroutine());
  
 -    qemu_co_mutex_lock(&backup_state.backup_mutex);
-+    qemu_rec_mutex_lock(&backup_state.backup_mutex);
++    qemu_mutex_lock(&backup_state.backup_mutex);
  
      GList *l = backup_state.di_list;
      while (l) {
@@ -613,7 +637,7 @@ index 38dd33e28b..169f0c68d0 100644
 +        BlockJob *job = lookup_active_block_job(di);
 +
 +        if (job) {
-+            qemu_rec_mutex_unlock(&backup_state.backup_mutex);
++            qemu_mutex_unlock(&backup_state.backup_mutex);
 +
 +            AioContext *aio_context = job->job.aio_context;
 +            aio_context_acquire(aio_context);
@@ -628,13 +652,12 @@ index 38dd33e28b..169f0c68d0 100644
              }
 +            aio_context_release(aio_context);
 +            return;
-         }
-     }
--    qemu_co_mutex_unlock(&backup_state.backup_mutex);
-+
-+    qemu_rec_mutex_unlock(&backup_state.backup_mutex);
++        }
++    }
 +
 +    block_on_coroutine_fn(pvebackup_co_cleanup, NULL); // no more jobs, run cleanup
++
++    qemu_mutex_unlock(&backup_state.backup_mutex);
 +}
 +
 +static bool create_backup_jobs(void) {
@@ -687,23 +710,25 @@ index 38dd33e28b..169f0c68d0 100644
 +                bdrv_unref(di->target);
 +                di->target = NULL;
 +            }
-+        }
-+    }
+         }
+     }
+-    qemu_co_mutex_unlock(&backup_state.backup_mutex);
 +
 +    return errors;
  }
  
  typedef struct QmpBackupTask {
-@@ -476,7 +520,7 @@ typedef struct QmpBackupTask {
+@@ -476,7 +540,8 @@ typedef struct QmpBackupTask {
      UuidInfo *result;
  } QmpBackupTask;
  
 -static void coroutine_fn pvebackup_co_start(void *opaque)
++// assumes the caller holds backup_mutex
 +static void coroutine_fn pvebackup_co_prepare(void *opaque)
  {
      assert(qemu_in_coroutine());
  
-@@ -495,15 +539,14 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -495,16 +560,12 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
      GList *di_list = NULL;
      GList *l;
      UuidInfo *uuid_info;
@@ -713,15 +738,15 @@ index 38dd33e28b..169f0c68d0 100644
      const char *firewall_name = "qemu-server.fw";
  
 -    qemu_co_mutex_lock(&backup_state.backup_mutex);
-+    qemu_rec_mutex_lock(&backup_state.backup_mutex);
- 
+-
      if (backup_state.di_list) {
 -        qemu_co_mutex_unlock(&backup_state.backup_mutex);
-+        qemu_rec_mutex_unlock(&backup_state.backup_mutex);
-         error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
+-        error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
++         error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
                    "previous backup not finished");
          return;
-@@ -631,7 +674,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+     }
+@@ -631,7 +692,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
              if (dev_id < 0)
                  goto err;
  
@@ -730,7 +755,7 @@ index 38dd33e28b..169f0c68d0 100644
                  goto err;
              }
  
-@@ -652,7 +695,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -652,7 +713,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
              PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
              l = g_list_next(l);
  
@@ -739,27 +764,27 @@ index 38dd33e28b..169f0c68d0 100644
                  goto err;
              }
  
-@@ -717,9 +760,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -717,9 +778,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
      }
      /* initialize global backup_state now */
  
 -    qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
 -
 -    backup_state.stat.cancel = false;
-+    qemu_rec_mutex_lock(&backup_state.stat.lock);
++    qemu_mutex_lock(&backup_state.stat.lock);
  
      if (backup_state.stat.error) {
          error_free(backup_state.stat.error);
-@@ -742,7 +783,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -742,7 +801,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
      backup_state.stat.transferred = 0;
      backup_state.stat.zero_bytes = 0;
  
 -    qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
-+    qemu_rec_mutex_unlock(&backup_state.stat.lock);
++    qemu_mutex_unlock(&backup_state.stat.lock);
  
      backup_state.speed = (task->has_speed && task->speed > 0) ? task->speed : 0;
  
-@@ -751,45 +792,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -751,48 +810,6 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
  
      backup_state.di_list = di_list;
  
@@ -769,15 +794,17 @@ index 38dd33e28b..169f0c68d0 100644
 -        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
 -        l = g_list_next(l);
 -
+-        // make sure target runs in same aoi_context as source
 -        AioContext *aio_context = bdrv_get_aio_context(di->bs);
 -        aio_context_acquire(aio_context);
+-        GSList *ignore = NULL;
+-        bdrv_set_aio_context_ignore(di->target, aio_context, &ignore);
+-        g_slist_free(ignore);
+-        aio_context_release(aio_context);
 -
 -        job = backup_job_create(NULL, di->bs, di->target, backup_state.speed, MIRROR_SYNC_MODE_FULL, NULL,
 -                                BITMAP_SYNC_MODE_NEVER, false, NULL, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
 -                                JOB_DEFAULT, pvebackup_complete_cb, di, 1, NULL, &local_err);
--
--        aio_context_release(aio_context);
--
 -        if (!job || local_err != NULL) {
 -            qemu_co_rwlock_wrlock(&backup_state.stat.rwlock);
 -            error_setg(&backup_state.stat.error, "backup_job_create failed");
@@ -802,42 +829,45 @@ index 38dd33e28b..169f0c68d0 100644
 -    } else {
 -        pvebackup_co_cancel(NULL);
 -    }
-+    qemu_rec_mutex_unlock(&backup_state.backup_mutex);
- 
+-
      uuid_info = g_malloc0(sizeof(*uuid_info));
      uuid_info->UUID = uuid_str;
-@@ -833,7 +836,7 @@ err:
+ 
+@@ -835,8 +852,6 @@ err:
          rmdir(backup_dir);
      }
  
 -    qemu_co_mutex_unlock(&backup_state.backup_mutex);
-+    qemu_rec_mutex_unlock(&backup_state.backup_mutex);
- 
+-
      task->result = NULL;
      return;
-@@ -878,32 +881,28 @@ UuidInfo *qmp_backup(
+ }
+@@ -880,32 +895,31 @@ UuidInfo *qmp_backup(
          .errp = errp,
      };
  
 -    block_on_coroutine_fn(pvebackup_co_start, &task);
++    qemu_mutex_lock(&backup_state.backup_mutex);
+ 
+-    return task.result;
+-}
 +    block_on_coroutine_fn(pvebackup_co_prepare, &task);
-+
+ 
 +    if (*errp == NULL) {
-+        qemu_rec_mutex_lock(&backup_state.backup_mutex);
 +        create_backup_jobs();
-+        qemu_rec_mutex_unlock(&backup_state.backup_mutex);
++        qemu_mutex_unlock(&backup_state.backup_mutex);
 +        pvebackup_run_next_job();
++    } else {
++        qemu_mutex_unlock(&backup_state.backup_mutex);
 +    }
  
-     return task.result;
- }
- 
--
 -typedef struct QmpQueryBackupTask {
 -    Error **errp;
 -    BackupStatus *result;
 -} QmpQueryBackupTask;
--
++    return task.result;
++}
+ 
 -static void coroutine_fn pvebackup_co_query(void *opaque)
 +BackupStatus *qmp_query_backup(Error **errp)
  {
@@ -848,24 +878,24 @@ index 38dd33e28b..169f0c68d0 100644
      BackupStatus *info = g_malloc0(sizeof(*info));
  
 -    qemu_co_rwlock_rdlock(&backup_state.stat.rwlock);
-+    qemu_rec_mutex_lock(&backup_state.stat.lock);
++    qemu_mutex_lock(&backup_state.stat.lock);
  
      if (!backup_state.stat.start_time) {
          /* not started, return {} */
 -        task->result = info;
 -        qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
 -        return;
-+        qemu_rec_mutex_unlock(&backup_state.stat.lock);
++        qemu_mutex_unlock(&backup_state.stat.lock);
 +        return info;
      }
  
      info->has_status = true;
-@@ -939,19 +938,7 @@ static void coroutine_fn pvebackup_co_query(void *opaque)
+@@ -941,19 +955,7 @@ static void coroutine_fn pvebackup_co_query(void *opaque)
      info->has_transferred = true;
      info->transferred = backup_state.stat.transferred;
  
 -    task->result = info;
-+    qemu_rec_mutex_unlock(&backup_state.stat.lock);
++    qemu_mutex_unlock(&backup_state.stat.lock);
  
 -    qemu_co_rwlock_unlock(&backup_state.stat.rwlock);
 -}

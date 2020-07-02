@@ -71,7 +71,7 @@ index 8ed1eba95b..f453a95efc 100644
  # Hardware support
  ifeq ($(TARGET_NAME), sparc64)
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index 4c8c375172..4f03881286 100644
+index 4c8c375172..d485c3ac79 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
 @@ -1011,3 +1011,36 @@ void hmp_info_snapshots(Monitor *mon, const QDict *qdict)

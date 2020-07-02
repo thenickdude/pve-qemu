@@ -7,10 +7,10 @@ Subject: [PATCH] PVE-Backup: add vma backup format code
  Makefile      |   3 +-
  Makefile.objs |   1 +
  vma-reader.c  | 857 ++++++++++++++++++++++++++++++++++++++++++++++++++
- vma-writer.c  | 771 +++++++++++++++++++++++++++++++++++++++++++++
- vma.c         | 837 ++++++++++++++++++++++++++++++++++++++++++++++++
+ vma-writer.c  | 790 ++++++++++++++++++++++++++++++++++++++++++++++
+ vma.c         | 839 ++++++++++++++++++++++++++++++++++++++++++++++++
  vma.h         | 150 +++++++++
- 6 files changed, 2618 insertions(+), 1 deletion(-)
+ 6 files changed, 2639 insertions(+), 1 deletion(-)
  create mode 100644 vma-reader.c
  create mode 100644 vma-writer.c
  create mode 100644 vma.c
@@ -914,10 +914,10 @@ index 0000000000..2b1d1cdab3
 +
 diff --git a/vma-writer.c b/vma-writer.c
 new file mode 100644
-index 0000000000..fe86b18a60
+index 0000000000..f5d2c5d23c
 --- /dev/null
 +++ b/vma-writer.c
-@@ -0,0 +1,771 @@
+@@ -0,0 +1,790 @@
 +/*
 + * VMA: Virtual Machine Archive
 + *
@@ -1553,17 +1553,33 @@ index 0000000000..fe86b18a60
 +
 +    DPRINTF("VMA WRITE %d %zd\n", dev_id, cluster_num);
 +
++    uint64_t dev_size = vmaw->stream_info[dev_id].size;
 +    uint16_t mask = 0;
 +
 +    if (buf) {
 +        int i;
 +        int bit = 1;
++        uint64_t byte_offset = cluster_num * VMA_CLUSTER_SIZE;
 +        for (i = 0; i < 16; i++) {
 +            const unsigned char *vmablock = buf + (i*VMA_BLOCK_SIZE);
-+            if (!buffer_is_zero(vmablock, VMA_BLOCK_SIZE)) {
++
++            // Note: If the source is not 64k-aligned, we might reach 4k blocks
++            // after the end of the device. Always mark these as zero in the
++            // mask, so the restore handles them correctly.
++            if (byte_offset < dev_size &&
++                !buffer_is_zero(vmablock, VMA_BLOCK_SIZE))
++            {
 +                mask |= bit;
 +                memcpy(vmaw->outbuf + vmaw->outbuf_pos, vmablock,
 +                       VMA_BLOCK_SIZE);
++
++                // prevent memory leakage on unaligned last block
++                if (byte_offset + VMA_BLOCK_SIZE > dev_size) {
++                    uint64_t real_data_in_block = dev_size - byte_offset;
++                    memset(vmaw->outbuf + vmaw->outbuf_pos + real_data_in_block,
++                           0, VMA_BLOCK_SIZE - real_data_in_block);
++                }
++
 +                vmaw->outbuf_pos += VMA_BLOCK_SIZE;
 +            } else {
 +                DPRINTF("VMA WRITE %zd ZERO BLOCK %d\n", cluster_num, i);
@@ -1571,6 +1587,7 @@ index 0000000000..fe86b18a60
 +                *zero_bytes += VMA_BLOCK_SIZE;
 +            }
 +
++            byte_offset += VMA_BLOCK_SIZE;
 +            bit = bit << 1;
 +        }
 +    } else {
@@ -1596,8 +1613,8 @@ index 0000000000..fe86b18a60
 +
 +    if (dev_id != vmaw->vmstate_stream) {
 +        uint64_t last = (cluster_num + 1) * VMA_CLUSTER_SIZE;
-+        if (last > vmaw->stream_info[dev_id].size) {
-+            uint64_t diff = last - vmaw->stream_info[dev_id].size;
++        if (last > dev_size) {
++            uint64_t diff = last - dev_size;
 +            if (diff >= VMA_CLUSTER_SIZE) {
 +                vma_writer_set_error(vmaw, "vma_writer_write: "
 +                                     "read after last cluster");
@@ -1687,14 +1704,16 @@ index 0000000000..fe86b18a60
 +        g_checksum_free(vmaw->md5csum);
 +    }
 +
++    qemu_vfree(vmaw->headerbuf);
++    qemu_vfree(vmaw->outbuf);
 +    g_free(vmaw);
 +}
 diff --git a/vma.c b/vma.c
 new file mode 100644
-index 0000000000..a82752448a
+index 0000000000..2eea2fc281
 --- /dev/null
 +++ b/vma.c
-@@ -0,0 +1,837 @@
+@@ -0,0 +1,839 @@
 +/*
 + * VMA: Virtual Machine Archive
 + *
@@ -2262,6 +2281,7 @@ index 0000000000..a82752448a
 +            g_warning("vma_writer_close failed %s", error_get_pretty(err));
 +        }
 +    }
++    qemu_vfree(buf);
 +}
 +
 +static int create_archive(int argc, char **argv)
@@ -2429,6 +2449,7 @@ index 0000000000..a82752448a
 +        g_error("creating vma archive failed");
 +    }
 +
++    vma_writer_destroy(vmaw);
 +    return 0;
 +}
 +
