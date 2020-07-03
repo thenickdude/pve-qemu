@@ -132,7 +132,7 @@ index b311bf8de8..20fd6b1719 100644
  
  
 diff --git a/pve-backup.c b/pve-backup.c
-index bb917ee972..3a71270213 100644
+index bb917ee972..7b5558e28e 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -28,6 +28,8 @@
@@ -349,7 +349,7 @@ index bb917ee972..3a71270213 100644
 +    backup_state.stat.dirty = dirty;
      backup_state.stat.transferred = 0;
      backup_state.stat.zero_bytes = 0;
-+    backup_state.stat.reused = 0;
++    backup_state.stat.reused = dirty >= total ? 0 : total - dirty;
  
      qemu_mutex_unlock(&backup_state.stat.lock);
  
