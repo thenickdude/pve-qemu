@@ -1,3 +1,10 @@
+pve-qemu-kvm (5.0.0-6) pve; urgency=medium
+
+  * backup: improve query-backup information and remove all dirty-bitmaps on
+    failed drive-job
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 03 Jul 2020 17:00:30 +0200
+
 pve-qemu-kvm (5.0.0-5) pve; urgency=medium
 
   * fix backup for not 64k-aligned storages
