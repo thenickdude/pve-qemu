@@ -1,0 +1,125 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Thomas Lamprecht <t.lamprecht@proxmox.com>
+Date: Mon, 6 Jul 2020 20:05:16 +0200
+Subject: [PATCH] PVE backup: rename incremental to use-dirty-bitmap
+
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ pve-backup.c         | 21 ++++++++++-----------
+ qapi/block-core.json |  6 +++---
+ 2 files changed, 13 insertions(+), 14 deletions(-)
+
+diff --git a/pve-backup.c b/pve-backup.c
+index 7b5558e28e..246256f70f 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -557,8 +557,8 @@ typedef struct QmpBackupTask {
+     const char *fingerprint;
+     bool has_fingerprint;
+     int64_t backup_time;
+-    bool has_incremental;
+-    bool incremental;
++    bool has_use_dirty_bitmap;
++    bool use_dirty_bitmap;
+     bool has_format;
+     BackupFormat format;
+     bool has_config_file;
+@@ -692,7 +692,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+         int dump_cb_block_size = PROXMOX_BACKUP_DEFAULT_CHUNK_SIZE; // Hardcoded (4M)
+         firewall_name = "fw.conf";
+ 
+-        bool incremental = task->has_incremental && task->incremental;
++        bool use_dirty_bitmap = task->has_use_dirty_bitmap && task->use_dirty_bitmap;
+ 
+         char *pbs_err = NULL;
+         pbs = proxmox_backup_new(
+@@ -727,18 +727,17 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+ 
+             BdrvDirtyBitmap *bitmap = bdrv_find_dirty_bitmap(di->bs, PBS_BITMAP_NAME);
+ 
+-            bool use_incremental = false;
+-            if (incremental) {
++            if (use_dirty_bitmap) {
+                 if (bitmap == NULL) {
+                     bitmap = bdrv_create_dirty_bitmap(di->bs, dump_cb_block_size, PBS_BITMAP_NAME, task->errp);
+                     if (!bitmap) {
+                         goto err;
+                     }
+                     /* mark entire bitmap as dirty to make full backup first */
++                    use_dirty_bitmap = false;
+                     bdrv_set_dirty_bitmap(bitmap, 0, di->size);
+                     dirty += di->size;
+                 } else {
+-                    use_incremental = true;
+                     dirty += bdrv_get_dirty_count(bitmap);
+                 }
+                 di->bitmap = bitmap;
+@@ -747,7 +746,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+                 bdrv_release_dirty_bitmap(bitmap);
+             }
+ 
+-            int dev_id = proxmox_backup_co_register_image(pbs, devname, di->size, use_incremental, task->errp);
++            int dev_id = proxmox_backup_co_register_image(pbs, devname, di->size, use_dirty_bitmap, task->errp);
+             if (dev_id < 0) {
+                 goto err;
+             }
+@@ -865,7 +864,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+     backup_state.stat.dirty = dirty;
+     backup_state.stat.transferred = 0;
+     backup_state.stat.zero_bytes = 0;
+-    backup_state.stat.reused = dirty >= total ? 0 : total - dirty;
++    backup_state.stat.reused = format == BACKUP_FORMAT_PBS && dirty >= total ? 0 : total - dirty;
+ 
+     qemu_mutex_unlock(&backup_state.stat.lock);
+ 
+@@ -934,7 +933,7 @@ UuidInfo *qmp_backup(
+     bool has_fingerprint, const char *fingerprint,
+     bool has_backup_id, const char *backup_id,
+     bool has_backup_time, int64_t backup_time,
+-    bool has_incremental, bool incremental,
++    bool has_use_dirty_bitmap, bool use_dirty_bitmap,
+     bool has_format, BackupFormat format,
+     bool has_config_file, const char *config_file,
+     bool has_firewall_file, const char *firewall_file,
+@@ -953,8 +952,8 @@ UuidInfo *qmp_backup(
+         .backup_id = backup_id,
+         .has_backup_time = has_backup_time,
+         .backup_time = backup_time,
+-        .has_incremental = has_incremental,
+-        .incremental = incremental,
++        .has_use_dirty_bitmap = has_use_dirty_bitmap,
++        .use_dirty_bitmap = use_dirty_bitmap,
+         .has_format = has_format,
+         .format = format,
+         .has_config_file = has_config_file,
+diff --git a/qapi/block-core.json b/qapi/block-core.json
+index 8ffff7aaab..4fe3d6f751 100644
+--- a/qapi/block-core.json
++++ b/qapi/block-core.json
+@@ -757,7 +757,7 @@
+ #
+ # @total: total amount of bytes involved in the backup process
+ #
+-# @dirty: with incremental mode, this is the amount of bytes involved
++# @dirty: with incremental mode (PBS) this is the amount of bytes involved
+ #         in the backup process which are marked dirty.
+ #
+ # @transferred: amount of bytes already backed up.
+@@ -820,7 +820,7 @@
+ #
+ # @backup-time: backup timestamp (Unix epoch, required for format 'pbs')
+ #
+-# @incremental: sync incremental changes since last job (optional for format 'pbs')
++# @use-dirty-bitmap: use dirty bitmap to detect incremental changes since last job (optional for format 'pbs')
+ #
+ # Returns: the uuid of the backup job
+ #
+@@ -832,7 +832,7 @@
+                                     '*fingerprint': 'str',
+                                     '*backup-id': 'str',
+                                     '*backup-time': 'int',
+-                                    '*incremental': 'bool',
++                                    '*use-dirty-bitmap': 'bool',
+                                     '*format': 'BackupFormat',
+                                     '*config-file': 'str',
+                                     '*firewall-file': 'str',

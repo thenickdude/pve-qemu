@@ -37,3 +37,7 @@ pve/0035-mirror-switch-to-bdrv_dirty_bitmap_merge_internal.patch
 pve/0036-iotests-add-test-for-bitmap-mirror.patch
 pve/0037-mirror-move-some-checks-to-qmp.patch
 pve/0038-PVE-Backup-Add-dirty-bitmap-tracking-for-incremental.patch
+pve/0039-PVE-backup-rename-incremental-to-use-dirty-bitmap.patch
+pve/0040-PVE-fixup-pbs-restore-API.patch
+pve/0041-PVE-always-set-dirty-counter-for-non-incremental-bac.patch
+pve/0042-PVE-use-proxmox_backup_check_incremental.patch
