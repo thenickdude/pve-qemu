@@ -1,11 +1,11 @@
-pve-qemu-kvm (5.0.0-7) UNRELEASED; urgency=medium
+pve-qemu-kvm (5.0.0-8) pve; urgency=medium
 
   * backup: rename parameter for dirty-bitmap PBS backup to "use-dirty-bitmap"
 
   * backup: improve checking if a previous backup is available when trying to
     reuse it
 
- -- Proxmox Support Team <support@proxmox.com>  Mon, 06 Jul 2020 22:14:47 +0200
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 06 Jul 2020 22:58:45 +0200
 
 pve-qemu-kvm (5.0.0-6) pve; urgency=medium
 
