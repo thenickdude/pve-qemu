@@ -41,3 +41,6 @@ pve/0039-PVE-backup-rename-incremental-to-use-dirty-bitmap.patch
 pve/0040-PVE-fixup-pbs-restore-API.patch
 pve/0041-PVE-always-set-dirty-counter-for-non-incremental-bac.patch
 pve/0042-PVE-use-proxmox_backup_check_incremental.patch
+pve/0043-PVE-fixup-pbs-backup-add-compress-and-encrypt-option.patch
+pve/0044-PVE-Add-PBS-block-driver-to-map-backup-archives-into.patch
+pve/0045-PVE-add-query_proxmox_support-QMP-command.patch

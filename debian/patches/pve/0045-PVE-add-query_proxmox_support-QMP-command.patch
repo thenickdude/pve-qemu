@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Wed, 8 Jul 2020 11:57:53 +0200
+Subject: [PATCH] PVE: add query_proxmox_support QMP command
+
+Generic interface for future use, currently used for PBS dirty-bitmap
+backup support.
+
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ pve-backup.c         |  7 +++++++
+ qapi/block-core.json | 22 ++++++++++++++++++++++
+ 2 files changed, 29 insertions(+)
+
+diff --git a/pve-backup.c b/pve-backup.c
+index 3323b195a4..5bdfd1fedd 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -1055,3 +1055,10 @@ BackupStatus *qmp_query_backup(Error **errp)
+ 
+     return info;
+ }
++
++ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
++{
++    ProxmoxSupportStatus *ret = g_malloc0(sizeof(*ret));
++    ret->pbs_dirty_bitmap = true;
++    return ret;
++}
+diff --git a/qapi/block-core.json b/qapi/block-core.json
+index 13c63d8e6a..355a184ea8 100644
+--- a/qapi/block-core.json
++++ b/qapi/block-core.json
+@@ -867,6 +867,28 @@
+ ##
+ { 'command': 'backup-cancel' }
+ 
++##
++# @ProxmoxSupportStatus:
++#
++# Contains info about supported features added by Proxmox.
++#
++# @pbs-dirty-bitmap: True if dirty-bitmap-incremental backups to PBS are
++#                    supported.
++#
++##
++{ 'struct': 'ProxmoxSupportStatus',
++  'data': { 'pbs-dirty-bitmap': 'bool' } }
++
++##
++# @query-proxmox-support:
++#
++# Returns information about supported features added by Proxmox.
++#
++# Returns: @ProxmoxSupportStatus
++#
++##
++{ 'command': 'query-proxmox-support', 'returns': 'ProxmoxSupportStatus' }
++
+ ##
+ # @BlockDeviceTimedStats:
+ #
