@@ -1,3 +1,13 @@
+pve-qemu-kvm (5.0.0-9) pve; urgency=medium
+
+  * adapt to new compress and encrypt params of the proxmox-backup library
+
+  * add block driver for Proxmox Backup Server backed images
+
+  * add 'query-proxmox-support' QMP command
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 09 Jul 2020 13:18:45 +0200
+
 pve-qemu-kvm (5.0.0-8) pve; urgency=medium
 
   * backup: rename parameter for dirty-bitmap PBS backup to "use-dirty-bitmap"
