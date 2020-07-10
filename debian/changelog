@@ -1,3 +1,10 @@
+pve-qemu-kvm (5.0.0-10) pve; urgency=medium
+
+  * fix compression and encryption related backup parameters not being passed
+    on from the HMP command properly
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 10 Jul 2020 13:32:11 +0200
+
 pve-qemu-kvm (5.0.0-9) pve; urgency=medium
 
   * adapt to new compress and encrypt params of the proxmox-backup library
