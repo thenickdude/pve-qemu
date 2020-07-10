@@ -44,3 +44,4 @@ pve/0042-PVE-use-proxmox_backup_check_incremental.patch
 pve/0043-PVE-fixup-pbs-backup-add-compress-and-encrypt-option.patch
 pve/0044-PVE-Add-PBS-block-driver-to-map-backup-archives-into.patch
 pve/0045-PVE-add-query_proxmox_support-QMP-command.patch
+pve/0046-pbs-fix-missing-crypt-and-compress-parameters.patch
