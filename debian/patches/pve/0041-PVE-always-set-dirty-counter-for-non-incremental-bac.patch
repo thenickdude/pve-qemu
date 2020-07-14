@@ -9,10 +9,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  1 file changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index 246256f70f..bda1635b82 100644
+index 9e767d724c..c108f6a745 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
-@@ -741,9 +741,13 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -742,9 +742,13 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
                      dirty += bdrv_get_dirty_count(bitmap);
                  }
                  di->bitmap = bitmap;
@@ -27,4 +27,4 @@ index 246256f70f..bda1635b82 100644
 +                }
              }
  
-             int dev_id = proxmox_backup_co_register_image(pbs, devname, di->size, use_dirty_bitmap, task->errp);
+             int dev_id = proxmox_backup_co_register_image(pbs, devname, di->size, expect_only_dirty, task->errp);

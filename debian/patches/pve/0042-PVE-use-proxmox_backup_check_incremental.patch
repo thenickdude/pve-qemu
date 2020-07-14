@@ -6,36 +6,31 @@ Subject: [PATCH] PVE: use proxmox_backup_check_incremental
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- pve-backup.c | 11 ++++++++---
- 1 file changed, 8 insertions(+), 3 deletions(-)
+ pve-backup.c | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index bda1635b82..46191bb328 100644
+index c108f6a745..aa62a1da16 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
-@@ -728,17 +728,22 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
-             BdrvDirtyBitmap *bitmap = bdrv_find_dirty_bitmap(di->bs, PBS_BITMAP_NAME);
- 
-             if (use_dirty_bitmap) {
-+                use_dirty_bitmap = proxmox_backup_check_incremental(pbs, devname, di->size) != 0;
-+
-                 if (bitmap == NULL) {
-                     bitmap = bdrv_create_dirty_bitmap(di->bs, dump_cb_block_size, PBS_BITMAP_NAME, task->errp);
+@@ -734,12 +734,16 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
                      if (!bitmap) {
                          goto err;
                      }
 -                    /* mark entire bitmap as dirty to make full backup first */
-                     use_dirty_bitmap = false;
+-                    bdrv_set_dirty_bitmap(bitmap, 0, di->size);
+-                    dirty += di->size;
+                 } else {
+-                    expect_only_dirty = true;
++                    expect_only_dirty = proxmox_backup_check_incremental(pbs, devname, di->size) != 0;
 +                }
 +
-+                if (use_dirty_bitmap) {
-+                    dirty += bdrv_get_dirty_count(bitmap);
++                if (expect_only_dirty) {
+                     dirty += bdrv_get_dirty_count(bitmap);
 +                } else {
 +                    /* mark entire bitmap as dirty to make full backup */
-                     bdrv_set_dirty_bitmap(bitmap, 0, di->size);
-                     dirty += di->size;
--                } else {
--                    dirty += bdrv_get_dirty_count(bitmap);
++                    bdrv_set_dirty_bitmap(bitmap, 0, di->size);
++                    dirty += di->size;
                  }
                  di->bitmap = bitmap;
              } else {
