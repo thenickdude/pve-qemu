@@ -527,7 +527,7 @@ new file mode 100644
 index 0000000000..9ae89fb679
 --- /dev/null
 +++ b/pve-backup.c
-@@ -0,0 +1,959 @@
+@@ -0,0 +1,955 @@
 +#include "proxmox-backup-client.h"
 +#include "vma.h"
 +
@@ -1050,10 +1050,6 @@ index 0000000000..9ae89fb679
 +            blk = blk_by_name(*d);
 +            if (blk) {
 +                bs = blk_bs(blk);
-+                if (bdrv_is_read_only(bs)) {
-+                    error_setg(task->errp, "Node '%s' is read only", *d);
-+                    goto err;
-+                }
 +                if (!bdrv_is_inserted(bs)) {
 +                    error_setg(task->errp, QERR_DEVICE_HAS_NO_MEDIUM, *d);
 +                    goto err;
