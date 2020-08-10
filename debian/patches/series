@@ -1,4 +1,5 @@
 extra/0001-hw-vfio-pci-quirks-Fix-broken-legacy-IGD-passthrough.patch
+extra/0002-hw-net-net_tx_pkt-fix-assertion-failure-in-net_tx_pk.patch
 pve/0001-PVE-Config-block-file-change-locking-default-to-off.patch
 pve/0002-PVE-Config-Adjust-network-script-path-to-etc-kvm.patch
 pve/0003-PVE-Config-set-the-CPU-model-to-kvm64-32-instead-of-.patch
