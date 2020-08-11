@@ -1,3 +1,11 @@
+pve-qemu-kvm (5.0.0-12) pve; urgency=medium
+
+  * patch for possible DOS in qemu network packet processing
+
+  * fix PBS write callback with big blocks
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 11 Aug 2020 11:29:13 +0200
+
 pve-qemu-kvm (5.0.0-11) pve; urgency=medium
 
   * improve dirty-bitmap Proxmox Backup Server backup with multiple drives
