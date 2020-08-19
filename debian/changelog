@@ -1,3 +1,11 @@
+pve-qemu-kvm (5.0.0-13) pve; urgency=medium
+
+  * improve zero block handling for PBS backups
+
+  * allow querying a more detailed dirty-bitmap state per VM disk
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 19 Aug 2020 18:19:26 +0200
+
 pve-qemu-kvm (5.0.0-12) pve; urgency=medium
 
   * patch for possible DOS in qemu network packet processing
