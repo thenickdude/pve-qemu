@@ -46,5 +46,6 @@ pve/0043-PVE-fixup-pbs-backup-add-compress-and-encrypt-option.patch
 pve/0044-PVE-Add-PBS-block-driver-to-map-backup-archives-into.patch
 pve/0045-PVE-add-query_proxmox_support-QMP-command.patch
 pve/0046-pbs-fix-missing-crypt-and-compress-parameters.patch
-pve/0047-pbs-handle-write-callback-with-big-blocks-correctly.patch
+pve/0047-PVE-handle-PBS-write-callback-with-big-blocks-correc.patch
 pve/0048-PVE-add-zero-block-handling-to-PBS-dump-callback.patch
+pve/0049-PVE-add-query-pbs-bitmap-info-QMP-call.patch

@@ -1,0 +1,434 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Wed, 19 Aug 2020 17:02:00 +0200
+Subject: [PATCH] PVE: add query-pbs-bitmap-info QMP call
+
+Returns advanced information about dirty bitmaps used (or not used) for
+the latest PBS backup.
+
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+---
+ monitor/hmp-cmds.c   |  28 ++++++-----
+ pve-backup.c         | 117 ++++++++++++++++++++++++++++++++-----------
+ qapi/block-core.json |  57 ++++++++++++++++++++-
+ 3 files changed, 159 insertions(+), 43 deletions(-)
+
+diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
+index 4f692c15a2..4717fe7d2c 100644
+--- a/monitor/hmp-cmds.c
++++ b/monitor/hmp-cmds.c
+@@ -195,6 +195,7 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
+ void hmp_info_backup(Monitor *mon, const QDict *qdict)
+ {
+     BackupStatus *info;
++    PBSBitmapInfoList *bitmap_info;
+ 
+     info = qmp_query_backup(NULL);
+ 
+@@ -225,26 +226,29 @@ void hmp_info_backup(Monitor *mon, const QDict *qdict)
+             // this should not happen normally
+             monitor_printf(mon, "Total size: %d\n", 0);
+         } else {
+-            bool incremental = false;
+             size_t total_or_dirty = info->total;
+-            if (info->has_transferred) {
+-                if (info->has_dirty && info->dirty) {
+-                     if (info->dirty < info->total) {
+-                        total_or_dirty = info->dirty;
+-                        incremental = true;
+-                    }
+-                }
++            bitmap_info = qmp_query_pbs_bitmap_info(NULL);
++
++            while (bitmap_info) {
++                monitor_printf(mon, "Drive %s:\n",
++                        bitmap_info->value->drive);
++                monitor_printf(mon, "  bitmap action: %s\n",
++                        PBSBitmapAction_str(bitmap_info->value->action));
++                monitor_printf(mon, "  size: %zd\n",
++                        bitmap_info->value->size);
++                monitor_printf(mon, "  dirty: %zd\n",
++                        bitmap_info->value->dirty);
++                bitmap_info = bitmap_info->next;
+             }
+ 
+-            int per = (info->transferred * 100)/total_or_dirty;
+-
+-            monitor_printf(mon, "Backup mode: %s\n", incremental ? "incremental" : "full");
++            qapi_free_PBSBitmapInfoList(bitmap_info);
+ 
+             int zero_per = (info->has_zero_bytes && info->zero_bytes) ?
+                 (info->zero_bytes * 100)/info->total : 0;
+             monitor_printf(mon, "Total size: %zd\n", info->total);
++            int trans_per = (info->transferred * 100)/total_or_dirty;
+             monitor_printf(mon, "Transferred bytes: %zd (%d%%)\n",
+-                           info->transferred, per);
++                           info->transferred, trans_per);
+             monitor_printf(mon, "Zero bytes: %zd (%d%%)\n",
+                            info->zero_bytes, zero_per);
+ 
+diff --git a/pve-backup.c b/pve-backup.c
+index 7c99554514..c6d8a51406 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -46,6 +46,7 @@ static struct PVEBackupState {
+         size_t transferred;
+         size_t reused;
+         size_t zero_bytes;
++        GList *bitmap_list;
+     } stat;
+     int64_t speed;
+     VmaWriter *vmaw;
+@@ -674,7 +675,6 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+     }
+ 
+     size_t total = 0;
+-    size_t dirty = 0;
+ 
+     l = di_list;
+     while (l) {
+@@ -695,18 +695,33 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+ 
+     uuid_generate(uuid);
+ 
++    qemu_mutex_lock(&backup_state.stat.lock);
++    backup_state.stat.reused = 0;
++
++    /* clear previous backup's bitmap_list */
++    if (backup_state.stat.bitmap_list) {
++        GList *bl = backup_state.stat.bitmap_list;
++        while (bl) {
++            g_free(((PBSBitmapInfo *)bl->data)->drive);
++            g_free(bl->data);
++            bl = g_list_next(bl);
++        }
++        g_list_free(backup_state.stat.bitmap_list);
++        backup_state.stat.bitmap_list = NULL;
++    }
++
+     if (format == BACKUP_FORMAT_PBS) {
+         if (!task->has_password) {
+             error_set(task->errp, ERROR_CLASS_GENERIC_ERROR, "missing parameter 'password'");
+-            goto err;
++            goto err_mutex;
+         }
+         if (!task->has_backup_id) {
+             error_set(task->errp, ERROR_CLASS_GENERIC_ERROR, "missing parameter 'backup-id'");
+-            goto err;
++            goto err_mutex;
+         }
+         if (!task->has_backup_time) {
+             error_set(task->errp, ERROR_CLASS_GENERIC_ERROR, "missing parameter 'backup-time'");
+-            goto err;
++            goto err_mutex;
+         }
+ 
+         int dump_cb_block_size = PROXMOX_BACKUP_DEFAULT_CHUNK_SIZE; // Hardcoded (4M)
+@@ -733,12 +748,12 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+             error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
+                       "proxmox_backup_new failed: %s", pbs_err);
+             proxmox_backup_free_error(pbs_err);
+-            goto err;
++            goto err_mutex;
+         }
+ 
+         int connect_result = proxmox_backup_co_connect(pbs, task->errp);
+         if (connect_result < 0)
+-            goto err;
++            goto err_mutex;
+ 
+         /* register all devices */
+         l = di_list;
+@@ -749,6 +764,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+             di->block_size = dump_cb_block_size;
+ 
+             const char *devname = bdrv_get_device_name(di->bs);
++            PBSBitmapAction action = PBS_BITMAP_ACTION_NOT_USED;
++            size_t dirty = di->size;
+ 
+             BdrvDirtyBitmap *bitmap = bdrv_find_dirty_bitmap(di->bs, PBS_BITMAP_NAME);
+             bool expect_only_dirty = false;
+@@ -757,49 +774,59 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+                 if (bitmap == NULL) {
+                     bitmap = bdrv_create_dirty_bitmap(di->bs, dump_cb_block_size, PBS_BITMAP_NAME, task->errp);
+                     if (!bitmap) {
+-                        goto err;
++                        goto err_mutex;
+                     }
++                    action = PBS_BITMAP_ACTION_NEW;
+                 } else {
+                     expect_only_dirty = proxmox_backup_check_incremental(pbs, devname, di->size) != 0;
+                 }
+ 
+                 if (expect_only_dirty) {
+-                    dirty += bdrv_get_dirty_count(bitmap);
++                    /* track clean chunks as reused */
++                    dirty = MIN(bdrv_get_dirty_count(bitmap), di->size);
++                    backup_state.stat.reused += di->size - dirty;
++                    action = PBS_BITMAP_ACTION_USED;
+                 } else {
+                     /* mark entire bitmap as dirty to make full backup */
+                     bdrv_set_dirty_bitmap(bitmap, 0, di->size);
+-                    dirty += di->size;
++                    if (action != PBS_BITMAP_ACTION_NEW) {
++                        action = PBS_BITMAP_ACTION_INVALID;
++                    }
+                 }
+                 di->bitmap = bitmap;
+             } else {
+-                dirty += di->size;
+-
+                 /* after a full backup the old dirty bitmap is invalid anyway */
+                 if (bitmap != NULL) {
+                     bdrv_release_dirty_bitmap(bitmap);
++                    action = PBS_BITMAP_ACTION_NOT_USED_REMOVED;
+                 }
+             }
+ 
+             int dev_id = proxmox_backup_co_register_image(pbs, devname, di->size, expect_only_dirty, task->errp);
+             if (dev_id < 0) {
+-                goto err;
++                goto err_mutex;
+             }
+ 
+             if (!(di->target = bdrv_backup_dump_create(dump_cb_block_size, di->size, pvebackup_co_dump_pbs_cb, di, task->errp))) {
+-                goto err;
++                goto err_mutex;
+             }
+ 
+             di->dev_id = dev_id;
++
++            PBSBitmapInfo *info = g_malloc(sizeof(*info));
++            info->drive = g_strdup(devname);
++            info->action = action;
++            info->size = di->size;
++            info->dirty = dirty;
++            backup_state.stat.bitmap_list = g_list_append(backup_state.stat.bitmap_list, info);
+         }
+     } else if (format == BACKUP_FORMAT_VMA) {
+-        dirty = total;
+-
+         vmaw = vma_writer_create(task->backup_file, uuid, &local_err);
+         if (!vmaw) {
+             if (local_err) {
+                 error_propagate(task->errp, local_err);
+             }
+-            goto err;
++            goto err_mutex;
+         }
+ 
+         /* register all devices for vma writer */
+@@ -809,7 +836,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+             l = g_list_next(l);
+ 
+             if (!(di->target = bdrv_backup_dump_create(VMA_CLUSTER_SIZE, di->size, pvebackup_co_dump_vma_cb, di, task->errp))) {
+-                goto err;
++                goto err_mutex;
+             }
+ 
+             const char *devname = bdrv_get_device_name(di->bs);
+@@ -817,16 +844,14 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+             if (di->dev_id <= 0) {
+                 error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
+                           "register_stream failed");
+-                goto err;
++                goto err_mutex;
+             }
+         }
+     } else if (format == BACKUP_FORMAT_DIR) {
+-        dirty = total;
+-
+         if (mkdir(task->backup_file, 0640) != 0) {
+             error_setg_errno(task->errp, errno, "can't create directory '%s'\n",
+                              task->backup_file);
+-            goto err;
++            goto err_mutex;
+         }
+         backup_dir = task->backup_file;
+ 
+@@ -843,18 +868,18 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+                             di->size, flags, false, &local_err);
+             if (local_err) {
+                 error_propagate(task->errp, local_err);
+-                goto err;
++                goto err_mutex;
+             }
+ 
+             di->target = bdrv_open(di->targetfile, NULL, NULL, flags, &local_err);
+             if (!di->target) {
+                 error_propagate(task->errp, local_err);
+-                goto err;
++                goto err_mutex;
+             }
+         }
+     } else {
+         error_set(task->errp, ERROR_CLASS_GENERIC_ERROR, "unknown backup format");
+-        goto err;
++        goto err_mutex;
+     }
+ 
+ 
+@@ -862,7 +887,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+     if (task->has_config_file) {
+         if (pvebackup_co_add_config(task->config_file, config_name, format, backup_dir,
+                                     vmaw, pbs, task->errp) != 0) {
+-            goto err;
++            goto err_mutex;
+         }
+     }
+ 
+@@ -870,12 +895,11 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+     if (task->has_firewall_file) {
+         if (pvebackup_co_add_config(task->firewall_file, firewall_name, format, backup_dir,
+                                     vmaw, pbs, task->errp) != 0) {
+-            goto err;
++            goto err_mutex;
+         }
+     }
+     /* initialize global backup_state now */
+-
+-    qemu_mutex_lock(&backup_state.stat.lock);
++    /* note: 'reused' and 'bitmap_list' are initialized earlier */
+ 
+     if (backup_state.stat.error) {
+         error_free(backup_state.stat.error);
+@@ -895,10 +919,9 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+     char *uuid_str = g_strdup(backup_state.stat.uuid_str);
+ 
+     backup_state.stat.total = total;
+-    backup_state.stat.dirty = dirty;
++    backup_state.stat.dirty = total - backup_state.stat.reused;
+     backup_state.stat.transferred = 0;
+     backup_state.stat.zero_bytes = 0;
+-    backup_state.stat.reused = format == BACKUP_FORMAT_PBS && dirty >= total ? 0 : total - dirty;
+ 
+     qemu_mutex_unlock(&backup_state.stat.lock);
+ 
+@@ -915,6 +938,9 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+     task->result = uuid_info;
+     return;
+ 
++err_mutex:
++    qemu_mutex_unlock(&backup_state.stat.lock);
++
+ err:
+ 
+     l = di_list;
+@@ -1078,9 +1104,40 @@ BackupStatus *qmp_query_backup(Error **errp)
+     return info;
+ }
+ 
++PBSBitmapInfoList *qmp_query_pbs_bitmap_info(Error **errp)
++{
++    PBSBitmapInfoList *head = NULL, **p_next = &head;
++
++    qemu_mutex_lock(&backup_state.stat.lock);
++
++    GList *l = backup_state.stat.bitmap_list;
++    while (l) {
++        PBSBitmapInfo *info = (PBSBitmapInfo *)l->data;
++        l = g_list_next(l);
++
++        /* clone bitmap info to avoid auto free after QMP marshalling */
++        PBSBitmapInfo *info_ret = g_malloc0(sizeof(*info_ret));
++        info_ret->drive = g_strdup(info->drive);
++        info_ret->action = info->action;
++        info_ret->size = info->size;
++        info_ret->dirty = info->dirty;
++
++        PBSBitmapInfoList *info_list = g_malloc0(sizeof(*info_list));
++        info_list->value = info_ret;
++
++        *p_next = info_list;
++        p_next = &info_list->next;
++    }
++
++    qemu_mutex_unlock(&backup_state.stat.lock);
++
++    return head;
++}
++
+ ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
+ {
+     ProxmoxSupportStatus *ret = g_malloc0(sizeof(*ret));
+     ret->pbs_dirty_bitmap = true;
++    ret->query_bitmap_info = true;
+     return ret;
+ }
+diff --git a/qapi/block-core.json b/qapi/block-core.json
+index 355a184ea8..a3d54b85e2 100644
+--- a/qapi/block-core.json
++++ b/qapi/block-core.json
+@@ -875,9 +875,11 @@
+ # @pbs-dirty-bitmap: True if dirty-bitmap-incremental backups to PBS are
+ #                    supported.
+ #
++# @query-bitmap-info: True if the 'query-pbs-bitmap-info' QMP call is supported.
++#
+ ##
+ { 'struct': 'ProxmoxSupportStatus',
+-  'data': { 'pbs-dirty-bitmap': 'bool' } }
++  'data': { 'pbs-dirty-bitmap': 'bool', 'query-bitmap-info': 'bool' } }
+ 
+ ##
+ # @query-proxmox-support:
+@@ -889,6 +891,59 @@
+ ##
+ { 'command': 'query-proxmox-support', 'returns': 'ProxmoxSupportStatus' }
+ 
++##
++# @PBSBitmapAction:
++#
++# An action taken on a dirty-bitmap when a backup job was started.
++#
++# @not-used: Bitmap mode was not enabled.
++#
++# @not-used-removed: Bitmap mode was not enabled, but a bitmap from a
++#                    previous backup still existed and was removed.
++#
++# @new: A new bitmap was attached to the drive for this backup.
++#
++# @used: An existing bitmap will be used to only backup changed data.
++#
++# @invalid: A bitmap existed, but had to be cleared since it's associated
++#           base snapshot did not match the base given for the current job or
++#           the crypt mode has changed.
++#
++##
++{ 'enum': 'PBSBitmapAction',
++  'data': ['not-used', 'not-used-removed', 'new', 'used', 'invalid'] }
++
++##
++# @PBSBitmapInfo:
++#
++# Contains information about dirty bitmaps used for each drive in a PBS backup.
++#
++# @drive: The underlying drive.
++#
++# @action: The action that was taken when the backup started.
++#
++# @size: The total size of the drive.
++#
++# @dirty: How much of the drive is considered dirty and will be backed up,
++#         or 'size' if everything will be.
++#
++##
++{ 'struct': 'PBSBitmapInfo',
++  'data': { 'drive': 'str', 'action': 'PBSBitmapAction', 'size': 'int',
++            'dirty': 'int' } }
++
++##
++# @query-pbs-bitmap-info:
++#
++# Returns information about dirty bitmaps used on the most recently started
++# backup. Returns nothing when the last backup was not using PBS or if no
++# backup occured in this session.
++#
++# Returns: @PBSBitmapInfo
++#
++##
++{ 'command': 'query-pbs-bitmap-info', 'returns': ['PBSBitmapInfo'] }
++
+ ##
+ # @BlockDeviceTimedStats:
+ #

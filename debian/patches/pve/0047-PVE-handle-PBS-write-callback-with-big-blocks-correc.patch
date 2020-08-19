@@ -1,5 +1,7 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Stefan Reiter <s.reiter@proxmox.com>
-Subject: PVE: handle PBS write callback with big blocks correctly
+Date: Wed, 19 Aug 2020 12:33:17 +0200
+Subject: [PATCH] PVE: handle PBS write callback with big blocks correctly
 
 Under certain conditions QEMU will push more than the given blocksize
 into the callback at once. Handle it like VMA does, by iterating the
@@ -11,7 +13,6 @@ made configurable in the future.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
-
  pve-backup.c | 30 ++++++++++++++++++++++--------
  1 file changed, 22 insertions(+), 8 deletions(-)
 
@@ -73,14 +74,3 @@ index 77eb475563..40d8136f1a 100644
              const char *devname = bdrv_get_device_name(di->bs);
  
              BdrvDirtyBitmap *bitmap = bdrv_find_dirty_bitmap(di->bs, PBS_BITMAP_NAME);
--- 
-2.20.1
-
-
-
-_______________________________________________
-pbs-devel mailing list
-pbs-devel@lists.proxmox.com
-https://lists.proxmox.com/cgi-bin/mailman/listinfo/pbs-devel
-
-
