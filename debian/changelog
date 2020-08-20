@@ -1,3 +1,9 @@
+pve-qemu-kvm (5.1.0-1) pve; urgency=medium
+
+  * update to QEMU 5.1.0
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 20 Aug 2020 13:42:10 +0200
+
 pve-qemu-kvm (5.0.0-13) pve; urgency=medium
 
   * improve zero block handling for PBS backups
