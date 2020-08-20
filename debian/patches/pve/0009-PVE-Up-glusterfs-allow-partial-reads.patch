@@ -16,7 +16,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 9 insertions(+), 1 deletion(-)
 
 diff --git a/block/gluster.c b/block/gluster.c
-index dcd1ef7ebc..ac79b4bdb4 100644
+index 715f06394c..6d02170d9b 100644
 --- a/block/gluster.c
 +++ b/block/gluster.c
 @@ -57,6 +57,7 @@ typedef struct GlusterAIOCB {
@@ -27,7 +27,7 @@ index dcd1ef7ebc..ac79b4bdb4 100644
  } GlusterAIOCB;
  
  typedef struct BDRVGlusterState {
-@@ -763,8 +764,10 @@ static void gluster_finish_aiocb(struct glfs_fd *fd, ssize_t ret,
+@@ -759,8 +760,10 @@ static void gluster_finish_aiocb(struct glfs_fd *fd, ssize_t ret,
          acb->ret = 0; /* Success */
      } else if (ret < 0) {
          acb->ret = -errno; /* Read/Write failed */
@@ -39,7 +39,7 @@ index dcd1ef7ebc..ac79b4bdb4 100644
      }
  
      aio_co_schedule(acb->aio_context, acb->coroutine);
-@@ -1035,6 +1038,7 @@ static coroutine_fn int qemu_gluster_co_pwrite_zeroes(BlockDriverState *bs,
+@@ -1028,6 +1031,7 @@ static coroutine_fn int qemu_gluster_co_pwrite_zeroes(BlockDriverState *bs,
      acb.ret = 0;
      acb.coroutine = qemu_coroutine_self();
      acb.aio_context = bdrv_get_aio_context(bs);
@@ -47,7 +47,7 @@ index dcd1ef7ebc..ac79b4bdb4 100644
  
      ret = glfs_zerofill_async(s->fd, offset, size, gluster_finish_aiocb, &acb);
      if (ret < 0) {
-@@ -1216,9 +1220,11 @@ static coroutine_fn int qemu_gluster_co_rw(BlockDriverState *bs,
+@@ -1209,9 +1213,11 @@ static coroutine_fn int qemu_gluster_co_rw(BlockDriverState *bs,
      acb.aio_context = bdrv_get_aio_context(bs);
  
      if (write) {
@@ -59,7 +59,7 @@ index dcd1ef7ebc..ac79b4bdb4 100644
          ret = glfs_preadv_async(s->fd, qiov->iov, qiov->niov, offset, 0,
                                  gluster_finish_aiocb, &acb);
      }
-@@ -1281,6 +1287,7 @@ static coroutine_fn int qemu_gluster_co_flush_to_disk(BlockDriverState *bs)
+@@ -1275,6 +1281,7 @@ static coroutine_fn int qemu_gluster_co_flush_to_disk(BlockDriverState *bs)
      acb.ret = 0;
      acb.coroutine = qemu_coroutine_self();
      acb.aio_context = bdrv_get_aio_context(bs);
@@ -67,7 +67,7 @@ index dcd1ef7ebc..ac79b4bdb4 100644
  
      ret = glfs_fsync_async(s->fd, gluster_finish_aiocb, &acb);
      if (ret < 0) {
-@@ -1327,6 +1334,7 @@ static coroutine_fn int qemu_gluster_co_pdiscard(BlockDriverState *bs,
+@@ -1321,6 +1328,7 @@ static coroutine_fn int qemu_gluster_co_pdiscard(BlockDriverState *bs,
      acb.ret = 0;
      acb.coroutine = qemu_coroutine_self();
      acb.aio_context = bdrv_get_aio_context(bs);

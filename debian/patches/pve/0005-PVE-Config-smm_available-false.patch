@@ -10,10 +10,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/hw/i386/x86.c b/hw/i386/x86.c
-index b82770024c..bd05b3c79a 100644
+index 67bee1bcb8..d954bf77b9 100644
 --- a/hw/i386/x86.c
 +++ b/hw/i386/x86.c
-@@ -896,7 +896,7 @@ bool x86_machine_is_smm_enabled(X86MachineState *x86ms)
+@@ -856,7 +856,7 @@ bool x86_machine_is_smm_enabled(X86MachineState *x86ms)
      if (tcg_enabled() || qtest_enabled()) {
          smm_available = true;
      } else if (kvm_enabled()) {

@@ -25,7 +25,7 @@ index fdc85a5c0e..43aa87487b 100644
          false, NULL, false, NULL, !!devlist,
          devlist, qdict_haskey(qdict, "speed"), speed, &error);
 diff --git a/pve-backup.c b/pve-backup.c
-index 46191bb328..3323b195a4 100644
+index aa62a1da16..343035b5c9 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -567,6 +567,10 @@ typedef struct QmpBackupTask {
@@ -78,10 +78,10 @@ index 46191bb328..3323b195a4 100644
          .speed = speed,
          .errp = errp,
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 4fe3d6f751..0bc15a5098 100644
+index e00e577c6c..a177fea6cd 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -822,6 +822,10 @@
+@@ -832,6 +832,10 @@
  #
  # @use-dirty-bitmap: use dirty bitmap to detect incremental changes since last job (optional for format 'pbs')
  #
@@ -92,7 +92,7 @@ index 4fe3d6f751..0bc15a5098 100644
  # Returns: the uuid of the backup job
  #
  ##
-@@ -833,6 +837,8 @@
+@@ -843,6 +847,8 @@
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',
                                      '*use-dirty-bitmap': 'bool',

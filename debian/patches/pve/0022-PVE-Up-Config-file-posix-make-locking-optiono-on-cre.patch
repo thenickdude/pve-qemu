@@ -13,10 +13,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 43 insertions(+), 21 deletions(-)
 
 diff --git a/block/file-posix.c b/block/file-posix.c
-index b527e82a82..36ebd0967e 100644
+index bb72e1e5ca..914bd1f367 100644
 --- a/block/file-posix.c
 +++ b/block/file-posix.c
-@@ -2309,6 +2309,7 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
+@@ -2390,6 +2390,7 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
      int fd;
      uint64_t perm, shared;
      int result = 0;
@@ -24,7 +24,7 @@ index b527e82a82..36ebd0967e 100644
  
      /* Validate options and set default values */
      assert(options->driver == BLOCKDEV_DRIVER_FILE);
-@@ -2342,19 +2343,22 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
+@@ -2431,19 +2432,22 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
      perm = BLK_PERM_WRITE | BLK_PERM_RESIZE;
      shared = BLK_PERM_ALL & ~BLK_PERM_RESIZE;
  
@@ -59,7 +59,7 @@ index b527e82a82..36ebd0967e 100644
      }
  
      /* Clear the file by truncating it to 0 */
-@@ -2387,13 +2391,15 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
+@@ -2497,13 +2501,15 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)
      }
  
  out_unlock:
@@ -82,7 +82,7 @@ index b527e82a82..36ebd0967e 100644
      }
  
  out_close:
-@@ -2416,6 +2422,7 @@ static int coroutine_fn raw_co_create_opts(BlockDriver *drv,
+@@ -2528,6 +2534,7 @@ static int coroutine_fn raw_co_create_opts(BlockDriver *drv,
      PreallocMode prealloc;
      char *buf = NULL;
      Error *local_err = NULL;
@@ -90,7 +90,7 @@ index b527e82a82..36ebd0967e 100644
  
      /* Skip file: protocol prefix */
      strstart(filename, "file:", &filename);
-@@ -2433,6 +2440,18 @@ static int coroutine_fn raw_co_create_opts(BlockDriver *drv,
+@@ -2550,6 +2557,18 @@ static int coroutine_fn raw_co_create_opts(BlockDriver *drv,
          return -EINVAL;
      }
  
@@ -109,16 +109,16 @@ index b527e82a82..36ebd0967e 100644
      options = (BlockdevCreateOptions) {
          .driver     = BLOCKDEV_DRIVER_FILE,
          .u.file     = {
-@@ -2442,6 +2461,8 @@ static int coroutine_fn raw_co_create_opts(BlockDriver *drv,
-             .preallocation      = prealloc,
-             .has_nocow          = true,
+@@ -2561,6 +2580,8 @@ static int coroutine_fn raw_co_create_opts(BlockDriver *drv,
              .nocow              = nocow,
+             .has_extent_size_hint = has_extent_size_hint,
+             .extent_size_hint   = extent_size_hint,
 +            .has_locking        = true,
 +            .locking            = locking,
          },
      };
      return raw_co_create(&options, errp);
-@@ -2983,7 +3004,7 @@ static int raw_check_perm(BlockDriverState *bs, uint64_t perm, uint64_t shared,
+@@ -3107,7 +3128,7 @@ static int raw_check_perm(BlockDriverState *bs, uint64_t perm, uint64_t shared,
      }
  
      /* Copy locks to the new fd */
@@ -128,15 +128,15 @@ index b527e82a82..36ebd0967e 100644
                                     false, errp);
          if (ret < 0) {
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 943df1926a..4c55464f86 100644
+index 197bdc1c36..ea5fae22ae 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -4183,7 +4183,8 @@
-   'data': { 'filename':         'str',
-             'size':             'size',
-             '*preallocation':   'PreallocMode',
--            '*nocow':           'bool' } }
-+            '*nocow':           'bool',
+@@ -4178,7 +4178,8 @@
+             'size':                 'size',
+             '*preallocation':       'PreallocMode',
+             '*nocow':               'bool',
+-            '*extent-size-hint':    'size'} }
++            '*extent-size-hint':    'size',
 +            '*locking':         'OnOffAuto' } }
  
  ##

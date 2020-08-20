@@ -9,10 +9,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/include/net/net.h b/include/net/net.h
-index 39085d9444..487e3ea1b4 100644
+index e7ef42d62b..4fd1144e58 100644
 --- a/include/net/net.h
 +++ b/include/net/net.h
-@@ -208,8 +208,9 @@ void netdev_add(QemuOpts *opts, Error **errp);
+@@ -209,8 +209,9 @@ void netdev_add(QemuOpts *opts, Error **errp);
  int net_hub_id_for_client(NetClientState *nc, int *id);
  NetClientState *net_hub_port_find(int hub_id);
  

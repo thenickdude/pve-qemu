@@ -17,7 +17,7 @@ Subject: [PATCH] PVE-Backup: add vma backup format code
  create mode 100644 vma.h
 
 diff --git a/Makefile b/Makefile
-index 8a9113e666..74c2039005 100644
+index 13dd708c4a..7b8c17ce2d 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -479,7 +479,7 @@ dummy := $(call unnest-vars,, \
@@ -29,7 +29,7 @@ index 8a9113e666..74c2039005 100644
  
  qemu-version.h: FORCE
  	$(call quiet-command, \
-@@ -608,6 +608,7 @@ qemu-img$(EXESUF): qemu-img.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io
+@@ -602,6 +602,7 @@ qemu-img$(EXESUF): qemu-img.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io
  qemu-nbd$(EXESUF): qemu-nbd.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
  qemu-io$(EXESUF): qemu-io.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
  qemu-storage-daemon$(EXESUF): qemu-storage-daemon.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(chardev-obj-y) $(io-obj-y) $(qom-obj-y) $(storage-daemon-obj-y) $(COMMON_LDADDS)
@@ -38,11 +38,11 @@ index 8a9113e666..74c2039005 100644
  qemu-bridge-helper$(EXESUF): qemu-bridge-helper.o $(COMMON_LDADDS)
  
 diff --git a/Makefile.objs b/Makefile.objs
-index d0b4dde836..05031a3da7 100644
+index a1307c12a8..ade7b17a69 100644
 --- a/Makefile.objs
 +++ b/Makefile.objs
-@@ -18,6 +18,7 @@ block-obj-y += block.o blockjob.o job.o
- block-obj-y += block/ scsi/
+@@ -17,6 +17,7 @@ block-obj-y = block/ nbd/ scsi/
+ block-obj-y += block.o blockjob.o job.o
  block-obj-y += qemu-io-cmds.o
  block-obj-$(CONFIG_REPLICATION) += replication.o
 +block-obj-y += vma-writer.o

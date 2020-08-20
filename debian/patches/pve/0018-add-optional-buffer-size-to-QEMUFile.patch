@@ -14,7 +14,7 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  3 files changed, 27 insertions(+), 14 deletions(-)
 
 diff --git a/migration/qemu-file.c b/migration/qemu-file.c
-index 1c3a358a14..7362e51c71 100644
+index be21518c57..a4d2e2c8ff 100644
 --- a/migration/qemu-file.c
 +++ b/migration/qemu-file.c
 @@ -30,7 +30,7 @@
@@ -23,7 +23,7 @@ index 1c3a358a14..7362e51c71 100644
  
 -#define IO_BUF_SIZE 32768
 +#define DEFAULT_IO_BUF_SIZE 32768
- #define MAX_IOV_SIZE MIN(IOV_MAX, 64)
+ #define MAX_IOV_SIZE MIN_CONST(IOV_MAX, 64)
  
  struct QEMUFile {
 @@ -45,7 +45,8 @@ struct QEMUFile {
@@ -160,7 +160,7 @@ index a9b6d6ccb7..8752d27c74 100644
  int qemu_get_fd(QEMUFile *f);
  int qemu_fclose(QEMUFile *f);
 diff --git a/savevm-async.c b/savevm-async.c
-index 7fd8a69374..0388cebbe9 100644
+index f918e18dce..156b7a030e 100644
 --- a/savevm-async.c
 +++ b/savevm-async.c
 @@ -392,7 +392,7 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)

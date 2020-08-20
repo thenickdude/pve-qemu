@@ -32,10 +32,10 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  create mode 100644 savevm-async.c
 
 diff --git a/Makefile.objs b/Makefile.objs
-index a7c967633a..d0b4dde836 100644
+index d22b3b45d7..a1307c12a8 100644
 --- a/Makefile.objs
 +++ b/Makefile.objs
-@@ -47,6 +47,7 @@ common-obj-y += bootdevice.o iothread.o
+@@ -46,6 +46,7 @@ common-obj-y += bootdevice.o iothread.o
  common-obj-y += dump/
  common-obj-y += job-qmp.o
  common-obj-y += monitor/
@@ -44,10 +44,10 @@ index a7c967633a..d0b4dde836 100644
  common-obj-y += qdev-monitor.o
  common-obj-$(CONFIG_WIN32) += os-win32.o
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index ca5198438d..89fea71972 100644
+index 30209e3903..ae8ff21789 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
-@@ -579,6 +579,19 @@ SRST
+@@ -580,6 +580,19 @@ SRST
      Show current migration xbzrle cache size.
  ERST
  
@@ -68,10 +68,10 @@ index ca5198438d..89fea71972 100644
          .name       = "balloon",
          .args_type  = "",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 7f0f3974ad..81fe305d07 100644
+index 60f395c276..2b58ac4a1c 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
-@@ -1814,3 +1814,35 @@ ERST
+@@ -1829,3 +1829,35 @@ ERST
          .flags      = "p",
      },
  
@@ -108,7 +108,7 @@ index 7f0f3974ad..81fe305d07 100644
 +        .cmd = hmp_savevm_end,
 +    },
 diff --git a/include/block/aio.h b/include/block/aio.h
-index 62ed954344..d5399c67d6 100644
+index b2f703fa3f..c37617b404 100644
 --- a/include/block/aio.h
 +++ b/include/block/aio.h
 @@ -17,6 +17,7 @@
@@ -147,7 +147,7 @@ index c85b6ec75b..4411b7121d 100644
  
  #endif
 diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
-index e33ca5a911..601827d43f 100644
+index c986cfd28b..243952d32f 100644
 --- a/include/monitor/hmp.h
 +++ b/include/monitor/hmp.h
 @@ -25,6 +25,7 @@ void hmp_info_status(Monitor *mon, const QDict *qdict);
@@ -170,10 +170,10 @@ index e33ca5a911..601827d43f 100644
  void hmp_screendump(Monitor *mon, const QDict *qdict);
  void hmp_chardev_add(Monitor *mon, const QDict *qdict);
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 0c6f6ff331..39c7474cea 100644
+index 6e26ea2cd0..280bb447a6 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
-@@ -1876,6 +1876,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
+@@ -1904,6 +1904,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
      hmp_handle_error(mon, err);
  }
  
@@ -238,10 +238,10 @@ index 0c6f6ff331..39c7474cea 100644
  {
      IOThreadInfoList *info_list = qmp_query_iothreads(NULL);
 diff --git a/qapi/migration.json b/qapi/migration.json
-index eca2981d0a..081663d67a 100644
+index ea53b23dca..c556257544 100644
 --- a/qapi/migration.json
 +++ b/qapi/migration.json
-@@ -222,6 +222,40 @@
+@@ -225,6 +225,40 @@
             '*compression': 'CompressionStats',
             '*socket-address': ['SocketAddress'] } }
  
@@ -283,10 +283,10 @@ index eca2981d0a..081663d67a 100644
  # @query-migrate:
  #
 diff --git a/qapi/misc.json b/qapi/misc.json
-index e2a6678eae..0868de22b7 100644
+index 44b1fb6fa7..9895899f8b 100644
 --- a/qapi/misc.json
 +++ b/qapi/misc.json
-@@ -1165,6 +1165,38 @@
+@@ -1168,6 +1168,38 @@
  ##
  { 'command': 'query-fdsets', 'returns': ['FdsetInfo'] }
  
@@ -326,10 +326,10 @@ index e2a6678eae..0868de22b7 100644
  # @AcpiTableOptions:
  #
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 292d4e7c0c..55eef64ddf 100644
+index 708583b4ce..d32995cc50 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -3832,6 +3832,18 @@ SRST
+@@ -3866,6 +3866,18 @@ SRST
      Start right away with a saved state (``loadvm`` in monitor)
  ERST
  
@@ -350,7 +350,7 @@ index 292d4e7c0c..55eef64ddf 100644
      "-daemonize      daemonize QEMU after initializing\n", QEMU_ARCH_ALL)
 diff --git a/savevm-async.c b/savevm-async.c
 new file mode 100644
-index 0000000000..7fd8a69374
+index 0000000000..f918e18dce
 --- /dev/null
 +++ b/savevm-async.c
 @@ -0,0 +1,542 @@
@@ -467,7 +467,7 @@ index 0000000000..7fd8a69374
 +         * note2: PVE requires 1024 (BDRV_SECTOR_SIZE*2) alignment
 +         */
 +        size_t size = QEMU_ALIGN_UP(snap_state.bs_pos, BDRV_SECTOR_SIZE*2);
-+        blk_truncate(snap_state.target, size, false, PREALLOC_MODE_OFF, NULL);
++        blk_truncate(snap_state.target, size, false, PREALLOC_MODE_OFF, 0, NULL);
 +        blk_op_unblock_all(snap_state.target, snap_state.blocker);
 +        error_free(snap_state.blocker);
 +        snap_state.blocker = NULL;
@@ -897,10 +897,10 @@ index 0000000000..7fd8a69374
 +    return ret;
 +}
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 32c0047889..4b45eb0c37 100644
+index 4eb9d1f7fd..670b7e427c 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -2827,6 +2827,7 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -2844,6 +2844,7 @@ void qemu_init(int argc, char **argv, char **envp)
      int optind;
      const char *optarg;
      const char *loadvm = NULL;
@@ -908,7 +908,7 @@ index 32c0047889..4b45eb0c37 100644
      MachineClass *machine_class;
      const char *cpu_option;
      const char *vga_model = NULL;
-@@ -3391,6 +3392,9 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -3408,6 +3409,9 @@ void qemu_init(int argc, char **argv, char **envp)
              case QEMU_OPTION_loadvm:
                  loadvm = optarg;
                  break;
@@ -918,7 +918,7 @@ index 32c0047889..4b45eb0c37 100644
              case QEMU_OPTION_full_screen:
                  dpy.has_full_screen = true;
                  dpy.full_screen = true;
-@@ -4447,6 +4451,12 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -4464,6 +4468,12 @@ void qemu_init(int argc, char **argv, char **envp)
              autostart = 0;
              exit(1);
          }
@@ -932,10 +932,10 @@ index 32c0047889..4b45eb0c37 100644
      if (replay_mode != REPLAY_MODE_NONE) {
          replay_vmstate_init();
 diff --git a/util/async.c b/util/async.c
-index 3165a28f2f..4eba1e6f1b 100644
+index 1319eee3bc..b68e73f488 100644
 --- a/util/async.c
 +++ b/util/async.c
-@@ -558,6 +558,36 @@ void aio_co_schedule(AioContext *ctx, Coroutine *co)
+@@ -559,6 +559,36 @@ void aio_co_schedule(AioContext *ctx, Coroutine *co)
      aio_context_unref(ctx);
  }
  

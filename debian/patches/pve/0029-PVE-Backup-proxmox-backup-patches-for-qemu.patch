@@ -26,10 +26,10 @@ Subject: [PATCH] PVE-Backup: proxmox backup patches for qemu
  create mode 100644 pve-backup.c
 
 diff --git a/Makefile b/Makefile
-index 74c2039005..dbd9542ae4 100644
+index 7b8c17ce2d..aec216968d 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -608,6 +608,7 @@ qemu-img$(EXESUF): qemu-img.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io
+@@ -602,6 +602,7 @@ qemu-img$(EXESUF): qemu-img.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io
  qemu-nbd$(EXESUF): qemu-nbd.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
  qemu-io$(EXESUF): qemu-io.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
  qemu-storage-daemon$(EXESUF): qemu-storage-daemon.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(chardev-obj-y) $(io-obj-y) $(qom-obj-y) $(storage-daemon-obj-y) $(COMMON_LDADDS)
@@ -38,10 +38,10 @@ index 74c2039005..dbd9542ae4 100644
  
  qemu-bridge-helper$(EXESUF): qemu-bridge-helper.o $(COMMON_LDADDS)
 diff --git a/Makefile.objs b/Makefile.objs
-index 05031a3da7..b7d58e592e 100644
+index ade7b17a69..240eb503f2 100644
 --- a/Makefile.objs
 +++ b/Makefile.objs
-@@ -34,6 +34,7 @@ endif # CONFIG_SOFTMMU or CONFIG_TOOLS
+@@ -33,6 +33,7 @@ endif # CONFIG_SOFTMMU or CONFIG_TOOLS
  
  storage-daemon-obj-y = block/ monitor/ qapi/ qom/ storage-daemon/
  storage-daemon-obj-y += blockdev.o blockdev-nbd.o iothread.o job-qmp.o
@@ -49,7 +49,7 @@ index 05031a3da7..b7d58e592e 100644
  storage-daemon-obj-$(CONFIG_WIN32) += os-win32.o
  storage-daemon-obj-$(CONFIG_POSIX) += os-posix.o
  
-@@ -45,6 +46,7 @@ storage-daemon-obj-$(CONFIG_POSIX) += os-posix.o
+@@ -44,6 +45,7 @@ storage-daemon-obj-$(CONFIG_POSIX) += os-posix.o
  ifeq ($(CONFIG_SOFTMMU),y)
  common-obj-y = blockdev.o blockdev-nbd.o block/
  common-obj-y += bootdevice.o iothread.o
@@ -58,13 +58,13 @@ index 05031a3da7..b7d58e592e 100644
  common-obj-y += job-qmp.o
  common-obj-y += monitor/
 diff --git a/Makefile.target b/Makefile.target
-index 8ed1eba95b..f453a95efc 100644
+index ffa2657269..fd3fd6d2a7 100644
 --- a/Makefile.target
 +++ b/Makefile.target
-@@ -162,7 +162,7 @@ obj-y += memory.o
- obj-y += memory_mapping.o
+@@ -159,7 +159,7 @@ obj-y += hw/
+ obj-y += monitor/
+ obj-y += qapi/
  obj-y += migration/ram.o
- obj-y += softmmu/
 -LIBS := $(libs_softmmu) $(LIBS)
 +LIBS := $(libs_softmmu) $(LIBS)  -lproxmox_backup_qemu
  
@@ -112,7 +112,7 @@ index 4c8c375172..d485c3ac79 100644
 +    hmp_handle_error(mon, error);
 +}
 diff --git a/blockdev.c b/blockdev.c
-index 65c358e4ef..f391c3b3c7 100644
+index 5107c5445e..3c427fc4be 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -36,6 +36,7 @@
@@ -124,10 +124,10 @@ index 65c358e4ef..f391c3b3c7 100644
  #include "monitor/monitor.h"
  #include "qemu/error-report.h"
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index 89fea71972..64995443d4 100644
+index ae8ff21789..da16499f8d 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
-@@ -512,6 +512,19 @@ SRST
+@@ -513,6 +513,19 @@ SRST
      Show CPU statistics.
  ERST
  
@@ -148,7 +148,7 @@ index 89fea71972..64995443d4 100644
      {
          .name       = "usernet",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 81fe305d07..8a03b45c44 100644
+index 2b58ac4a1c..9e58b6a5fc 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
 @@ -97,6 +97,35 @@ ERST
@@ -188,10 +188,10 @@ index 81fe305d07..8a03b45c44 100644
  
      {
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 62e5579723..6d234f1de9 100644
+index dc72197388..5ff3b1186f 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
-@@ -62,7 +62,7 @@
+@@ -64,7 +64,7 @@
  
  typedef int BackupDumpFunc(void *opaque, uint64_t offset, uint64_t bytes, const void *buf);
  
@@ -201,7 +201,7 @@ index 62e5579723..6d234f1de9 100644
      uint64_t byte_size,
      BackupDumpFunc *dump_cb,
 diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
-index 601827d43f..6653d04c3c 100644
+index 243952d32f..892a6064be 100644
 --- a/include/monitor/hmp.h
 +++ b/include/monitor/hmp.h
 @@ -30,6 +30,7 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict);
@@ -222,7 +222,7 @@ index 601827d43f..6653d04c3c 100644
  void hmp_device_add(Monitor *mon, const QDict *qdict);
  void hmp_device_del(Monitor *mon, const QDict *qdict);
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 39c7474cea..7fd59b1c22 100644
+index 280bb447a6..0e2d166552 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -192,6 +192,50 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
@@ -1488,10 +1488,10 @@ index 0000000000..9ae89fb679
 +    return task.result;
 +}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 4c55464f86..97d1f64636 100644
+index ea5fae22ae..69db270b1a 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -744,6 +744,115 @@
+@@ -754,6 +754,115 @@
  { 'command': 'query-block', 'returns': ['BlockInfo'] }
  
  
@@ -1608,10 +1608,10 @@ index 4c55464f86..97d1f64636 100644
  # @BlockDeviceTimedStats:
  #
 diff --git a/qapi/common.json b/qapi/common.json
-index 7b9cbcd97b..c3b8bb7b48 100644
+index 716712d4b3..556dab79e1 100644
 --- a/qapi/common.json
 +++ b/qapi/common.json
-@@ -144,3 +144,16 @@
+@@ -145,3 +145,16 @@
  ##
  { 'enum': 'PCIELinkWidth',
    'data': [ '1', '2', '4', '8', '12', '16', '32' ] }
@@ -1629,10 +1629,10 @@ index 7b9cbcd97b..c3b8bb7b48 100644
 +##
 +{ 'struct': 'UuidInfo', 'data': {'UUID': 'str'} }
 diff --git a/qapi/misc.json b/qapi/misc.json
-index 0868de22b7..c690a3707d 100644
+index 9895899f8b..75dff1b306 100644
 --- a/qapi/misc.json
 +++ b/qapi/misc.json
-@@ -129,19 +129,6 @@
+@@ -130,19 +130,6 @@
  ##
  { 'command': 'query-kvm', 'returns': 'KvmInfo' }
  

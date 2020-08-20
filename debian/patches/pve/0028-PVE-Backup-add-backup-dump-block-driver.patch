@@ -9,20 +9,20 @@ Subject: [PATCH] PVE-Backup: add backup-dump block driver
 - job.c: make job_should_pause non-static
 ---
  block/Makefile.objs       |   1 +
- block/backup-dump.c       | 169 ++++++++++++++++++++++++++++++++++++++
+ block/backup-dump.c       | 168 ++++++++++++++++++++++++++++++++++++++
  block/backup.c            |  23 ++----
  include/block/block_int.h |  30 +++++++
  job.c                     |   3 +-
- 5 files changed, 207 insertions(+), 19 deletions(-)
+ 5 files changed, 206 insertions(+), 19 deletions(-)
  create mode 100644 block/backup-dump.c
 
 diff --git a/block/Makefile.objs b/block/Makefile.objs
-index 1282445672..8af7073c83 100644
+index d1a9227b8f..9ea0477d0b 100644
 --- a/block/Makefile.objs
 +++ b/block/Makefile.objs
-@@ -34,6 +34,7 @@ block-obj-$(CONFIG_RBD) += rbd.o
+@@ -33,6 +33,7 @@ block-obj-$(CONFIG_CURL) += curl.o
+ block-obj-$(CONFIG_RBD) += rbd.o
  block-obj-$(CONFIG_GLUSTERFS) += gluster.o
- block-obj-$(CONFIG_VXHS) += vxhs.o
  block-obj-$(CONFIG_LIBSSH) += ssh.o
 +block-obj-y += backup-dump.o
  block-obj-y += accounting.o dirty-bitmap.o
@@ -30,10 +30,10 @@ index 1282445672..8af7073c83 100644
  block-obj-y += backup.o
 diff --git a/block/backup-dump.c b/block/backup-dump.c
 new file mode 100644
-index 0000000000..3066ab0698
+index 0000000000..93d7f46950
 --- /dev/null
 +++ b/block/backup-dump.c
-@@ -0,0 +1,169 @@
+@@ -0,0 +1,168 @@
 +/*
 + * BlockDriver to send backup data stream to a callback function
 + *
@@ -61,7 +61,6 @@ index 0000000000..3066ab0698
 +    BDRVBackupDumpState *s = bs->opaque;
 +
 +    bdi->cluster_size = s->dump_cb_block_size;
-+    bdi->unallocated_blocks_are_zero = true;
 +    return 0;
 +}
 +
@@ -142,7 +141,7 @@ index 0000000000..3066ab0698
 +static void qemu_backup_dump_child_perm(
 +    BlockDriverState *bs,
 +    BdrvChild *c,
-+    const BdrvChildRole *role,
++    BdrvChildRole role,
 +    BlockReopenQueue *reopen_queue,
 +    uint64_t perm, uint64_t shared,
 +    uint64_t *nperm, uint64_t *nshared)
@@ -204,7 +203,7 @@ index 0000000000..3066ab0698
 +    return bs;
 +}
 diff --git a/block/backup.c b/block/backup.c
-index ecd93e91e0..cf8f5ad25d 100644
+index 5f373a4f9b..1bcc7faa32 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -32,24 +32,6 @@
@@ -232,7 +231,7 @@ index ecd93e91e0..cf8f5ad25d 100644
  static const BlockJobDriver backup_job_driver;
  
  static void backup_progress_bytes_callback(int64_t bytes, void *opaque)
-@@ -411,6 +393,11 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -423,6 +405,11 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
          goto error;
      }
  
@@ -245,10 +244,10 @@ index ecd93e91e0..cf8f5ad25d 100644
       * If source is in backing chain of target assume that target is going to be
       * used for "image fleecing", i.e. it should represent a kind of snapshot of
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 336f71e69d..62e5579723 100644
+index 5094ae1e95..dc72197388 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
-@@ -60,6 +60,36 @@
+@@ -62,6 +62,36 @@
  
  #define BLOCK_PROBE_BUF_SIZE        512
  

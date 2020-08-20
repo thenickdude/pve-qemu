@@ -12,7 +12,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  create mode 100644 pbs-restore.c
 
 diff --git a/Makefile b/Makefile
-index dbd9542ae4..7c1fb58e18 100644
+index aec216968d..b73da29f24 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -479,7 +479,7 @@ dummy := $(call unnest-vars,, \
@@ -24,7 +24,7 @@ index dbd9542ae4..7c1fb58e18 100644
  
  qemu-version.h: FORCE
  	$(call quiet-command, \
-@@ -610,6 +610,8 @@ qemu-io$(EXESUF): qemu-io.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-o
+@@ -604,6 +604,8 @@ qemu-io$(EXESUF): qemu-io.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-o
  qemu-storage-daemon$(EXESUF): qemu-storage-daemon.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(chardev-obj-y) $(io-obj-y) $(qom-obj-y) $(storage-daemon-obj-y) $(COMMON_LDADDS)
  qemu-storage-daemon$(EXESUF): LIBS += -lproxmox_backup_qemu
  vma$(EXESUF): vma.o vma-reader.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)

@@ -6,12 +6,12 @@ Subject: [PATCH] PVE: block: add the zeroinit block driver filter
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/Makefile.objs |   1 +
- block/zeroinit.c    | 197 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 198 insertions(+)
+ block/zeroinit.c    | 198 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 199 insertions(+)
  create mode 100644 block/zeroinit.c
 
 diff --git a/block/Makefile.objs b/block/Makefile.objs
-index 3635b6b4c1..1282445672 100644
+index 19c6f371c9..d1a9227b8f 100644
 --- a/block/Makefile.objs
 +++ b/block/Makefile.objs
 @@ -11,6 +11,7 @@ block-obj-$(CONFIG_QED) += qed.o qed-l2-cache.o qed-table.o qed-cluster.o
@@ -24,10 +24,10 @@ index 3635b6b4c1..1282445672 100644
  block-obj-y += blklogwrites.o
 diff --git a/block/zeroinit.c b/block/zeroinit.c
 new file mode 100644
-index 0000000000..ff38388d94
+index 0000000000..4fbb80eab0
 --- /dev/null
 +++ b/block/zeroinit.c
-@@ -0,0 +1,197 @@
+@@ -0,0 +1,198 @@
 +/*
 + * Filter to fake a zero-initialized block device.
 + *
@@ -107,7 +107,7 @@ index 0000000000..ff38388d94
 +
 +    /* Open the raw file */
 +    bs->file = bdrv_open_child(qemu_opt_get(opts, "x-next"), options, "next",
-+                               bs, &child_file, false, &local_err);
++                               bs, &child_of_bds, BDRV_CHILD_FILTERED, false, &local_err);
 +    if (local_err) {
 +        ret = -EINVAL;
 +        error_propagate(errp, local_err);
@@ -180,9 +180,10 @@ index 0000000000..ff38388d94
 +}
 +
 +static int zeroinit_co_truncate(BlockDriverState *bs, int64_t offset,
-+                                _Bool exact, PreallocMode prealloc, Error **errp)
++                                _Bool exact, PreallocMode prealloc,
++                                BdrvRequestFlags req_flags, Error **errp)
 +{
-+    return bdrv_co_truncate(bs->file, offset, exact, prealloc, errp);
++    return bdrv_co_truncate(bs->file, offset, exact, prealloc, req_flags, errp);
 +}
 +
 +static int zeroinit_get_info(BlockDriverState *bs, BlockDriverInfo *bdi)
@@ -199,7 +200,7 @@ index 0000000000..ff38388d94
 +    .bdrv_file_open                   = zeroinit_open,
 +    .bdrv_close                       = zeroinit_close,
 +    .bdrv_getlength                   = zeroinit_getlength,
-+    .bdrv_child_perm                  = bdrv_filter_default_perms,
++    .bdrv_child_perm                  = bdrv_default_perms,
 +    .bdrv_co_flush_to_disk            = zeroinit_co_flush,
 +
 +    .bdrv_co_pwrite_zeroes            = zeroinit_co_pwrite_zeroes,

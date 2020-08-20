@@ -41,7 +41,7 @@ index d485c3ac79..fdc85a5c0e 100644
          false, NULL, false, NULL, !!devlist,
          devlist, qdict_haskey(qdict, "speed"), speed, &error);
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 7fd59b1c22..4f692c15a2 100644
+index 0e2d166552..3ff014d32a 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -218,19 +218,42 @@ void hmp_info_backup(Monitor *mon, const QDict *qdict)
@@ -397,10 +397,10 @@ index bb917ee972..7b5558e28e 100644
      qemu_mutex_unlock(&backup_state.stat.lock);
  
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 8bdbccb397..8ffff7aaab 100644
+index 9db8e26517..6cad1e0e38 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -757,8 +757,13 @@
+@@ -767,8 +767,13 @@
  #
  # @total: total amount of bytes involved in the backup process
  #
@@ -414,7 +414,7 @@ index 8bdbccb397..8ffff7aaab 100644
  # @zero-bytes: amount of 'zero' bytes detected.
  #
  # @start-time: time (epoch) when backup job started.
-@@ -771,8 +776,8 @@
+@@ -781,8 +786,8 @@
  #
  ##
  { 'struct': 'BackupStatus',
@@ -425,7 +425,7 @@ index 8bdbccb397..8ffff7aaab 100644
             '*start-time': 'int', '*end-time': 'int',
             '*backup-file': 'str', '*uuid': 'str' } }
  
-@@ -815,6 +820,8 @@
+@@ -825,6 +830,8 @@
  #
  # @backup-time: backup timestamp (Unix epoch, required for format 'pbs')
  #
@@ -434,7 +434,7 @@ index 8bdbccb397..8ffff7aaab 100644
  # Returns: the uuid of the backup job
  #
  ##
-@@ -825,6 +832,7 @@
+@@ -835,6 +842,7 @@
                                      '*fingerprint': 'str',
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',

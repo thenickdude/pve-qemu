@@ -14,7 +14,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  3 files changed, 159 insertions(+), 43 deletions(-)
 
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 4f692c15a2..4717fe7d2c 100644
+index 3ff014d32a..c3227a1498 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -195,6 +195,7 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
@@ -356,10 +356,10 @@ index 7c99554514..c6d8a51406 100644
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 355a184ea8..a3d54b85e2 100644
+index 6dd5e35473..5fc42e87f3 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -875,9 +875,11 @@
+@@ -885,9 +885,11 @@
  # @pbs-dirty-bitmap: True if dirty-bitmap-incremental backups to PBS are
  #                    supported.
  #
@@ -372,7 +372,7 @@ index 355a184ea8..a3d54b85e2 100644
  
  ##
  # @query-proxmox-support:
-@@ -889,6 +891,59 @@
+@@ -899,6 +901,59 @@
  ##
  { 'command': 'query-proxmox-support', 'returns': 'ProxmoxSupportStatus' }
  

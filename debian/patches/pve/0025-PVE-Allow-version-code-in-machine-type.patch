@@ -18,10 +18,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  4 files changed, 24 insertions(+), 2 deletions(-)
 
 diff --git a/hw/core/machine-qmp-cmds.c b/hw/core/machine-qmp-cmds.c
-index 1953633e82..ca8c0dc53d 100644
+index 32f630549e..71e19db4e1 100644
 --- a/hw/core/machine-qmp-cmds.c
 +++ b/hw/core/machine-qmp-cmds.c
-@@ -234,6 +234,12 @@ MachineInfoList *qmp_query_machines(Error **errp)
+@@ -238,6 +238,12 @@ MachineInfoList *qmp_query_machines(Error **errp)
          if (strcmp(mc->name, MACHINE_GET_CLASS(current_machine)->name) == 0) {
              info->has_is_current = true;
              info->is_current = true;
@@ -35,7 +35,7 @@ index 1953633e82..ca8c0dc53d 100644
  
          if (mc->default_cpu_type) {
 diff --git a/include/hw/boards.h b/include/hw/boards.h
-index fd4d62b501..dd395e9232 100644
+index 426ce5f625..3bce25a25f 100644
 --- a/include/hw/boards.h
 +++ b/include/hw/boards.h
 @@ -170,6 +170,8 @@ struct MachineClass {
@@ -48,10 +48,10 @@ index fd4d62b501..dd395e9232 100644
      void (*reset)(MachineState *state);
      void (*wakeup)(MachineState *state);
 diff --git a/qapi/machine.json b/qapi/machine.json
-index f6cf28f9fd..a7f9c79a59 100644
+index 268044a34b..7a811a5860 100644
 --- a/qapi/machine.json
 +++ b/qapi/machine.json
-@@ -363,7 +363,8 @@
+@@ -365,7 +365,8 @@
    'data': { 'name': 'str', '*alias': 'str',
              '*is-default': 'bool', '*is-current': 'bool', 'cpu-max': 'int',
              'hotpluggable-cpus': 'bool',  'numa-mem-supported': 'bool',
@@ -62,10 +62,10 @@ index f6cf28f9fd..a7f9c79a59 100644
  ##
  # @query-machines:
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 9de81875fd..8340c4ca53 100644
+index 366e30e594..16aa2186b0 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -2300,6 +2300,8 @@ static MachineClass *machine_parse(const char *name, GSList *machines)
+@@ -2322,6 +2322,8 @@ static MachineClass *machine_parse(const char *name, GSList *machines)
  {
      MachineClass *mc;
      GSList *el;
@@ -74,7 +74,7 @@ index 9de81875fd..8340c4ca53 100644
  
      if (is_help_option(name)) {
          printf("Supported machines are:\n");
-@@ -2316,12 +2318,23 @@ static MachineClass *machine_parse(const char *name, GSList *machines)
+@@ -2338,12 +2340,23 @@ static MachineClass *machine_parse(const char *name, GSList *machines)
          exit(0);
      }
  

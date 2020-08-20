@@ -13,10 +13,10 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  2 files changed, 9 insertions(+), 1 deletion(-)
 
 diff --git a/hw/core/machine-qmp-cmds.c b/hw/core/machine-qmp-cmds.c
-index eed5aeb2f7..1953633e82 100644
+index 963088b798..32f630549e 100644
 --- a/hw/core/machine-qmp-cmds.c
 +++ b/hw/core/machine-qmp-cmds.c
-@@ -230,6 +230,12 @@ MachineInfoList *qmp_query_machines(Error **errp)
+@@ -234,6 +234,12 @@ MachineInfoList *qmp_query_machines(Error **errp)
          info->hotpluggable_cpus = mc->has_hotpluggable_cpus;
          info->numa_mem_supported = mc->numa_mem_supported;
          info->deprecated = !!mc->deprecation_reason;
@@ -30,10 +30,10 @@ index eed5aeb2f7..1953633e82 100644
              info->default_cpu_type = g_strdup(mc->default_cpu_type);
              info->has_default_cpu_type = true;
 diff --git a/qapi/machine.json b/qapi/machine.json
-index ff7b5032e3..f6cf28f9fd 100644
+index 481b1f07ec..268044a34b 100644
 --- a/qapi/machine.json
 +++ b/qapi/machine.json
-@@ -340,6 +340,8 @@
+@@ -342,6 +342,8 @@
  #
  # @is-default: whether the machine is default
  #
@@ -42,7 +42,7 @@ index ff7b5032e3..f6cf28f9fd 100644
  # @cpu-max: maximum number of CPUs supported by the machine type
  #           (since 1.5.0)
  #
-@@ -359,7 +361,7 @@
+@@ -361,7 +363,7 @@
  ##
  { 'struct': 'MachineInfo',
    'data': { 'name': 'str', '*alias': 'str',

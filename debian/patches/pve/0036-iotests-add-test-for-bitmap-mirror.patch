@@ -3434,7 +3434,7 @@ index 0000000000..9b7408b6d6
 +{"error": {"class": "GenericError", "desc": "bitmap-mode must be specified if a bitmap is provided"}}
 +
 diff --git a/tests/qemu-iotests/group b/tests/qemu-iotests/group
-index 435dccd5af..939efd9c70 100644
+index 025ed5238d..bee527c012 100644
 --- a/tests/qemu-iotests/group
 +++ b/tests/qemu-iotests/group
 @@ -270,6 +270,7 @@

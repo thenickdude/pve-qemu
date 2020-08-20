@@ -23,7 +23,7 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  1 file changed, 18 insertions(+), 6 deletions(-)
 
 diff --git a/block/mirror.c b/block/mirror.c
-index 3c9cd42c50..08ac9827f2 100644
+index 100e828639..7d3c3252f3 100644
 --- a/block/mirror.c
 +++ b/block/mirror.c
 @@ -653,8 +653,6 @@ static int mirror_exit_common(Job *job)
@@ -54,7 +54,7 @@ index 3c9cd42c50..08ac9827f2 100644
      bs_opaque->job = NULL;
  
      bdrv_drained_end(src);
-@@ -1584,10 +1594,6 @@ static BlockJob *mirror_start_job(
+@@ -1589,10 +1599,6 @@ static BlockJob *mirror_start_job(
                         " sync mode",
                         MirrorSyncMode_str(sync_mode));
              return NULL;
@@ -65,7 +65,7 @@ index 3c9cd42c50..08ac9827f2 100644
          }
      } else if (bitmap) {
          error_setg(errp,
-@@ -1604,6 +1610,12 @@ static BlockJob *mirror_start_job(
+@@ -1609,6 +1615,12 @@ static BlockJob *mirror_start_job(
              return NULL;
          }
          granularity = bdrv_dirty_bitmap_granularity(bitmap);

@@ -15,7 +15,7 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  create mode 100644 block/pbs.c
 
 diff --git a/block/Makefile.objs b/block/Makefile.objs
-index 8af7073c83..9785e4431d 100644
+index 9ea0477d0b..28fb3b7f7c 100644
 --- a/block/Makefile.objs
 +++ b/block/Makefile.objs
 @@ -5,6 +5,7 @@ block-obj-$(CONFIG_CLOOP) += cloop.o
@@ -26,7 +26,7 @@ index 8af7073c83..9785e4431d 100644
  
  block-obj-y += qcow2.o qcow2-refcount.o qcow2-cluster.o qcow2-snapshot.o qcow2-cache.o qcow2-bitmap.o qcow2-threads.o
  block-obj-$(CONFIG_QED) += qed.o qed-l2-cache.o qed-table.o qed-cluster.o
-@@ -76,3 +77,4 @@ io_uring.o-cflags  := $(LINUX_IO_URING_CFLAGS)
+@@ -75,3 +76,4 @@ io_uring.o-cflags  := $(LINUX_IO_URING_CFLAGS)
  io_uring.o-libs    := $(LINUX_IO_URING_LIBS)
  parallels.o-cflags := $(LIBXML2_CFLAGS)
  parallels.o-libs   := $(LIBXML2_LIBS)
@@ -309,10 +309,10 @@ index 0000000000..1481a2bfd1
 +
 +block_init(bdrv_pbs_init);
 diff --git a/configure b/configure
-index 23b5e93752..67054b5795 100755
+index 2acc4d1465..3fc80d0c2c 100755
 --- a/configure
 +++ b/configure
-@@ -503,6 +503,7 @@ vvfat="yes"
+@@ -510,6 +510,7 @@ vvfat="yes"
  qed="yes"
  parallels="yes"
  sheepdog="yes"
@@ -320,7 +320,7 @@ index 23b5e93752..67054b5795 100755
  libxml2=""
  debug_mutex="no"
  libpmem=""
-@@ -1553,6 +1554,10 @@ for opt do
+@@ -1576,6 +1577,10 @@ for opt do
    ;;
    --enable-sheepdog) sheepdog="yes"
    ;;
@@ -331,7 +331,7 @@ index 23b5e93752..67054b5795 100755
    --disable-vhost-user) vhost_user="no"
    ;;
    --enable-vhost-user) vhost_user="yes"
-@@ -1889,6 +1894,7 @@ disabled with --disable-FEATURE, default is enabled if available:
+@@ -1936,6 +1941,7 @@ disabled with --disable-FEATURE, default is enabled if available:
    qed             qed image format support
    parallels       parallels image format support
    sheepdog        sheepdog block driver support
@@ -339,38 +339,38 @@ index 23b5e93752..67054b5795 100755
    crypto-afalg    Linux AF_ALG crypto backend driver
    capstone        capstone disassembler support
    debug-mutex     mutex debugging support
-@@ -6726,6 +6732,7 @@ echo "vvfat support     $vvfat"
+@@ -7009,6 +7015,7 @@ echo "vvfat support     $vvfat"
  echo "qed support       $qed"
  echo "parallels support $parallels"
  echo "sheepdog support  $sheepdog"
 +echo "pbs-bdrv support  $pbs_bdrv"
  echo "capstone          $capstone"
  echo "libpmem support   $libpmem"
- echo "libudev           $libudev"
-@@ -7578,6 +7585,9 @@ fi
+ echo "libdaxctl support $libdaxctl"
+@@ -7885,6 +7892,9 @@ fi
  if test "$sheepdog" = "yes" ; then
    echo "CONFIG_SHEEPDOG=y" >> $config_host_mak
  fi
 +if test "$pbs_bdrv" = "yes" ; then
 +  echo "CONFIG_PBS_BDRV=y" >> $config_host_mak
 +fi
- if test "$fuzzing" = "yes" ; then
-   if test "$have_fuzzer" = "yes"; then
-     FUZZ_LDFLAGS=" -fsanitize=address,fuzzer"
+ if test "$pty_h" = "yes" ; then
+   echo "HAVE_PTY_H=y" >> $config_host_mak
+ fi
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 0bc15a5098..13c63d8e6a 100644
+index a177fea6cd..f782c2cf96 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -2942,7 +2942,7 @@
+@@ -2951,7 +2951,7 @@
              'luks', 'nbd', 'nfs', 'null-aio', 'null-co', 'nvme', 'parallels',
              'qcow', 'qcow2', 'qed', 'quorum', 'raw', 'rbd',
              { 'name': 'replication', 'if': 'defined(CONFIG_REPLICATION)' },
 -            'sheepdog',
 +            'sheepdog', 'pbs',
-             'ssh', 'throttle', 'vdi', 'vhdx', 'vmdk', 'vpc', 'vvfat', 'vxhs' ] }
+             'ssh', 'throttle', 'vdi', 'vhdx', 'vmdk', 'vpc', 'vvfat' ] }
  
  ##
-@@ -3006,6 +3006,17 @@
+@@ -3015,6 +3015,17 @@
  { 'struct': 'BlockdevOptionsNull',
    'data': { '*size': 'int', '*latency-ns': 'uint64', '*read-zeroes': 'bool' } }
  
@@ -388,7 +388,7 @@ index 0bc15a5098..13c63d8e6a 100644
  ##
  # @BlockdevOptionsNVMe:
  #
-@@ -4128,6 +4139,7 @@
+@@ -4121,6 +4132,7 @@
        'nfs':        'BlockdevOptionsNfs',
        'null-aio':   'BlockdevOptionsNull',
        'null-co':    'BlockdevOptionsNull',

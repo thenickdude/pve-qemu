@@ -14,7 +14,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 29 insertions(+)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index 3323b195a4..5bdfd1fedd 100644
+index 343035b5c9..b0e7b51eef 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -1055,3 +1055,10 @@ BackupStatus *qmp_query_backup(Error **errp)
@@ -29,10 +29,10 @@ index 3323b195a4..5bdfd1fedd 100644
 +    return ret;
 +}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 13c63d8e6a..355a184ea8 100644
+index f782c2cf96..6dd5e35473 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -867,6 +867,28 @@
+@@ -877,6 +877,28 @@
  ##
  { 'command': 'backup-cancel' }
  

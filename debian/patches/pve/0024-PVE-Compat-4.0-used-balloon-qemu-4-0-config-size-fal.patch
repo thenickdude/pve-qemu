@@ -26,10 +26,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/hw/core/machine.c b/hw/core/machine.c
-index c1a444cb75..9f56ecc4e8 100644
+index 8d1a90c6cf..413902777e 100644
 --- a/hw/core/machine.c
 +++ b/hw/core/machine.c
-@@ -56,7 +56,8 @@ GlobalProperty hw_compat_4_0[] = {
+@@ -66,7 +66,8 @@ GlobalProperty hw_compat_4_0[] = {
      { "virtio-vga",     "edid", "false" },
      { "virtio-gpu-device", "edid", "false" },
      { "virtio-device", "use-started", "false" },

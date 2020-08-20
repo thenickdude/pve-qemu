@@ -11,14 +11,14 @@ an expected end of input.
 Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- qemu-img.c | 29 ++++++++++++++++++++++++++---
- 1 file changed, 26 insertions(+), 3 deletions(-)
+ qemu-img.c | 28 +++++++++++++++++++++++++---
+ 1 file changed, 25 insertions(+), 3 deletions(-)
 
 diff --git a/qemu-img.c b/qemu-img.c
-index 6b7d1fcb51..17393b2f53 100644
+index af54d0896e..0f1d464392 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -4445,11 +4445,13 @@ out:
+@@ -4820,11 +4820,13 @@ static int img_bitmap(int argc, char **argv)
  #define C_OF      010
  #define C_SKIP    020
  #define C_OSIZE   040
@@ -32,7 +32,7 @@ index 6b7d1fcb51..17393b2f53 100644
  };
  
  struct DdIo {
-@@ -4542,6 +4544,20 @@ static int img_dd_osize(const char *arg,
+@@ -4913,6 +4915,19 @@ static int img_dd_osize(const char *arg,
      return 0;
  }
  
@@ -40,10 +40,9 @@ index 6b7d1fcb51..17393b2f53 100644
 +                        struct DdIo *in, struct DdIo *out,
 +                        struct DdInfo *dd)
 +{
-+    dd->isize = cvtnum(arg);
++    dd->isize = cvtnum("size", arg);
 +
 +    if (dd->isize < 0) {
-+        error_report("invalid number: '%s'", arg);
 +        return 1;
 +    }
 +
@@ -53,7 +52,7 @@ index 6b7d1fcb51..17393b2f53 100644
  static int img_dd(int argc, char **argv)
  {
      int ret = 0;
-@@ -4556,12 +4572,14 @@ static int img_dd(int argc, char **argv)
+@@ -4927,12 +4942,14 @@ static int img_dd(int argc, char **argv)
      int c, i;
      const char *out_fmt = "raw";
      const char *fmt = NULL;
@@ -69,7 +68,7 @@ index 6b7d1fcb51..17393b2f53 100644
      };
      struct DdIo in = {
          .bsz = 512, /* Block size is by default 512 bytes */
-@@ -4583,6 +4601,7 @@ static int img_dd(int argc, char **argv)
+@@ -4954,6 +4971,7 @@ static int img_dd(int argc, char **argv)
          { "of", img_dd_of, C_OF },
          { "skip", img_dd_skip, C_SKIP },
          { "osize", img_dd_osize, C_OSIZE },
@@ -77,7 +76,7 @@ index 6b7d1fcb51..17393b2f53 100644
          { NULL, NULL, 0 }
      };
      const struct option long_options[] = {
-@@ -4789,14 +4808,18 @@ static int img_dd(int argc, char **argv)
+@@ -5160,14 +5178,18 @@ static int img_dd(int argc, char **argv)
  
      in.buf = g_new(uint8_t, in.bsz);
  

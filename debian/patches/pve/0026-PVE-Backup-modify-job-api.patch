@@ -18,7 +18,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  5 files changed, 8 insertions(+), 3 deletions(-)
 
 diff --git a/block/backup.c b/block/backup.c
-index a7a7dcaf4c..ecd93e91e0 100644
+index 4f13bb20a5..5f373a4f9b 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -338,6 +338,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
@@ -28,8 +28,8 @@ index a7a7dcaf4c..ecd93e91e0 100644
 +                  int pause_count,
                    JobTxn *txn, Error **errp)
  {
-     int64_t len;
-@@ -459,6 +460,8 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+     int64_t len, target_len;
+@@ -471,6 +472,8 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
      block_job_add_bdrv(&job->common, "target", target, 0, BLK_PERM_ALL,
                         &error_abort);
  
@@ -39,10 +39,10 @@ index a7a7dcaf4c..ecd93e91e0 100644
  
   error:
 diff --git a/block/replication.c b/block/replication.c
-index da013c2041..17246a822c 100644
+index 0c70215784..59270a0468 100644
 --- a/block/replication.c
 +++ b/block/replication.c
-@@ -554,7 +554,7 @@ static void replication_start(ReplicationState *rs, ReplicationMode mode,
+@@ -560,7 +560,7 @@ static void replication_start(ReplicationState *rs, ReplicationMode mode,
                                  0, MIRROR_SYNC_MODE_NONE, NULL, 0, false, NULL,
                                  BLOCKDEV_ON_ERROR_REPORT,
                                  BLOCKDEV_ON_ERROR_REPORT, JOB_INTERNAL,
@@ -52,10 +52,10 @@ index da013c2041..17246a822c 100644
              error_propagate(errp, local_err);
              backup_job_cleanup(bs);
 diff --git a/blockdev.c b/blockdev.c
-index 5faddaa705..65c358e4ef 100644
+index 3848a9c8ab..5107c5445e 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3114,7 +3114,8 @@ static BlockJob *do_backup_common(BackupCommon *backup,
+@@ -2832,7 +2832,8 @@ static BlockJob *do_backup_common(BackupCommon *backup,
                              backup->filter_node_name,
                              backup->on_source_error,
                              backup->on_target_error,
@@ -66,10 +66,10 @@ index 5faddaa705..65c358e4ef 100644
  }
  
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 4c3587ea19..336f71e69d 100644
+index 38dec0275b..5094ae1e95 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
-@@ -1219,6 +1219,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -1254,6 +1254,7 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
                              BlockdevOnError on_target_error,
                              int creation_flags,
                              BlockCompletionFunc *cb, void *opaque,
