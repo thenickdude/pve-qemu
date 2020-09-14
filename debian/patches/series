@@ -1,5 +1,6 @@
 extra/0001-block-block-copy-always-align-copied-region-to-clust.patch
 extra/0002-Revert-qemu-img-convert-Don-t-pre-zero-images.patch
+extra/0003-usb-fix-setup_len-init-CVE-2020-14364.patch
 pve/0001-PVE-Config-block-file-change-locking-default-to-off.patch
 pve/0002-PVE-Config-Adjust-network-script-path-to-etc-kvm.patch
 pve/0003-PVE-Config-set-the-CPU-model-to-kvm64-32-instead-of-.patch
