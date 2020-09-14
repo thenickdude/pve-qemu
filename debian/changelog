@@ -1,3 +1,13 @@
+pve-qemu-kvm (5.1.0-2) pve; urgency=medium
+
+  * cherry-pick fix to harden checks for USB devices (CVE-2020-14364)
+
+  * work around #3002: revert "qemu-img convert: Don't pre-zero images" as it
+    correlates with an issue when using LVM as a target storage for disk move
+    operations.
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 14 Sep 2020 20:01:24 +0200
+
 pve-qemu-kvm (5.1.0-1) pve; urgency=medium
 
   * update to QEMU 5.1.0
