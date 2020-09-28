@@ -68,7 +68,7 @@ index 3ff014d32a..c3227a1498 100644
                             info->zero_bytes, zero_per);
  
 diff --git a/pve-backup.c b/pve-backup.c
-index 7c99554514..c6d8a51406 100644
+index 562fcc20f7..04c21c80aa 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -46,6 +46,7 @@ static struct PVEBackupState {
@@ -79,7 +79,7 @@ index 7c99554514..c6d8a51406 100644
      } stat;
      int64_t speed;
      VmaWriter *vmaw;
-@@ -674,7 +675,6 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -670,7 +671,6 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
      }
  
      size_t total = 0;
@@ -87,7 +87,7 @@ index 7c99554514..c6d8a51406 100644
  
      l = di_list;
      while (l) {
-@@ -695,18 +695,33 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -691,18 +691,33 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
  
      uuid_generate(uuid);
  
@@ -124,7 +124,7 @@ index 7c99554514..c6d8a51406 100644
          }
  
          int dump_cb_block_size = PROXMOX_BACKUP_DEFAULT_CHUNK_SIZE; // Hardcoded (4M)
-@@ -733,12 +748,12 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -729,12 +744,12 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
              error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
                        "proxmox_backup_new failed: %s", pbs_err);
              proxmox_backup_free_error(pbs_err);
@@ -139,7 +139,7 @@ index 7c99554514..c6d8a51406 100644
  
          /* register all devices */
          l = di_list;
-@@ -749,6 +764,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -745,6 +760,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
              di->block_size = dump_cb_block_size;
  
              const char *devname = bdrv_get_device_name(di->bs);
@@ -148,7 +148,7 @@ index 7c99554514..c6d8a51406 100644
  
              BdrvDirtyBitmap *bitmap = bdrv_find_dirty_bitmap(di->bs, PBS_BITMAP_NAME);
              bool expect_only_dirty = false;
-@@ -757,49 +774,59 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -753,49 +770,59 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
                  if (bitmap == NULL) {
                      bitmap = bdrv_create_dirty_bitmap(di->bs, dump_cb_block_size, PBS_BITMAP_NAME, task->errp);
                      if (!bitmap) {
@@ -218,7 +218,7 @@ index 7c99554514..c6d8a51406 100644
          }
  
          /* register all devices for vma writer */
-@@ -809,7 +836,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -805,7 +832,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
              l = g_list_next(l);
  
              if (!(di->target = bdrv_backup_dump_create(VMA_CLUSTER_SIZE, di->size, pvebackup_co_dump_vma_cb, di, task->errp))) {
@@ -227,7 +227,7 @@ index 7c99554514..c6d8a51406 100644
              }
  
              const char *devname = bdrv_get_device_name(di->bs);
-@@ -817,16 +844,14 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -813,16 +840,14 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
              if (di->dev_id <= 0) {
                  error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
                            "register_stream failed");
@@ -246,7 +246,7 @@ index 7c99554514..c6d8a51406 100644
          }
          backup_dir = task->backup_file;
  
-@@ -843,18 +868,18 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -839,18 +864,18 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
                              di->size, flags, false, &local_err);
              if (local_err) {
                  error_propagate(task->errp, local_err);
@@ -268,7 +268,7 @@ index 7c99554514..c6d8a51406 100644
      }
  
  
-@@ -862,7 +887,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -858,7 +883,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
      if (task->has_config_file) {
          if (pvebackup_co_add_config(task->config_file, config_name, format, backup_dir,
                                      vmaw, pbs, task->errp) != 0) {
@@ -277,7 +277,7 @@ index 7c99554514..c6d8a51406 100644
          }
      }
  
-@@ -870,12 +895,11 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -866,12 +891,11 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
      if (task->has_firewall_file) {
          if (pvebackup_co_add_config(task->firewall_file, firewall_name, format, backup_dir,
                                      vmaw, pbs, task->errp) != 0) {
@@ -292,7 +292,7 @@ index 7c99554514..c6d8a51406 100644
  
      if (backup_state.stat.error) {
          error_free(backup_state.stat.error);
-@@ -895,10 +919,9 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -891,10 +915,9 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
      char *uuid_str = g_strdup(backup_state.stat.uuid_str);
  
      backup_state.stat.total = total;
@@ -304,7 +304,7 @@ index 7c99554514..c6d8a51406 100644
  
      qemu_mutex_unlock(&backup_state.stat.lock);
  
-@@ -915,6 +938,9 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -911,6 +934,9 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
      task->result = uuid_info;
      return;
  
@@ -314,7 +314,7 @@ index 7c99554514..c6d8a51406 100644
  err:
  
      l = di_list;
-@@ -1078,9 +1104,40 @@ BackupStatus *qmp_query_backup(Error **errp)
+@@ -1074,9 +1100,40 @@ BackupStatus *qmp_query_backup(Error **errp)
      return info;
  }
  

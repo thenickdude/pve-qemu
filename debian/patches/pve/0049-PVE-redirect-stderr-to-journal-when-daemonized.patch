@@ -11,10 +11,10 @@ fitting.
  2 files changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/Makefile.objs b/Makefile.objs
-index b7d58e592e..105f23bff7 100644
+index 240eb503f2..c7ba4e11e7 100644
 --- a/Makefile.objs
 +++ b/Makefile.objs
-@@ -55,6 +55,7 @@ common-obj-y += net/
+@@ -54,6 +54,7 @@ common-obj-y += net/
  common-obj-y += qdev-monitor.o
  common-obj-$(CONFIG_WIN32) += os-win32.o
  common-obj-$(CONFIG_POSIX) += os-posix.o
@@ -23,7 +23,7 @@ index b7d58e592e..105f23bff7 100644
  common-obj-$(CONFIG_LINUX) += fsdev/
  
 diff --git a/os-posix.c b/os-posix.c
-index 3cd52e1e70..ab4d052c62 100644
+index 3572db3f44..b45dde63ac 100644
 --- a/os-posix.c
 +++ b/os-posix.c
 @@ -28,6 +28,8 @@
@@ -35,7 +35,7 @@ index 3cd52e1e70..ab4d052c62 100644
  
  #include "qemu-common.h"
  /* Needed early for CONFIG_BSD etc. */
-@@ -309,9 +311,10 @@ void os_setup_post(void)
+@@ -312,9 +314,10 @@ void os_setup_post(void)
  
          dup2(fd, 0);
          dup2(fd, 1);

@@ -9,10 +9,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  1 file changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index 9e767d724c..c108f6a745 100644
+index 7bf54b4c5d..1f2a0bbe8c 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
-@@ -742,9 +742,13 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -738,9 +738,13 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
                      dirty += bdrv_get_dirty_count(bitmap);
                  }
                  di->bitmap = bitmap;

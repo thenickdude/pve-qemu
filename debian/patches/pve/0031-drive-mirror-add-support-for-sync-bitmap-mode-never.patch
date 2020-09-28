@@ -249,10 +249,10 @@ index e8e8844afc..100e828639 100644
                       &local_err);
      if (local_err) {
 diff --git a/blockdev.c b/blockdev.c
-index 3c427fc4be..28ed750ba5 100644
+index 681da7c8b6..02d58e7645 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -2877,6 +2877,10 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
+@@ -2876,6 +2876,10 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
                                     BlockDriverState *target,
                                     bool has_replaces, const char *replaces,
                                     enum MirrorSyncMode sync,
@@ -263,7 +263,7 @@ index 3c427fc4be..28ed750ba5 100644
                                     BlockMirrorBackingMode backing_mode,
                                     bool zero_target,
                                     bool has_speed, int64_t speed,
-@@ -2895,6 +2899,7 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
+@@ -2894,6 +2898,7 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
                                     Error **errp)
  {
      int job_flags = JOB_DEFAULT;
@@ -271,7 +271,7 @@ index 3c427fc4be..28ed750ba5 100644
  
      if (!has_speed) {
          speed = 0;
-@@ -2949,6 +2954,29 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
+@@ -2948,6 +2953,29 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
          sync = MIRROR_SYNC_MODE_FULL;
      }
  
@@ -301,7 +301,7 @@ index 3c427fc4be..28ed750ba5 100644
      if (has_replaces) {
          BlockDriverState *to_replace_bs;
          AioContext *replace_aio_context;
-@@ -2986,8 +3014,8 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
+@@ -2985,8 +3013,8 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
       * and will allow to check whether the node still exist at mirror completion
       */
      mirror_start(job_id, bs, target,
@@ -312,7 +312,7 @@ index 3c427fc4be..28ed750ba5 100644
                   on_source_error, on_target_error, unmap, filter_node_name,
                   copy_mode, errp);
  }
-@@ -3128,6 +3156,8 @@ void qmp_drive_mirror(DriveMirror *arg, Error **errp)
+@@ -3127,6 +3155,8 @@ void qmp_drive_mirror(DriveMirror *arg, Error **errp)
  
      blockdev_mirror_common(arg->has_job_id ? arg->job_id : NULL, bs, target_bs,
                             arg->has_replaces, arg->replaces, arg->sync,
@@ -321,7 +321,7 @@ index 3c427fc4be..28ed750ba5 100644
                             backing_mode, zero_target,
                             arg->has_speed, arg->speed,
                             arg->has_granularity, arg->granularity,
-@@ -3149,6 +3179,8 @@ void qmp_blockdev_mirror(bool has_job_id, const char *job_id,
+@@ -3148,6 +3178,8 @@ void qmp_blockdev_mirror(bool has_job_id, const char *job_id,
                           const char *device, const char *target,
                           bool has_replaces, const char *replaces,
                           MirrorSyncMode sync,
@@ -330,7 +330,7 @@ index 3c427fc4be..28ed750ba5 100644
                           bool has_speed, int64_t speed,
                           bool has_granularity, uint32_t granularity,
                           bool has_buf_size, int64_t buf_size,
-@@ -3198,7 +3230,8 @@ void qmp_blockdev_mirror(bool has_job_id, const char *job_id,
+@@ -3197,7 +3229,8 @@ void qmp_blockdev_mirror(bool has_job_id, const char *job_id,
      }
  
      blockdev_mirror_common(has_job_id ? job_id : NULL, bs, target_bs,
@@ -341,7 +341,7 @@ index 3c427fc4be..28ed750ba5 100644
                             has_granularity, granularity,
                             has_buf_size, buf_size,
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 5ff3b1186f..befdae125b 100644
+index 8dda6f769d..279bd4ab61 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -1245,7 +1245,9 @@ void mirror_start(const char *job_id, BlockDriverState *bs,

@@ -14,10 +14,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 29 insertions(+)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index 343035b5c9..b0e7b51eef 100644
+index bfb648d6b5..2539ae1520 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
-@@ -1055,3 +1055,10 @@ BackupStatus *qmp_query_backup(Error **errp)
+@@ -1051,3 +1051,10 @@ BackupStatus *qmp_query_backup(Error **errp)
  
      return info;
  }

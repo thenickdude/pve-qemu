@@ -1,0 +1,290 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Thu, 20 Aug 2020 14:25:00 +0200
+Subject: [PATCH] PVE-Backup: Use a transaction to synchronize job states
+
+By using a JobTxn, we can sync dirty bitmaps only when *all* jobs were
+successful - meaning we don't need to remove them when the backup fails,
+since QEMU's BITMAP_SYNC_MODE_ON_SUCCESS will now handle that for us.
+
+To keep the rate-limiting and IO impact from before, we use a sequential
+transaction, so drives will still be backed up one after the other.
+---
+ pve-backup.c | 167 +++++++++++++++------------------------------------
+ 1 file changed, 49 insertions(+), 118 deletions(-)
+
+diff --git a/pve-backup.c b/pve-backup.c
+index 04c21c80aa..9562e9c98d 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -52,6 +52,7 @@ static struct PVEBackupState {
+     VmaWriter *vmaw;
+     ProxmoxBackupHandle *pbs;
+     GList *di_list;
++    JobTxn *txn;
+     QemuMutex backup_mutex;
+     CoMutex dump_callback_mutex;
+ } backup_state;
+@@ -71,32 +72,12 @@ typedef struct PVEBackupDevInfo {
+     size_t size;
+     uint64_t block_size;
+     uint8_t dev_id;
+-    bool completed;
+     char targetfile[PATH_MAX];
+     BdrvDirtyBitmap *bitmap;
+     BlockDriverState *target;
++    BlockJob *job;
+ } PVEBackupDevInfo;
+ 
+-static void pvebackup_run_next_job(void);
+-
+-static BlockJob *
+-lookup_active_block_job(PVEBackupDevInfo *di)
+-{
+-    if (!di->completed && di->bs) {
+-        for (BlockJob *job = block_job_next(NULL); job; job = block_job_next(job)) {
+-            if (job->job.driver->job_type != JOB_TYPE_BACKUP) {
+-                continue;
+-            }
+-
+-            BackupBlockJob *bjob = container_of(job, BackupBlockJob, common);
+-            if (bjob && bjob->source_bs == di->bs) {
+-                return job;
+-            }
+-        }
+-    }
+-    return NULL;
+-}
+-
+ static void pvebackup_propagate_error(Error *err)
+ {
+     qemu_mutex_lock(&backup_state.stat.lock);
+@@ -272,18 +253,6 @@ static void coroutine_fn pvebackup_co_cleanup(void *unused)
+             if (local_err != NULL) {
+                 pvebackup_propagate_error(local_err);
+             }
+-        } else {
+-            // on error or cancel we cannot ensure synchronization of dirty
+-            // bitmaps with backup server, so remove all and do full backup next
+-            GList *l = backup_state.di_list;
+-            while (l) {
+-                PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
+-                l = g_list_next(l);
+-
+-                if (di->bitmap) {
+-                    bdrv_release_dirty_bitmap(di->bitmap);
+-                }
+-            }
+         }
+ 
+         proxmox_backup_disconnect(backup_state.pbs);
+@@ -322,8 +291,6 @@ static void pvebackup_complete_cb(void *opaque, int ret)
+ 
+     qemu_mutex_lock(&backup_state.backup_mutex);
+ 
+-    di->completed = true;
+-
+     if (ret < 0) {
+         Error *local_err = NULL;
+         error_setg(&local_err, "job failed with err %d - %s", ret, strerror(-ret));
+@@ -336,20 +303,17 @@ static void pvebackup_complete_cb(void *opaque, int ret)
+ 
+     block_on_coroutine_fn(pvebackup_complete_stream, di);
+ 
+-    // remove self from job queue
++    // remove self from job list
+     backup_state.di_list = g_list_remove(backup_state.di_list, di);
+ 
+-    if (di->bitmap && ret < 0) {
+-        // on error or cancel we cannot ensure synchronization of dirty
+-        // bitmaps with backup server, so remove all and do full backup next
+-        bdrv_release_dirty_bitmap(di->bitmap);
+-    }
+-
+     g_free(di);
+ 
+-    qemu_mutex_unlock(&backup_state.backup_mutex);
++    /* call cleanup if we're the last job */
++    if (!g_list_first(backup_state.di_list)) {
++        block_on_coroutine_fn(pvebackup_co_cleanup, NULL);
++    }
+ 
+-    pvebackup_run_next_job();
++    qemu_mutex_unlock(&backup_state.backup_mutex);
+ }
+ 
+ static void pvebackup_cancel(void)
+@@ -371,36 +335,28 @@ static void pvebackup_cancel(void)
+         proxmox_backup_abort(backup_state.pbs, "backup canceled");
+     }
+ 
+-    qemu_mutex_unlock(&backup_state.backup_mutex);
+-
+-    for(;;) {
+-
+-        BlockJob *next_job = NULL;
+-
+-        qemu_mutex_lock(&backup_state.backup_mutex);
+-
+-        GList *l = backup_state.di_list;
+-        while (l) {
+-            PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
+-            l = g_list_next(l);
++    /* it's enough to cancel one job in the transaction, the rest will follow
++     * automatically */
++    GList *bdi = g_list_first(backup_state.di_list);
++    BlockJob *cancel_job = bdi && bdi->data ?
++        ((PVEBackupDevInfo *)bdi->data)->job :
++        NULL;
+ 
+-            BlockJob *job = lookup_active_block_job(di);
+-            if (job != NULL) {
+-                next_job = job;
+-                break;
+-            }
+-        }
++    /* ref the job before releasing the mutex, just to be safe */
++    if (cancel_job) {
++        job_ref(&cancel_job->job);
++    }
+ 
+-        qemu_mutex_unlock(&backup_state.backup_mutex);
++    /* job_cancel_sync may enter the job, so we need to release the
++     * backup_mutex to avoid deadlock */
++    qemu_mutex_unlock(&backup_state.backup_mutex);
+ 
+-        if (next_job) {
+-            AioContext *aio_context = next_job->job.aio_context;
+-            aio_context_acquire(aio_context);
+-            job_cancel_sync(&next_job->job);
+-            aio_context_release(aio_context);
+-        } else {
+-            break;
+-        }
++    if (cancel_job) {
++        AioContext *aio_context = cancel_job->job.aio_context;
++        aio_context_acquire(aio_context);
++        job_cancel_sync(&cancel_job->job);
++        job_unref(&cancel_job->job);
++        aio_context_release(aio_context);
+     }
+ }
+ 
+@@ -459,51 +415,19 @@ static int coroutine_fn pvebackup_co_add_config(
+     goto out;
+ }
+ 
+-bool job_should_pause(Job *job);
+-
+-static void pvebackup_run_next_job(void)
+-{
+-    assert(!qemu_in_coroutine());
+-
+-    qemu_mutex_lock(&backup_state.backup_mutex);
+-
+-    GList *l = backup_state.di_list;
+-    while (l) {
+-        PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
+-        l = g_list_next(l);
+-
+-        BlockJob *job = lookup_active_block_job(di);
+-
+-        if (job) {
+-            qemu_mutex_unlock(&backup_state.backup_mutex);
+-
+-            AioContext *aio_context = job->job.aio_context;
+-            aio_context_acquire(aio_context);
+-
+-            if (job_should_pause(&job->job)) {
+-                bool error_or_canceled = pvebackup_error_or_canceled();
+-                if (error_or_canceled) {
+-                    job_cancel_sync(&job->job);
+-                } else {
+-                    job_resume(&job->job);
+-                }
+-            }
+-            aio_context_release(aio_context);
+-            return;
+-        }
+-    }
+-
+-    block_on_coroutine_fn(pvebackup_co_cleanup, NULL); // no more jobs, run cleanup
+-
+-    qemu_mutex_unlock(&backup_state.backup_mutex);
+-}
+-
+ static bool create_backup_jobs(void) {
+ 
+     assert(!qemu_in_coroutine());
+ 
+     Error *local_err = NULL;
+ 
++    /* create job transaction to synchronize bitmap commit and cancel all
++     * jobs in case one errors */
++    if (backup_state.txn) {
++        job_txn_unref(backup_state.txn);
++    }
++    backup_state.txn = job_txn_new_seq();
++
+     /* create and start all jobs (paused state) */
+     GList *l =  backup_state.di_list;
+     while (l) {
+@@ -524,7 +448,7 @@ static bool create_backup_jobs(void) {
+         BlockJob *job = backup_job_create(
+             NULL, di->bs, di->target, backup_state.speed, sync_mode, di->bitmap,
+             bitmap_mode, false, NULL, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
+-            JOB_DEFAULT, pvebackup_complete_cb, di, 1, NULL, &local_err);
++            JOB_DEFAULT, pvebackup_complete_cb, di, backup_state.txn, &local_err);
+ 
+         aio_context_release(aio_context);
+ 
+@@ -536,7 +460,8 @@ static bool create_backup_jobs(void) {
+             pvebackup_propagate_error(create_job_err);
+             break;
+         }
+-        job_start(&job->job);
++
++        di->job = job;
+ 
+         bdrv_unref(di->target);
+         di->target = NULL;
+@@ -554,6 +479,10 @@ static bool create_backup_jobs(void) {
+                 bdrv_unref(di->target);
+                 di->target = NULL;
+             }
++
++            if (di->job) {
++                job_unref(&di->job->job);
++            }
+         }
+     }
+ 
+@@ -944,10 +873,6 @@ err:
+         PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
+         l = g_list_next(l);
+ 
+-        if (di->bitmap) {
+-            bdrv_release_dirty_bitmap(di->bitmap);
+-        }
+-
+         if (di->target) {
+             bdrv_unref(di->target);
+         }
+@@ -1036,9 +961,15 @@ UuidInfo *qmp_backup(
+     block_on_coroutine_fn(pvebackup_co_prepare, &task);
+ 
+     if (*errp == NULL) {
+-        create_backup_jobs();
++        bool errors = create_backup_jobs();
+         qemu_mutex_unlock(&backup_state.backup_mutex);
+-        pvebackup_run_next_job();
++
++        if (!errors) {
++            /* start the first job in the transaction
++             * note: this might directly enter the job, so we need to do this
++             * after unlocking the backup_mutex */
++            job_txn_start_seq(backup_state.txn);
++        }
+     } else {
+         qemu_mutex_unlock(&backup_state.backup_mutex);
+     }

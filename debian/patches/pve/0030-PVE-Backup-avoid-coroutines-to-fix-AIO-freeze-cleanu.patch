@@ -36,7 +36,7 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  1 file changed, 320 insertions(+), 318 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index 9ae89fb679..bb917ee972 100644
+index 55441eb9d1..d40f3f2fd6 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -11,11 +11,27 @@
@@ -746,7 +746,7 @@ index 9ae89fb679..bb917ee972 100644
                    "previous backup not finished");
          return;
      }
-@@ -631,7 +692,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -627,7 +688,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
              if (dev_id < 0)
                  goto err;
  
@@ -755,7 +755,7 @@ index 9ae89fb679..bb917ee972 100644
                  goto err;
              }
  
-@@ -652,7 +713,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -648,7 +709,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
              PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
              l = g_list_next(l);
  
@@ -764,7 +764,7 @@ index 9ae89fb679..bb917ee972 100644
                  goto err;
              }
  
-@@ -717,9 +778,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -713,9 +774,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
      }
      /* initialize global backup_state now */
  
@@ -775,7 +775,7 @@ index 9ae89fb679..bb917ee972 100644
  
      if (backup_state.stat.error) {
          error_free(backup_state.stat.error);
-@@ -742,7 +801,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -738,7 +797,7 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
      backup_state.stat.transferred = 0;
      backup_state.stat.zero_bytes = 0;
  
@@ -784,7 +784,7 @@ index 9ae89fb679..bb917ee972 100644
  
      backup_state.speed = (task->has_speed && task->speed > 0) ? task->speed : 0;
  
-@@ -751,48 +810,6 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
+@@ -747,48 +806,6 @@ static void coroutine_fn pvebackup_co_start(void *opaque)
  
      backup_state.di_list = di_list;
  
@@ -833,7 +833,7 @@ index 9ae89fb679..bb917ee972 100644
      uuid_info = g_malloc0(sizeof(*uuid_info));
      uuid_info->UUID = uuid_str;
  
-@@ -835,8 +852,6 @@ err:
+@@ -831,8 +848,6 @@ err:
          rmdir(backup_dir);
      }
  
@@ -842,7 +842,7 @@ index 9ae89fb679..bb917ee972 100644
      task->result = NULL;
      return;
  }
-@@ -880,32 +895,31 @@ UuidInfo *qmp_backup(
+@@ -876,32 +891,31 @@ UuidInfo *qmp_backup(
          .errp = errp,
      };
  
@@ -890,7 +890,7 @@ index 9ae89fb679..bb917ee972 100644
      }
  
      info->has_status = true;
-@@ -941,19 +955,7 @@ static void coroutine_fn pvebackup_co_query(void *opaque)
+@@ -937,19 +951,7 @@ static void coroutine_fn pvebackup_co_query(void *opaque)
      info->has_transferred = true;
      info->transferred = backup_state.stat.transferred;
  

@@ -25,7 +25,7 @@ index fdc85a5c0e..43aa87487b 100644
          false, NULL, false, NULL, !!devlist,
          devlist, qdict_haskey(qdict, "speed"), speed, &error);
 diff --git a/pve-backup.c b/pve-backup.c
-index aa62a1da16..343035b5c9 100644
+index 1cd9d31d7c..bfb648d6b5 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -567,6 +567,10 @@ typedef struct QmpBackupTask {
@@ -39,7 +39,7 @@ index aa62a1da16..343035b5c9 100644
      bool has_speed;
      int64_t speed;
      Error **errp;
-@@ -694,6 +698,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -690,6 +694,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
  
          bool use_dirty_bitmap = task->has_use_dirty_bitmap && task->use_dirty_bitmap;
  
@@ -47,7 +47,7 @@ index aa62a1da16..343035b5c9 100644
          char *pbs_err = NULL;
          pbs = proxmox_backup_new(
              task->backup_file,
-@@ -703,8 +708,10 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -699,8 +704,10 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
              task->has_password ? task->password : NULL,
              task->has_keyfile ? task->keyfile : NULL,
              task->has_key_password ? task->key_password : NULL,
@@ -59,7 +59,7 @@ index aa62a1da16..343035b5c9 100644
  
          if (!pbs) {
              error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
-@@ -943,6 +950,8 @@ UuidInfo *qmp_backup(
+@@ -939,6 +946,8 @@ UuidInfo *qmp_backup(
      bool has_backup_id, const char *backup_id,
      bool has_backup_time, int64_t backup_time,
      bool has_use_dirty_bitmap, bool use_dirty_bitmap,
@@ -68,7 +68,7 @@ index aa62a1da16..343035b5c9 100644
      bool has_format, BackupFormat format,
      bool has_config_file, const char *config_file,
      bool has_firewall_file, const char *firewall_file,
-@@ -971,6 +980,8 @@ UuidInfo *qmp_backup(
+@@ -967,6 +976,8 @@ UuidInfo *qmp_backup(
          .firewall_file = firewall_file,
          .has_devlist = has_devlist,
          .devlist = devlist,

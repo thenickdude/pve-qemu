@@ -16,11 +16,11 @@ Subject: [PATCH] PVE-Backup: proxmox backup patches for qemu
  monitor/hmp-cmds.c             |  44 ++
  proxmox-backup-client.c        | 182 +++++++
  proxmox-backup-client.h        |  52 ++
- pve-backup.c                   | 959 +++++++++++++++++++++++++++++++++
+ pve-backup.c                   | 955 +++++++++++++++++++++++++++++++++
  qapi/block-core.json           | 109 ++++
  qapi/common.json               |  13 +
  qapi/misc.json                 |  13 -
- 16 files changed, 1443 insertions(+), 15 deletions(-)
+ 16 files changed, 1439 insertions(+), 15 deletions(-)
  create mode 100644 proxmox-backup-client.c
  create mode 100644 proxmox-backup-client.h
  create mode 100644 pve-backup.c
@@ -112,7 +112,7 @@ index 4c8c375172..d485c3ac79 100644
 +    hmp_handle_error(mon, error);
 +}
 diff --git a/blockdev.c b/blockdev.c
-index 5107c5445e..3c427fc4be 100644
+index 3848a9c8ab..681da7c8b6 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -36,6 +36,7 @@
@@ -188,7 +188,7 @@ index 2b58ac4a1c..9e58b6a5fc 100644
  
      {
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index dc72197388..5ff3b1186f 100644
+index 1efb1f527c..8dda6f769d 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -64,7 +64,7 @@
@@ -524,7 +524,7 @@ index 0000000000..b311bf8de8
 +#endif /* PROXMOX_BACKUP_CLIENT_H */
 diff --git a/pve-backup.c b/pve-backup.c
 new file mode 100644
-index 0000000000..9ae89fb679
+index 0000000000..55441eb9d1
 --- /dev/null
 +++ b/pve-backup.c
 @@ -0,0 +1,955 @@

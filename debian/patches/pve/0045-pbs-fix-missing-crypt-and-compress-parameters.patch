@@ -9,10 +9,10 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  1 file changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index b0e7b51eef..77eb475563 100644
+index 2539ae1520..0e293a4f5e 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
-@@ -962,6 +962,8 @@ UuidInfo *qmp_backup(
+@@ -958,6 +958,8 @@ UuidInfo *qmp_backup(
          .backup_file = backup_file,
          .has_password = has_password,
          .password = password,
@@ -21,7 +21,7 @@ index b0e7b51eef..77eb475563 100644
          .has_key_password = has_key_password,
          .key_password = key_password,
          .has_fingerprint = has_fingerprint,
-@@ -972,6 +974,10 @@ UuidInfo *qmp_backup(
+@@ -968,6 +970,10 @@ UuidInfo *qmp_backup(
          .backup_time = backup_time,
          .has_use_dirty_bitmap = has_use_dirty_bitmap,
          .use_dirty_bitmap = use_dirty_bitmap,
@@ -32,7 +32,7 @@ index b0e7b51eef..77eb475563 100644
          .has_format = has_format,
          .format = format,
          .has_config_file = has_config_file,
-@@ -980,8 +986,6 @@ UuidInfo *qmp_backup(
+@@ -976,8 +982,6 @@ UuidInfo *qmp_backup(
          .firewall_file = firewall_file,
          .has_devlist = has_devlist,
          .devlist = devlist,
