@@ -1,3 +1,11 @@
+pve-qemu-kvm (5.1.0-3) pve; urgency=medium
+
+  * backup: make more use of coroutines and do not block on finishing
+
+  * backup: use transactions to synchronize the disk job states
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 29 Sep 2020 09:22:56 +0200
+
 pve-qemu-kvm (5.1.0-2) pve; urgency=medium
 
   * cherry-pick fix to harden checks for USB devices (CVE-2020-14364)
