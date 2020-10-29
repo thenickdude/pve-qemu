@@ -54,3 +54,5 @@ pve/0050-PVE-Add-sequential-job-transaction-support.patch
 pve/0051-PVE-Backup-Use-a-transaction-to-synchronize-job-stat.patch
 pve/0052-PVE-Backup-Use-more-coroutines-and-don-t-block-on-fi.patch
 pve/0053-PVE-fix-and-clean-up-error-handling-for-create_backu.patch
+pve/0054-migration-block-dirty-bitmap-fix-larger-granularity-.patch
+pve/0055-PVE-Migrate-dirty-bitmap-state-via-savevm.patch

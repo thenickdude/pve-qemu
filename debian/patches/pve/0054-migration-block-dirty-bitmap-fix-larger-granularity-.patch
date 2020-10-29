@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Thu, 22 Oct 2020 17:34:17 +0200
+Subject: [PATCH] migration/block-dirty-bitmap: fix larger granularity bitmaps
+
+sectors_per_chunk is a 64 bit integer, but the calculation would be done
+in 32 bits, leading to an overflow for coarse bitmap granularities.
+
+If that results in the value 0, it leads to a hang where no progress is
+made but send_bitmap_bits is constantly called with nr_sectors being 0.
+
+Reviewed-by: Vladimir Sementsov-Ogievskiy <vsementsov@virtuozzo.com>
+Reviewed-by: Eric Blake <eblake@redhat.com>
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+---
+ migration/block-dirty-bitmap.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/migration/block-dirty-bitmap.c b/migration/block-dirty-bitmap.c
+index 784330ebe1..5bf0d9fbc6 100644
+--- a/migration/block-dirty-bitmap.c
++++ b/migration/block-dirty-bitmap.c
+@@ -334,8 +334,9 @@ static int add_bitmaps_to_list(DBMSaveState *s, BlockDriverState *bs,
+         dbms->node_name = bs_name;
+         dbms->bitmap = bitmap;
+         dbms->total_sectors = bdrv_nb_sectors(bs);
+-        dbms->sectors_per_chunk = CHUNK_SIZE * 8 *
++        dbms->sectors_per_chunk = CHUNK_SIZE * 8LLU *
+             bdrv_dirty_bitmap_granularity(bitmap) >> BDRV_SECTOR_BITS;
++        assert(dbms->sectors_per_chunk != 0);
+         if (bdrv_dirty_bitmap_enabled(bitmap)) {
+             dbms->flags |= DIRTY_BITMAP_MIG_START_FLAG_ENABLED;
+         }

@@ -1,0 +1,191 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Thu, 22 Oct 2020 17:34:18 +0200
+Subject: [PATCH] PVE: Migrate dirty bitmap state via savevm
+
+QEMU provides 'savevm' registrations as a mechanism for arbitrary state
+to be migrated along with a VM. Use this to send a serialized version of
+dirty bitmap state data from proxmox-backup-qemu, and restore it on the
+target node.
+
+Also add a flag to query-proxmox-support so qemu-server can determine if
+safe migration is possible and makes sense.
+
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+---
+ include/migration/misc.h |  3 ++
+ migration/Makefile.objs  |  1 +
+ migration/pbs-state.c    | 92 ++++++++++++++++++++++++++++++++++++++++
+ pve-backup.c             |  1 +
+ qapi/block-core.json     |  9 +++-
+ softmmu/vl.c             |  1 +
+ 6 files changed, 106 insertions(+), 1 deletion(-)
+ create mode 100644 migration/pbs-state.c
+
+diff --git a/include/migration/misc.h b/include/migration/misc.h
+index 34e7d75713..f83816dd3c 100644
+--- a/include/migration/misc.h
++++ b/include/migration/misc.h
+@@ -75,4 +75,7 @@ bool migration_in_incoming_postcopy(void);
+ /* migration/block-dirty-bitmap.c */
+ void dirty_bitmap_mig_init(void);
+ 
++/* migration/pbs-state.c */
++void pbs_state_mig_init(void);
++
+ #endif
+diff --git a/migration/Makefile.objs b/migration/Makefile.objs
+index 0fc619e380..20b3792599 100644
+--- a/migration/Makefile.objs
++++ b/migration/Makefile.objs
+@@ -9,6 +9,7 @@ common-obj-y += qjson.o
+ common-obj-y += block-dirty-bitmap.o
+ common-obj-y += multifd.o
+ common-obj-y += multifd-zlib.o
++common-obj-y += pbs-state.o
+ common-obj-$(CONFIG_ZSTD) += multifd-zstd.o
+ 
+ common-obj-$(CONFIG_RDMA) += rdma.o
+diff --git a/migration/pbs-state.c b/migration/pbs-state.c
+new file mode 100644
+index 0000000000..165895b488
+--- /dev/null
++++ b/migration/pbs-state.c
+@@ -0,0 +1,92 @@
++/*
++ * PBS (dirty-bitmap) state migration
++ */
++
++#include "qemu/osdep.h"
++#include "migration/misc.h"
++#include "qemu-file.h"
++#include "migration/vmstate.h"
++#include "migration/register.h"
++#include "proxmox-backup-qemu.h"
++
++static void pbs_state_save_pending(QEMUFile *f, void *opaque,
++                                      uint64_t max_size,
++                                      uint64_t *res_precopy_only,
++                                      uint64_t *res_compatible,
++                                      uint64_t *res_postcopy_only)
++{
++    /* we send everything in save_setup, so nothing is ever pending */
++    *res_precopy_only = 0;
++    *res_compatible = 0;
++    *res_postcopy_only = 0;
++}
++
++/* receive PBS state via f and deserialize, called on target */
++static int pbs_state_load(QEMUFile *f, void *opaque, int version_id)
++{
++    /* safe cast, we cannot migrate to target with less bits than source */
++    size_t buf_size = (size_t)qemu_get_be64(f);
++
++    uint8_t *buf = (uint8_t *)malloc(buf_size);
++    size_t read = qemu_get_buffer(f, buf, buf_size);
++
++    if (read < buf_size) {
++        fprintf(stderr, "error receiving PBS state: not enough data\n");
++        return -EIO;
++    }
++
++    proxmox_import_state(buf, buf_size);
++
++    free(buf);
++    return 0;
++}
++
++/* serialize PBS state and send to target via f, called on source */
++static int pbs_state_save_setup(QEMUFile *f, void *opaque)
++{
++    size_t buf_size;
++    uint8_t *buf = proxmox_export_state(&buf_size);
++
++    /* LV encoding */
++    qemu_put_be64(f, buf_size);
++    qemu_put_buffer(f, buf, buf_size);
++
++    proxmox_free_state_buf(buf);
++    return 0;
++}
++
++static bool pbs_state_is_active(void *opaque)
++{
++    /* always active, i.e. we do our job for every migration, since there's no
++     * harm done if we just copy an empty buffer */
++    return true;
++}
++
++static bool pbs_state_is_active_iterate(void *opaque)
++{
++    /* we don't iterate, everything is sent in save_setup */
++    return false;
++}
++
++static bool pbs_state_has_postcopy(void *opaque)
++{
++    /* PBS state can't change during a migration (since that's blocking any
++     * potential backups), so we can copy everything before the VM is stopped */
++    return false;
++}
++
++static SaveVMHandlers savevm_pbs_state_handlers = {
++    .save_setup = pbs_state_save_setup,
++    .has_postcopy = pbs_state_has_postcopy,
++    .save_live_pending = pbs_state_save_pending,
++    .is_active_iterate = pbs_state_is_active_iterate,
++    .load_state = pbs_state_load,
++    .is_active = pbs_state_is_active,
++};
++
++void pbs_state_mig_init(void)
++{
++    register_savevm_live("pbs-state", 0, 1,
++                         &savevm_pbs_state_handlers,
++                         NULL);
++}
+diff --git a/pve-backup.c b/pve-backup.c
+index 1a2647e7a5..c12ff8bb61 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -1129,5 +1129,6 @@ ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
+     ProxmoxSupportStatus *ret = g_malloc0(sizeof(*ret));
+     ret->pbs_dirty_bitmap = true;
+     ret->query_bitmap_info = true;
++    ret->pbs_dirty_bitmap_migration = true;
+     return ret;
+ }
+diff --git a/qapi/block-core.json b/qapi/block-core.json
+index b31ad8d989..00c9e12fcc 100644
+--- a/qapi/block-core.json
++++ b/qapi/block-core.json
+@@ -890,9 +890,16 @@
+ #
+ # @query-bitmap-info: True if the 'query-pbs-bitmap-info' QMP call is supported.
+ #
++# @pbs-dirty-bitmap-migration: True if safe migration of dirty-bitmaps including
++#                              PBS state is supported. Enabling 'dirty-bitmaps'
++#                              migration cap if this is false/unset may lead
++#                              to crashes on migration!
++#
+ ##
+ { 'struct': 'ProxmoxSupportStatus',
+-  'data': { 'pbs-dirty-bitmap': 'bool', 'query-bitmap-info': 'bool' } }
++  'data': { 'pbs-dirty-bitmap': 'bool',
++            'query-bitmap-info': 'bool',
++            'pbs-dirty-bitmap-migration': 'bool' } }
+ 
+ ##
+ # @query-proxmox-support:
+diff --git a/softmmu/vl.c b/softmmu/vl.c
+index 16aa2186b0..88b13871fd 100644
+--- a/softmmu/vl.c
++++ b/softmmu/vl.c
+@@ -4288,6 +4288,7 @@ void qemu_init(int argc, char **argv, char **envp)
+     blk_mig_init();
+     ram_mig_init();
+     dirty_bitmap_mig_init();
++    pbs_state_mig_init();
+ 
+     qemu_opts_foreach(qemu_find_opts("mon"),
+                       mon_init_func, NULL, &error_fatal);
