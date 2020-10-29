@@ -5,6 +5,8 @@ Subject: [PATCH] PVE: redirect stderr to journal when daemonized
 
 QEMU uses the logging for error messages usually, so LOG_ERR is most
 fitting.
+
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
  Makefile.objs | 1 +
  os-posix.c    | 7 +++++--

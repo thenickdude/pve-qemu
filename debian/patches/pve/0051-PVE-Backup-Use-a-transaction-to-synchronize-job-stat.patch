@@ -9,6 +9,8 @@ since QEMU's BITMAP_SYNC_MODE_ON_SUCCESS will now handle that for us.
 
 To keep the rate-limiting and IO impact from before, we use a sequential
 transaction, so drives will still be backed up one after the other.
+
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
  pve-backup.c | 167 +++++++++++++++------------------------------------
  1 file changed, 49 insertions(+), 118 deletions(-)

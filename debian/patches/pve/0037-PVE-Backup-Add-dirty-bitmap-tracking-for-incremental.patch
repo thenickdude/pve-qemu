@@ -99,10 +99,10 @@ index 0e2d166552..3ff014d32a 100644
  
      qapi_free_BackupStatus(info);
 diff --git a/proxmox-backup-client.c b/proxmox-backup-client.c
-index b7bc7f2574..0e9c584701 100644
+index a8f6653a81..4ce7bc0b5e 100644
 --- a/proxmox-backup-client.c
 +++ b/proxmox-backup-client.c
-@@ -95,6 +95,7 @@ proxmox_backup_co_register_image(
+@@ -89,6 +89,7 @@ proxmox_backup_co_register_image(
      ProxmoxBackupHandle *pbs,
      const char *device_name,
      uint64_t size,
@@ -110,7 +110,7 @@ index b7bc7f2574..0e9c584701 100644
      Error **errp)
  {
      Coroutine *co = qemu_coroutine_self();
-@@ -104,7 +105,7 @@ proxmox_backup_co_register_image(
+@@ -98,7 +99,7 @@ proxmox_backup_co_register_image(
      int pbs_res = -1;
  
      proxmox_backup_register_image_async(
@@ -120,10 +120,10 @@ index b7bc7f2574..0e9c584701 100644
      if (pbs_res < 0) {
          if (errp) error_setg(errp, "backup register image failed: %s", pbs_err ? pbs_err : "unknown error");
 diff --git a/proxmox-backup-client.h b/proxmox-backup-client.h
-index b311bf8de8..20fd6b1719 100644
+index 1dda8b7d8f..8cbf645b2c 100644
 --- a/proxmox-backup-client.h
 +++ b/proxmox-backup-client.h
-@@ -25,6 +25,7 @@ proxmox_backup_co_register_image(
+@@ -32,6 +32,7 @@ proxmox_backup_co_register_image(
      ProxmoxBackupHandle *pbs,
      const char *device_name,
      uint64_t size,

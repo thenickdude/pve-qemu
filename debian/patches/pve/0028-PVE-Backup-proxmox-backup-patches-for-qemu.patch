@@ -14,13 +14,13 @@ Subject: [PATCH] PVE-Backup: proxmox backup patches for qemu
  include/block/block_int.h      |   2 +-
  include/monitor/hmp.h          |   3 +
  monitor/hmp-cmds.c             |  44 ++
- proxmox-backup-client.c        | 182 +++++++
- proxmox-backup-client.h        |  52 ++
+ proxmox-backup-client.c        | 176 ++++++
+ proxmox-backup-client.h        |  59 ++
  pve-backup.c                   | 955 +++++++++++++++++++++++++++++++++
  qapi/block-core.json           | 109 ++++
  qapi/common.json               |  13 +
  qapi/misc.json                 |  13 -
- 16 files changed, 1439 insertions(+), 15 deletions(-)
+ 16 files changed, 1440 insertions(+), 15 deletions(-)
  create mode 100644 proxmox-backup-client.c
  create mode 100644 proxmox-backup-client.h
  create mode 100644 pve-backup.c
@@ -278,10 +278,10 @@ index 280bb447a6..0e2d166552 100644
      switch (addr->type) {
 diff --git a/proxmox-backup-client.c b/proxmox-backup-client.c
 new file mode 100644
-index 0000000000..b7bc7f2574
+index 0000000000..a8f6653a81
 --- /dev/null
 +++ b/proxmox-backup-client.c
-@@ -0,0 +1,182 @@
+@@ -0,0 +1,176 @@
 +#include "proxmox-backup-client.h"
 +#include "qemu/main-loop.h"
 +#include "block/aio-wait.h"
@@ -295,12 +295,6 @@ index 0000000000..b7bc7f2574
 +    void *entry_arg;
 +    bool finished;
 +} BlockOnCoroutineWrapper;
-+
-+// Waker implementaion to syncronice with proxmox backup rust code
-+typedef struct ProxmoxBackupWaker {
-+    Coroutine *co;
-+    AioContext *ctx;
-+} ProxmoxBackupWaker;
 +
 +static void coroutine_fn block_on_coroutine_wrapper(void *opaque)
 +{
@@ -328,7 +322,7 @@ index 0000000000..b7bc7f2574
 +
 +// This is called from another thread, so we use aio_co_schedule()
 +static void proxmox_backup_schedule_wake(void *data) {
-+    ProxmoxBackupWaker *waker = (ProxmoxBackupWaker *)data;
++    CoCtxData *waker = (CoCtxData *)data;
 +    aio_co_schedule(waker->ctx, waker->co);
 +}
 +
@@ -337,7 +331,7 @@ index 0000000000..b7bc7f2574
 +{
 +    Coroutine *co = qemu_coroutine_self();
 +    AioContext *ctx = qemu_get_current_aio_context();
-+    ProxmoxBackupWaker waker = { .co = co, .ctx = ctx };
++    CoCtxData waker = { .co = co, .ctx = ctx };
 +    char *pbs_err = NULL;
 +    int pbs_res = -1;
 +
@@ -360,7 +354,7 @@ index 0000000000..b7bc7f2574
 +{
 +    Coroutine *co = qemu_coroutine_self();
 +    AioContext *ctx = qemu_get_current_aio_context();
-+    ProxmoxBackupWaker waker = { .co = co, .ctx = ctx };
++    CoCtxData waker = { .co = co, .ctx = ctx };
 +    char *pbs_err = NULL;
 +    int pbs_res = -1;
 +
@@ -383,7 +377,7 @@ index 0000000000..b7bc7f2574
 +{
 +    Coroutine *co = qemu_coroutine_self();
 +    AioContext *ctx = qemu_get_current_aio_context();
-+    ProxmoxBackupWaker waker = { .co = co, .ctx = ctx };
++    CoCtxData waker = { .co = co, .ctx = ctx };
 +    char *pbs_err = NULL;
 +    int pbs_res = -1;
 +
@@ -404,7 +398,7 @@ index 0000000000..b7bc7f2574
 +{
 +    Coroutine *co = qemu_coroutine_self();
 +    AioContext *ctx = qemu_get_current_aio_context();
-+    ProxmoxBackupWaker waker = { .co = co, .ctx = ctx };
++    CoCtxData waker = { .co = co, .ctx = ctx };
 +    char *pbs_err = NULL;
 +    int pbs_res = -1;
 +
@@ -426,7 +420,7 @@ index 0000000000..b7bc7f2574
 +{
 +    Coroutine *co = qemu_coroutine_self();
 +    AioContext *ctx = qemu_get_current_aio_context();
-+    ProxmoxBackupWaker waker = { .co = co, .ctx = ctx };
++    CoCtxData waker = { .co = co, .ctx = ctx };
 +    char *pbs_err = NULL;
 +    int pbs_res = -1;
 +
@@ -451,7 +445,7 @@ index 0000000000..b7bc7f2574
 +{
 +    Coroutine *co = qemu_coroutine_self();
 +    AioContext *ctx = qemu_get_current_aio_context();
-+    ProxmoxBackupWaker waker = { .co = co, .ctx = ctx };
++    CoCtxData waker = { .co = co, .ctx = ctx };
 +    char *pbs_err = NULL;
 +    int pbs_res = -1;
 +
@@ -466,10 +460,10 @@ index 0000000000..b7bc7f2574
 +}
 diff --git a/proxmox-backup-client.h b/proxmox-backup-client.h
 new file mode 100644
-index 0000000000..b311bf8de8
+index 0000000000..1dda8b7d8f
 --- /dev/null
 +++ b/proxmox-backup-client.h
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,59 @@
 +#ifndef PROXMOX_BACKUP_CLIENT_H
 +#define PROXMOX_BACKUP_CLIENT_H
 +
@@ -477,6 +471,13 @@ index 0000000000..b311bf8de8
 +#include "qemu/coroutine.h"
 +#include "proxmox-backup-qemu.h"
 +
++typedef struct CoCtxData {
++    Coroutine *co;
++    AioContext *ctx;
++    void *data;
++} CoCtxData;
++
++// FIXME: Remove once coroutines are supported for QMP
 +void block_on_coroutine_fn(CoroutineEntry *entry, void *entry_arg);
 +
 +int coroutine_fn

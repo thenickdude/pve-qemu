@@ -20,38 +20,25 @@ Cases of aio_context_acquire/release from within what is now a coroutine
 are changed to aio_co_reschedule_self, which works since a running
 coroutine always holds the aio lock for the context it is running in.
 
-job_cancel_sync is changed to regular job_cancel, since job_cancel_sync
-uses AIO_WAIT_WHILE internally, which is forbidden from Coroutines.
+job_cancel_sync is called from a BH since it can't be run from a
+coroutine (uses AIO_WAIT_WHILE internally).
 
-create_backup_jobs cannot be run from a coroutine, so it is run
-directly. This does however mean that it runs unlocked, as it cannot
-acquire a CoMutex (see it's comment for rational on why that's ok).
+Same thing for create_backup_jobs, which is converted to a BH too.
 
 To communicate the finishing state, a new property is introduced to
 query-backup: 'finishing'. A new state is explicitly not used, since
 that would break compatibility with older qemu-server versions.
 
 [0] https://lists.gnu.org/archive/html/qemu-devel/2020-09/msg03515.html
----
- proxmox-backup-client.h |   1 +
- pve-backup.c            | 124 ++++++++++++++++++++++------------------
- qapi/block-core.json    |   5 +-
- 3 files changed, 74 insertions(+), 56 deletions(-)
 
-diff --git a/proxmox-backup-client.h b/proxmox-backup-client.h
-index 20fd6b1719..a4781c5851 100644
---- a/proxmox-backup-client.h
-+++ b/proxmox-backup-client.h
-@@ -5,6 +5,7 @@
- #include "qemu/coroutine.h"
- #include "proxmox-backup-qemu.h"
- 
-+// FIXME: Remove once coroutines are supported for QMP
- void block_on_coroutine_fn(CoroutineEntry *entry, void *entry_arg);
- 
- int coroutine_fn
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+---
+ pve-backup.c         | 148 ++++++++++++++++++++++++++-----------------
+ qapi/block-core.json |   5 +-
+ 2 files changed, 95 insertions(+), 58 deletions(-)
+
 diff --git a/pve-backup.c b/pve-backup.c
-index 9562e9c98d..53cf23ed5a 100644
+index 9562e9c98d..0466145bec 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -33,7 +33,9 @@ const char *PBS_BITMAP_NAME = "pbs-incremental-dirty-bitmap";
@@ -172,7 +159,7 @@ index 9562e9c98d..53cf23ed5a 100644
  
      // remove self from job list
      backup_state.di_list = g_list_remove(backup_state.di_list, di);
-@@ -310,21 +310,36 @@ static void pvebackup_complete_cb(void *opaque, int ret)
+@@ -310,21 +310,49 @@ static void pvebackup_complete_cb(void *opaque, int ret)
  
      /* call cleanup if we're the last job */
      if (!g_list_first(backup_state.di_list)) {
@@ -187,19 +174,33 @@ index 9562e9c98d..53cf23ed5a 100644
 -static void pvebackup_cancel(void)
 +static void pvebackup_complete_cb(void *opaque, int ret)
  {
-     assert(!qemu_in_coroutine());
- 
+-    assert(!qemu_in_coroutine());
 +    PVEBackupDevInfo *di = opaque;
 +    di->completed_ret = ret;
 +
 +    /*
 +     * Schedule stream cleanup in async coroutine. close_image and finish might
-+     * take a while, so we can't block on them here.
++     * take a while, so we can't block on them here. This way it also doesn't
++     * matter if we're already running in a coroutine or not.
 +     * Note: di is a pointer to an entry in the global backup_state struct, so
 +     * it stays valid.
 +     */
 +    Coroutine *co = qemu_coroutine_create(pvebackup_co_complete_stream, di);
-+    aio_co_schedule(qemu_get_aio_context(), co);
++    aio_co_enter(qemu_get_aio_context(), co);
++}
+ 
++/*
++ * job_cancel(_sync) does not like to be called from coroutines, so defer to
++ * main loop processing via a bottom half.
++ */
++static void job_cancel_bh(void *opaque) {
++    CoCtxData *data = (CoCtxData*)opaque;
++    Job *job = (Job*)data->data;
++    AioContext *job_ctx = job->aio_context;
++    aio_context_acquire(job_ctx);
++    job_cancel_sync(job);
++    aio_context_release(job_ctx);
++    aio_co_enter(data->ctx, data->co);
 +}
 +
 +static void coroutine_fn pvebackup_co_cancel(void *opaque)
@@ -213,14 +214,20 @@ index 9562e9c98d..53cf23ed5a 100644
  
      if (backup_state.vmaw) {
          /* make sure vma writer does not block anymore */
-@@ -342,27 +357,16 @@ static void pvebackup_cancel(void)
+@@ -342,27 +370,22 @@ static void pvebackup_cancel(void)
          ((PVEBackupDevInfo *)bdi->data)->job :
          NULL;
  
 -    /* ref the job before releasing the mutex, just to be safe */
      if (cancel_job) {
 -        job_ref(&cancel_job->job);
-+        job_cancel(&cancel_job->job, false);
++        CoCtxData data = {
++            .ctx = qemu_get_current_aio_context(),
++            .co = qemu_coroutine_self(),
++            .data = &cancel_job->job,
++        };
++        aio_bh_schedule_oneshot(data.ctx, job_cancel_bh, &data);
++        qemu_coroutine_yield();
      }
  
 -    /* job_cancel_sync may enter the job, so we need to release the
@@ -244,7 +251,7 @@ index 9562e9c98d..53cf23ed5a 100644
  }
  
  // assumes the caller holds backup_mutex
-@@ -415,6 +419,14 @@ static int coroutine_fn pvebackup_co_add_config(
+@@ -415,6 +438,14 @@ static int coroutine_fn pvebackup_co_add_config(
      goto out;
  }
  
@@ -259,7 +266,7 @@ index 9562e9c98d..53cf23ed5a 100644
  static bool create_backup_jobs(void) {
  
      assert(!qemu_in_coroutine());
-@@ -523,11 +535,12 @@ typedef struct QmpBackupTask {
+@@ -523,11 +554,12 @@ typedef struct QmpBackupTask {
      UuidInfo *result;
  } QmpBackupTask;
  
@@ -273,7 +280,18 @@ index 9562e9c98d..53cf23ed5a 100644
      QmpBackupTask *task = opaque;
  
      task->result = NULL; // just to be sure
-@@ -616,6 +629,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -548,8 +580,9 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+     const char *firewall_name = "qemu-server.fw";
+ 
+     if (backup_state.di_list) {
+-         error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
++        error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
+                   "previous backup not finished");
++        qemu_co_mutex_unlock(&backup_state.backup_mutex);
+         return;
+     }
+ 
+@@ -616,6 +649,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
          }
          di->size = size;
          total += size;
@@ -282,7 +300,7 @@ index 9562e9c98d..53cf23ed5a 100644
      }
  
      uuid_generate(uuid);
-@@ -847,6 +862,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -847,6 +882,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
      backup_state.stat.dirty = total - backup_state.stat.reused;
      backup_state.stat.transferred = 0;
      backup_state.stat.zero_bytes = 0;
@@ -290,7 +308,7 @@ index 9562e9c98d..53cf23ed5a 100644
  
      qemu_mutex_unlock(&backup_state.stat.lock);
  
-@@ -861,6 +877,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -861,6 +897,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
      uuid_info->UUID = uuid_str;
  
      task->result = uuid_info;
@@ -299,7 +317,7 @@ index 9562e9c98d..53cf23ed5a 100644
      return;
  
  err_mutex:
-@@ -903,6 +921,8 @@ err:
+@@ -903,6 +941,8 @@ err:
      }
  
      task->result = NULL;
@@ -308,7 +326,7 @@ index 9562e9c98d..53cf23ed5a 100644
      return;
  }
  
-@@ -956,22 +976,15 @@ UuidInfo *qmp_backup(
+@@ -956,22 +996,15 @@ UuidInfo *qmp_backup(
          .errp = errp,
      };
  
@@ -332,7 +350,7 @@ index 9562e9c98d..53cf23ed5a 100644
      }
  
      return task.result;
-@@ -1025,6 +1038,7 @@ BackupStatus *qmp_query_backup(Error **errp)
+@@ -1025,6 +1058,7 @@ BackupStatus *qmp_query_backup(Error **errp)
      info->transferred = backup_state.stat.transferred;
      info->has_reused = true;
      info->reused = backup_state.stat.reused;
