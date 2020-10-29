@@ -1,3 +1,11 @@
+pve-qemu-kvm (5.1.0-4) pve; urgency=medium
+
+  * several fixes for backup abort edgecases and error reporting
+
+  * allow to migrate dirty-bitmap and Proxmox Backup Server state
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 29 Oct 2020 18:09:16 +0100
+
 pve-qemu-kvm (5.1.0-3) pve; urgency=medium
 
   * backup: make more use of coroutines and do not block on finishing
