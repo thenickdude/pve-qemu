@@ -1,3 +1,9 @@
+pve-qemu-kvm (5.1.0-5) pve; urgency=medium
+
+  * migration/block-dirty-bitmap: migrate other bitmaps even if one fails
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 04 Nov 2020 18:36:32 +0100
+
 pve-qemu-kvm (5.1.0-4) pve; urgency=medium
 
   * several fixes for backup abort edgecases and error reporting
