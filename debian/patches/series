@@ -56,3 +56,4 @@ pve/0052-PVE-Backup-Use-more-coroutines-and-don-t-block-on-fi.patch
 pve/0053-PVE-fix-and-clean-up-error-handling-for-create_backu.patch
 pve/0054-migration-block-dirty-bitmap-fix-larger-granularity-.patch
 pve/0055-PVE-Migrate-dirty-bitmap-state-via-savevm.patch
+pve/0056-migration-block-dirty-bitmap-migrate-other-bitmaps-e.patch
