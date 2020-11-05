@@ -15,11 +15,11 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
  include/migration/misc.h |  3 ++
  migration/Makefile.objs  |  1 +
- migration/pbs-state.c    | 92 ++++++++++++++++++++++++++++++++++++++++
+ migration/pbs-state.c    | 97 ++++++++++++++++++++++++++++++++++++++++
  pve-backup.c             |  1 +
  qapi/block-core.json     |  9 +++-
  softmmu/vl.c             |  1 +
- 6 files changed, 106 insertions(+), 1 deletion(-)
+ 6 files changed, 111 insertions(+), 1 deletion(-)
  create mode 100644 migration/pbs-state.c
 
 diff --git a/include/migration/misc.h b/include/migration/misc.h
@@ -48,10 +48,10 @@ index 0fc619e380..20b3792599 100644
  common-obj-$(CONFIG_RDMA) += rdma.o
 diff --git a/migration/pbs-state.c b/migration/pbs-state.c
 new file mode 100644
-index 0000000000..165895b488
+index 0000000000..c711498c3e
 --- /dev/null
 +++ b/migration/pbs-state.c
-@@ -0,0 +1,92 @@
+@@ -0,0 +1,97 @@
 +/*
 + * PBS (dirty-bitmap) state migration
 + */
@@ -63,6 +63,12 @@ index 0000000000..165895b488
 +#include "migration/register.h"
 +#include "proxmox-backup-qemu.h"
 +
++typedef struct PBSState {
++    bool active;
++} PBSState;
++
++static PBSState pbs_state;
++
 +static void pbs_state_save_pending(QEMUFile *f, void *opaque,
 +                                      uint64_t max_size,
 +                                      uint64_t *res_precopy_only,
@@ -70,9 +76,6 @@ index 0000000000..165895b488
 +                                      uint64_t *res_postcopy_only)
 +{
 +    /* we send everything in save_setup, so nothing is ever pending */
-+    *res_precopy_only = 0;
-+    *res_compatible = 0;
-+    *res_postcopy_only = 0;
 +}
 +
 +/* receive PBS state via f and deserialize, called on target */
@@ -106,20 +109,21 @@ index 0000000000..165895b488
 +    qemu_put_buffer(f, buf, buf_size);
 +
 +    proxmox_free_state_buf(buf);
++    pbs_state.active = false;
 +    return 0;
 +}
 +
 +static bool pbs_state_is_active(void *opaque)
 +{
-+    /* always active, i.e. we do our job for every migration, since there's no
-+     * harm done if we just copy an empty buffer */
-+    return true;
++    // we need to be return active once, else .save_setup is never called, but,
++    // if we'd just would return true, we'd freeze the migration for ~ 5 - 10s
++    return pbs_state.active;
 +}
 +
 +static bool pbs_state_is_active_iterate(void *opaque)
 +{
 +    /* we don't iterate, everything is sent in save_setup */
-+    return false;
++    return pbs_state_is_active(opaque);
 +}
 +
 +static bool pbs_state_has_postcopy(void *opaque)
@@ -140,9 +144,10 @@ index 0000000000..165895b488
 +
 +void pbs_state_mig_init(void)
 +{
++    pbs_state.active = true;
 +    register_savevm_live("pbs-state", 0, 1,
 +                         &savevm_pbs_state_handlers,
-+                         NULL);
++                         &pbs_state);
 +}
 diff --git a/pve-backup.c b/pve-backup.c
 index 1a2647e7a5..c12ff8bb61 100644
