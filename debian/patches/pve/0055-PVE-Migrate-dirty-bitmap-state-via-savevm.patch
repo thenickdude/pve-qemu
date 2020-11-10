@@ -13,13 +13,13 @@ safe migration is possible and makes sense.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
- include/migration/misc.h |  3 ++
- migration/Makefile.objs  |  1 +
- migration/pbs-state.c    | 97 ++++++++++++++++++++++++++++++++++++++++
- pve-backup.c             |  1 +
- qapi/block-core.json     |  6 +++
- softmmu/vl.c             |  1 +
- 6 files changed, 109 insertions(+)
+ include/migration/misc.h |   3 ++
+ migration/Makefile.objs  |   1 +
+ migration/pbs-state.c    | 106 +++++++++++++++++++++++++++++++++++++++
+ pve-backup.c             |   1 +
+ qapi/block-core.json     |   6 +++
+ softmmu/vl.c             |   1 +
+ 6 files changed, 118 insertions(+)
  create mode 100644 migration/pbs-state.c
 
 diff --git a/include/migration/misc.h b/include/migration/misc.h
@@ -48,10 +48,10 @@ index 0fc619e380..20b3792599 100644
  common-obj-$(CONFIG_RDMA) += rdma.o
 diff --git a/migration/pbs-state.c b/migration/pbs-state.c
 new file mode 100644
-index 0000000000..c711498c3e
+index 0000000000..29f2b3860d
 --- /dev/null
 +++ b/migration/pbs-state.c
-@@ -0,0 +1,97 @@
+@@ -0,0 +1,106 @@
 +/*
 + * PBS (dirty-bitmap) state migration
 + */
@@ -67,6 +67,7 @@ index 0000000000..c711498c3e
 +    bool active;
 +} PBSState;
 +
++/* state is accessed via this static variable directly, 'opaque' is NULL */
 +static PBSState pbs_state;
 +
 +static void pbs_state_save_pending(QEMUFile *f, void *opaque,
@@ -115,8 +116,9 @@ index 0000000000..c711498c3e
 +
 +static bool pbs_state_is_active(void *opaque)
 +{
-+    // we need to be return active once, else .save_setup is never called, but,
-+    // if we'd just would return true, we'd freeze the migration for ~ 5 - 10s
++    /* we need to return active exactly once, else .save_setup is never called,
++     * but if we'd just return true the migration doesn't make progress since
++     * it'd be waiting for us */
 +    return pbs_state.active;
 +}
 +
@@ -133,6 +135,12 @@ index 0000000000..c711498c3e
 +    return false;
 +}
 +
++static void pbs_state_save_cleanup(void *opaque)
++{
++    /* reset active after migration succeeds or fails */
++    pbs_state.active = false;
++}
++
 +static SaveVMHandlers savevm_pbs_state_handlers = {
 +    .save_setup = pbs_state_save_setup,
 +    .has_postcopy = pbs_state_has_postcopy,
@@ -140,6 +148,7 @@ index 0000000000..c711498c3e
 +    .is_active_iterate = pbs_state_is_active_iterate,
 +    .load_state = pbs_state_load,
 +    .is_active = pbs_state_is_active,
++    .save_cleanup = pbs_state_save_cleanup,
 +};
 +
 +void pbs_state_mig_init(void)
@@ -147,7 +156,7 @@ index 0000000000..c711498c3e
 +    pbs_state.active = true;
 +    register_savevm_live("pbs-state", 0, 1,
 +                         &savevm_pbs_state_handlers,
-+                         &pbs_state);
++                         NULL);
 +}
 diff --git a/pve-backup.c b/pve-backup.c
 index c7cde0fb0e..f65f1dda26 100644
