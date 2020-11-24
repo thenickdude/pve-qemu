@@ -9,7 +9,7 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  1 file changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index 2539ae1520..0e293a4f5e 100644
+index 6bf138cfc6..cd3a132d8b 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -958,6 +958,8 @@ UuidInfo *qmp_backup(

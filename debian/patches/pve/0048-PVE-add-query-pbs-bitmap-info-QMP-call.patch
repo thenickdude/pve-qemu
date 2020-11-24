@@ -10,8 +10,8 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
  monitor/hmp-cmds.c   |  28 ++++++-----
  pve-backup.c         | 117 ++++++++++++++++++++++++++++++++-----------
- qapi/block-core.json |  57 ++++++++++++++++++++-
- 3 files changed, 159 insertions(+), 43 deletions(-)
+ qapi/block-core.json |  56 +++++++++++++++++++++
+ 3 files changed, 159 insertions(+), 42 deletions(-)
 
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
 index 3ff014d32a..c3227a1498 100644
@@ -68,7 +68,7 @@ index 3ff014d32a..c3227a1498 100644
                             info->zero_bytes, zero_per);
  
 diff --git a/pve-backup.c b/pve-backup.c
-index 562fcc20f7..04c21c80aa 100644
+index bd802c6205..2db4a62580 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -46,6 +46,7 @@ static struct PVEBackupState {
@@ -314,7 +314,7 @@ index 562fcc20f7..04c21c80aa 100644
  err:
  
      l = di_list;
-@@ -1074,9 +1100,40 @@ BackupStatus *qmp_query_backup(Error **errp)
+@@ -1074,10 +1100,41 @@ BackupStatus *qmp_query_backup(Error **errp)
      return info;
  }
  
@@ -351,28 +351,31 @@ index 562fcc20f7..04c21c80aa 100644
  ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
  {
      ProxmoxSupportStatus *ret = g_malloc0(sizeof(*ret));
+     ret->pbs_library_version = g_strdup(proxmox_backup_qemu_version());
      ret->pbs_dirty_bitmap = true;
 +    ret->query_bitmap_info = true;
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 6dd5e35473..5fc42e87f3 100644
+index 1ed5987c88..03fc0af99b 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -885,9 +885,11 @@
+@@ -885,11 +885,14 @@
  # @pbs-dirty-bitmap: True if dirty-bitmap-incremental backups to PBS are
  #                    supported.
  #
 +# @query-bitmap-info: True if the 'query-pbs-bitmap-info' QMP call is supported.
 +#
+ # @pbs-library-version: Running version of libproxmox-backup-qemu0 library.
+ #
  ##
  { 'struct': 'ProxmoxSupportStatus',
--  'data': { 'pbs-dirty-bitmap': 'bool' } }
-+  'data': { 'pbs-dirty-bitmap': 'bool', 'query-bitmap-info': 'bool' } }
+   'data': { 'pbs-dirty-bitmap': 'bool',
++            'query-bitmap-info': 'bool',
+             'pbs-library-version': 'str' } }
  
  ##
- # @query-proxmox-support:
-@@ -899,6 +901,59 @@
+@@ -902,6 +905,59 @@
  ##
  { 'command': 'query-proxmox-support', 'returns': 'ProxmoxSupportStatus' }
  

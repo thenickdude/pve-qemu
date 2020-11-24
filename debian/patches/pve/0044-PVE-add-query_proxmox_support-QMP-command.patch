@@ -8,16 +8,18 @@ backup support.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+[PVE: query-proxmox-support: include library version]
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
- pve-backup.c         |  7 +++++++
- qapi/block-core.json | 22 ++++++++++++++++++++++
- 2 files changed, 29 insertions(+)
+ pve-backup.c         |  8 ++++++++
+ qapi/block-core.json | 25 +++++++++++++++++++++++++
+ 2 files changed, 33 insertions(+)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index bfb648d6b5..2539ae1520 100644
+index bfb648d6b5..6bf138cfc6 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
-@@ -1051,3 +1051,10 @@ BackupStatus *qmp_query_backup(Error **errp)
+@@ -1051,3 +1051,11 @@ BackupStatus *qmp_query_backup(Error **errp)
  
      return info;
  }
@@ -25,14 +27,15 @@ index bfb648d6b5..2539ae1520 100644
 +ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
 +{
 +    ProxmoxSupportStatus *ret = g_malloc0(sizeof(*ret));
++    ret->pbs_library_version = g_strdup(proxmox_backup_qemu_version());
 +    ret->pbs_dirty_bitmap = true;
 +    return ret;
 +}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index f782c2cf96..6dd5e35473 100644
+index f782c2cf96..1ed5987c88 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -877,6 +877,28 @@
+@@ -877,6 +877,31 @@
  ##
  { 'command': 'backup-cancel' }
  
@@ -44,9 +47,12 @@ index f782c2cf96..6dd5e35473 100644
 +# @pbs-dirty-bitmap: True if dirty-bitmap-incremental backups to PBS are
 +#                    supported.
 +#
++# @pbs-library-version: Running version of libproxmox-backup-qemu0 library.
++#
 +##
 +{ 'struct': 'ProxmoxSupportStatus',
-+  'data': { 'pbs-dirty-bitmap': 'bool' } }
++  'data': { 'pbs-dirty-bitmap': 'bool',
++            'pbs-library-version': 'str' } }
 +
 +##
 +# @query-proxmox-support:

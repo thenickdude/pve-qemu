@@ -17,9 +17,9 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  migration/Makefile.objs  |  1 +
  migration/pbs-state.c    | 97 ++++++++++++++++++++++++++++++++++++++++
  pve-backup.c             |  1 +
- qapi/block-core.json     |  9 +++-
+ qapi/block-core.json     |  6 +++
  softmmu/vl.c             |  1 +
- 6 files changed, 111 insertions(+), 1 deletion(-)
+ 6 files changed, 109 insertions(+)
  create mode 100644 migration/pbs-state.c
 
 diff --git a/include/migration/misc.h b/include/migration/misc.h
@@ -150,21 +150,21 @@ index 0000000000..c711498c3e
 +                         &pbs_state);
 +}
 diff --git a/pve-backup.c b/pve-backup.c
-index 1a2647e7a5..c12ff8bb61 100644
+index c7cde0fb0e..f65f1dda26 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
-@@ -1129,5 +1129,6 @@ ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
-     ProxmoxSupportStatus *ret = g_malloc0(sizeof(*ret));
+@@ -1130,5 +1130,6 @@ ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
+     ret->pbs_library_version = g_strdup(proxmox_backup_qemu_version());
      ret->pbs_dirty_bitmap = true;
      ret->query_bitmap_info = true;
 +    ret->pbs_dirty_bitmap_migration = true;
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index b31ad8d989..00c9e12fcc 100644
+index 29650896e2..0da4b35028 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -890,9 +890,16 @@
+@@ -890,12 +890,18 @@
  #
  # @query-bitmap-info: True if the 'query-pbs-bitmap-info' QMP call is supported.
  #
@@ -173,15 +173,16 @@ index b31ad8d989..00c9e12fcc 100644
 +#                              migration cap if this is false/unset may lead
 +#                              to crashes on migration!
 +#
+ # @pbs-library-version: Running version of libproxmox-backup-qemu0 library.
+ #
  ##
  { 'struct': 'ProxmoxSupportStatus',
--  'data': { 'pbs-dirty-bitmap': 'bool', 'query-bitmap-info': 'bool' } }
-+  'data': { 'pbs-dirty-bitmap': 'bool',
-+            'query-bitmap-info': 'bool',
-+            'pbs-dirty-bitmap-migration': 'bool' } }
+   'data': { 'pbs-dirty-bitmap': 'bool',
+             'query-bitmap-info': 'bool',
++            'pbs-dirty-bitmap-migration': 'bool',
+             'pbs-library-version': 'str' } }
  
  ##
- # @query-proxmox-support:
 diff --git a/softmmu/vl.c b/softmmu/vl.c
 index 16aa2186b0..88b13871fd 100644
 --- a/softmmu/vl.c
