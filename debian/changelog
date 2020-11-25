@@ -1,3 +1,9 @@
+pve-qemu-kvm (5.1.0-7) pve; urgency=medium
+
+  * allow to query the loaded Proxmox Backup library version
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 25 Nov 2020 14:09:16 +0100
+
 pve-qemu-kvm (5.1.0-6) pve; urgency=medium
 
   * migration/block-dirty-bitmap: avoid telling QEMU that the bitmap migration
