@@ -60,7 +60,6 @@ config.status: configure
 	--enable-docs \
 	--enable-glusterfs \
 	--enable-gnutls \
-	--enable-jemalloc \
 	--enable-libiscsi \
 	--enable-libusb \
 	--enable-linux-aio \
