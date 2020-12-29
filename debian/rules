@@ -43,7 +43,7 @@ endif
 	    --localstatedir=/var \
 	    --prefix=/usr \
 	    --sysconfdir=/etc \
-	    --target-list=$(HOST_CPU)-softmmu,aarch64-softmmu \
+	    --target-list=$(HOST_CPU)-softmmu,aarch64-softmmu,mips-softmmu,mips64-softmmu,mips64el-softmmu,mipsel-softmmu,ppc-softmmu,ppc64-softmmu,riscv32-softmmu,riscv64-softmmu \
 	    --with-suffix="kvm" \
 	    --with-pkgversion="${DEB_SOURCE}_${DEB_VERSION_UPSTREAM_REVISION}" \
 	    --audio-drv-list="alsa" \
@@ -59,6 +59,9 @@ endif
 	    --disable-smartcard \
 	    --disable-strip \
 	    --disable-xen \
+	    --disable-jack \
+	    --disable-sndio \
+	    --disable-xkbcommon \
 	    --enable-curl \
 	    --enable-docs \
 	    --enable-glusterfs \
@@ -116,7 +119,6 @@ install: build
 	# Remove things we don't package at all, would be a "kvm-dev" package
 	rm -Rf $(destdir)/usr/include/linux/
 	rm -Rf $(destdir)/usr/include
-	rm -f $(destdir)/usr/lib/kvm/qemu-bridge-helper
 	rm -f $(destdir)/usr/lib/kvm/virtfs-proxy-helper
 
 	# CPU flags are static for QEMU version, allows avoiding more costly checks
