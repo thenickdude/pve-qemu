@@ -69,12 +69,16 @@ Conflicts: kvm,
            qemu-system-arm,
            qemu-system-common,
            qemu-system-x86,
+           qemu-system-mips, 
+           qemu-system-ppc,
            qemu-utils,
-Provides: qemu-system-arm, qemu-system-x86, qemu-utils
+Provides: qemu-system-arm, qemu-system-x86, qemu-system-mips, qemu-system-ppc, qemu-utils
 Replaces: pve-kvm,
           pve-qemu-kvm-2.6.18,
           qemu-system-arm,
           qemu-system-x86,
+          qemu-system-mips, 
+          qemu-system-ppc,
           qemu-utils,
 Description: Full virtualization on x86 hardware
  Using KVM, one can run multiple virtual PCs, each running unmodified Linux or

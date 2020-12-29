@@ -45,7 +45,7 @@ ${BUILDDIR}/config.status: configure
 	--localstatedir=/var \
 	--prefix=/usr \
 	--sysconfdir=/etc \
-	--target-list=$(ARCH)-softmmu,aarch64-softmmu \
+	--target-list=$(ARCH)-softmmu,aarch64-softmmu,mips-softmmu,mips64-softmmu,mips64el-softmmu,mipsel-softmmu,ppc-softmmu,ppc64-softmmu,riscv32-softmmu,riscv64-softmmu \
 	--with-suffix="kvm" \
 	--with-pkgversion="${DEB_SOURCE}_${DEB_VERSION_UPSTREAM}" \
 	--audio-drv-list="alsa" \
@@ -116,15 +116,6 @@ install: build
 	# Add here commands to install the package into debian/pve-kvm.
 	$(MAKE) DESTDIR=$(destdir) install
 
-	# we do not need openbios files (sparc/ppc)
-	rm -rf $(destdir)/usr/share/kvm/openbios-*
-	# remove ppc files
-	rm $(destdir)/usr/share/kvm/*.dtb
-	rm $(destdir)/usr/share/kvm/s390-ccw.img
-	rm $(destdir)/usr/share/kvm/s390-netboot.img
-	rm $(destdir)/usr/share/kvm/qemu_vga.ndrv
-	rm $(destdir)/usr/share/kvm/slof.bin
-	rm $(destdir)/usr/share/kvm/u-boot.e500
 	# remove Alpha files
 	rm $(destdir)/usr/share/kvm/palcode-clipper
 	# remove RISC-V files
