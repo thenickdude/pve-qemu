@@ -57,3 +57,4 @@ pve/0053-PVE-fix-and-clean-up-error-handling-for-create_backu.patch
 pve/0054-migration-block-dirty-bitmap-fix-larger-granularity-.patch
 pve/0055-PVE-Migrate-dirty-bitmap-state-via-savevm.patch
 pve/0056-migration-block-dirty-bitmap-migrate-other-bitmaps-e.patch
+pve/0057-PVE-fix-aborting-multiple-CREATED-jobs-in-sequential.patch
