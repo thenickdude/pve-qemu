@@ -1,3 +1,13 @@
+pve-qemu-kvm (5.1.0-8) pve; urgency=medium
+
+  * disable jemalloc, as it does not play nice with our library written in
+    rust
+
+  * fix #3225: properly cancel jobs in 'created' state when cancelling or
+    failing backup jobs
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 07 Jan 2021 10:27:33 +0100
+
 pve-qemu-kvm (5.1.0-7) pve; urgency=medium
 
   * allow to query the loaded Proxmox Backup library version
