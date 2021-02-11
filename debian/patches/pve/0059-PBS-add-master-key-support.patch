@@ -1,0 +1,97 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Wed, 10 Feb 2021 11:07:06 +0100
+Subject: [PATCH] PBS: add master key support
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+this requires a new enough libproxmox-backup-qemu0, and allows querying
+from the PVE side to avoid QMP calls with unsupported parameters.
+
+Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+---
+ block/monitor/block-hmp-cmds.c | 1 +
+ pve-backup.c                   | 3 +++
+ qapi/block-core.json           | 7 +++++++
+ 3 files changed, 11 insertions(+)
+
+diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
+index 11c84d5508..0932deb28c 100644
+--- a/block/monitor/block-hmp-cmds.c
++++ b/block/monitor/block-hmp-cmds.c
+@@ -1036,6 +1036,7 @@ void coroutine_fn hmp_backup(Monitor *mon, const QDict *qdict)
+         false, NULL, // PBS password
+         false, NULL, // PBS keyfile
+         false, NULL, // PBS key_password
++        false, NULL, // PBS master_keyfile
+         false, NULL, // PBS fingerprint
+         false, NULL, // PBS backup-id
+         false, 0, // PBS backup-time
+diff --git a/pve-backup.c b/pve-backup.c
+index f7597ae55c..0ecadf6ce6 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -531,6 +531,7 @@ UuidInfo coroutine_fn *qmp_backup(
+     bool has_password, const char *password,
+     bool has_keyfile, const char *keyfile,
+     bool has_key_password, const char *key_password,
++    bool has_master_keyfile, const char *master_keyfile,
+     bool has_fingerprint, const char *fingerprint,
+     bool has_backup_id, const char *backup_id,
+     bool has_backup_time, int64_t backup_time,
+@@ -679,6 +680,7 @@ UuidInfo coroutine_fn *qmp_backup(
+             has_password ? password : NULL,
+             has_keyfile ? keyfile : NULL,
+             has_key_password ? key_password : NULL,
++            has_master_keyfile ? master_keyfile : NULL,
+             has_compress ? compress : true,
+             has_encrypt ? encrypt : has_keyfile,
+             has_fingerprint ? fingerprint : NULL,
+@@ -1041,5 +1043,6 @@ ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
+     ret->pbs_dirty_bitmap = true;
+     ret->query_bitmap_info = true;
+     ret->pbs_dirty_bitmap_migration = true;
++    ret->pbs_masterkey = true;
+     return ret;
+ }
+diff --git a/qapi/block-core.json b/qapi/block-core.json
+index 82133e2bee..be3d6a0d37 100644
+--- a/qapi/block-core.json
++++ b/qapi/block-core.json
+@@ -818,6 +818,8 @@
+ #
+ # @key-password: password for keyfile (optional for format 'pbs')
+ #
++# @master-keyfile: PEM-formatted master public keyfile (optional for format 'pbs')
++#
+ # @fingerprint: server cert fingerprint (optional for format 'pbs')
+ #
+ # @backup-id: backup ID (required for format 'pbs')
+@@ -837,6 +839,7 @@
+                                     '*password': 'str',
+                                     '*keyfile': 'str',
+                                     '*key-password': 'str',
++                                    '*master-keyfile': 'str',
+                                     '*fingerprint': 'str',
+                                     '*backup-id': 'str',
+                                     '*backup-time': 'int',
+@@ -886,6 +889,9 @@
+ #                              migration cap if this is false/unset may lead
+ #                              to crashes on migration!
+ #
++# @pbs-masterkey: True if the QMP backup call supports the 'master_keyfile'
++#                 parameter.
++#
+ # @pbs-library-version: Running version of libproxmox-backup-qemu0 library.
+ #
+ ##
+@@ -893,6 +899,7 @@
+   'data': { 'pbs-dirty-bitmap': 'bool',
+             'query-bitmap-info': 'bool',
+             'pbs-dirty-bitmap-migration': 'bool',
++            'pbs-masterkey': 'bool',
+             'pbs-library-version': 'str' } }
+ 
+ ##

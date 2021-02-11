@@ -59,3 +59,4 @@ pve/0055-migration-block-dirty-bitmap-migrate-other-bitmaps-e.patch
 pve/0056-PVE-fix-aborting-multiple-CREATED-jobs-in-sequential.patch
 pve/0057-PVE-fall-back-to-open-iscsi-initiatorname.patch
 pve/0058-PVE-Use-coroutine-QMP-for-backup-cancel_backup.patch
+pve/0059-PBS-add-master-key-support.patch
