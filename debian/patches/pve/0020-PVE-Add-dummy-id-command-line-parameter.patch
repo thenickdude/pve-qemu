@@ -14,10 +14,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 11 insertions(+)
 
 diff --git a/qemu-options.hx b/qemu-options.hx
-index d32995cc50..abfde19ce0 100644
+index c1352312c2..9a0cb6780e 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -914,6 +914,9 @@ DEFHEADING()
+@@ -906,6 +906,9 @@ DEFHEADING()
  
  DEFHEADING(Block device options:)
  
@@ -28,10 +28,10 @@ index d32995cc50..abfde19ce0 100644
      "-fda/-fdb file  use 'file' as floppy disk 0/1 image\n", QEMU_ARCH_ALL)
  DEF("fdb", HAS_ARG, QEMU_OPTION_fdb, "", QEMU_ARCH_ALL)
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 670b7e427c..366e30e594 100644
+index 03152c816c..da204d24f0 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -2832,6 +2832,7 @@ static void create_default_memdev(MachineState *ms, const char *path)
+@@ -2866,6 +2866,7 @@ static char *find_datadir(void)
  void qemu_init(int argc, char **argv, char **envp)
  {
      int i;
@@ -39,7 +39,7 @@ index 670b7e427c..366e30e594 100644
      int snapshot, linux_boot;
      const char *initrd_filename;
      const char *kernel_filename, *kernel_cmdline;
-@@ -3530,6 +3531,13 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -3557,6 +3558,13 @@ void qemu_init(int argc, char **argv, char **envp)
                      exit(1);
                  }
                  break;

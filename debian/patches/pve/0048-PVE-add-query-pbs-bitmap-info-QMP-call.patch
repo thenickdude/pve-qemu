@@ -14,10 +14,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  3 files changed, 159 insertions(+), 42 deletions(-)
 
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 3ff014d32a..c3227a1498 100644
+index 604026bb37..95f4e7f5c1 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
-@@ -195,6 +195,7 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
+@@ -198,6 +198,7 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
  void hmp_info_backup(Monitor *mon, const QDict *qdict)
  {
      BackupStatus *info;
@@ -25,7 +25,7 @@ index 3ff014d32a..c3227a1498 100644
  
      info = qmp_query_backup(NULL);
  
-@@ -225,26 +226,29 @@ void hmp_info_backup(Monitor *mon, const QDict *qdict)
+@@ -228,26 +229,29 @@ void hmp_info_backup(Monitor *mon, const QDict *qdict)
              // this should not happen normally
              monitor_printf(mon, "Total size: %d\n", 0);
          } else {
@@ -68,7 +68,7 @@ index 3ff014d32a..c3227a1498 100644
                             info->zero_bytes, zero_per);
  
 diff --git a/pve-backup.c b/pve-backup.c
-index bd802c6205..2db4a62580 100644
+index 40c2697b37..1e7b92a950 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -46,6 +46,7 @@ static struct PVEBackupState {
@@ -357,10 +357,10 @@ index bd802c6205..2db4a62580 100644
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 1ed5987c88..03fc0af99b 100644
+index e0a0a60354..b368371e8e 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -885,11 +885,14 @@
+@@ -876,11 +876,14 @@
  # @pbs-dirty-bitmap: True if dirty-bitmap-incremental backups to PBS are
  #                    supported.
  #
@@ -375,7 +375,7 @@ index 1ed5987c88..03fc0af99b 100644
              'pbs-library-version': 'str' } }
  
  ##
-@@ -902,6 +905,59 @@
+@@ -893,6 +896,59 @@
  ##
  { 'command': 'query-proxmox-support', 'returns': 'ProxmoxSupportStatus' }
  

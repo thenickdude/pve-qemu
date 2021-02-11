@@ -23,6 +23,9 @@ destdir := $(CURDIR)/debian/$(PACKAGE)
 
 flagfile := $(destdir)/usr/share/kvm/recognized-CPUID-flags-x86_64
 
+# default QEMU out-of-tree build directory is ./build
+BUILDDIR=build
+
 CFLAGS = -Wall
 
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
@@ -31,7 +34,7 @@ else
 	CFLAGS += -O2
 endif
 
-config.status: configure
+${BUILDDIR}/config.status: configure
 	dh_testdir
 	# Add here commands to configure the package.
 
@@ -42,7 +45,7 @@ config.status: configure
 	--prefix=/usr \
 	--sysconfdir=/etc \
 	--target-list=$(ARCH)-softmmu,aarch64-softmmu \
-	--with-confsuffix="/kvm" \
+	--with-suffix="kvm" \
 	--with-pkgversion="${DEB_SOURCE}_${DEB_VERSION_UPSTREAM}" \
 	--audio-drv-list="alsa" \
 	--datadir=/usr/share \
@@ -73,7 +76,7 @@ config.status: configure
 
 build: build-stamp
 
-build-stamp:  config.status
+build-stamp: ${BUILDDIR}/config.status
 	dh_testdir
 
 	# Add here commands to compile the package.
@@ -121,6 +124,9 @@ install: build
 	rm $(destdir)/usr/share/kvm/u-boot.e500
 	# remove Aplha files
 	rm $(destdir)/usr/share/kvm/palcode-clipper
+	# remove RISC-V files
+	rm $(destdir)/usr/share/kvm/opensbi-riscv32-generic-fw_dynamic.elf
+	rm $(destdir)/usr/share/kvm/opensbi-riscv64-generic-fw_dynamic.elf
 
 	# Remove things we don't package at all, would be a "kvm-dev" package
 	rm -Rf $(destdir)/usr/include/linux/

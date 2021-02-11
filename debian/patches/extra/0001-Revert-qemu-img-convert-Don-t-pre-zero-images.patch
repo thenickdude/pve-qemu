@@ -12,10 +12,10 @@ https://bugzilla.proxmox.com/show_bug.cgi?id=3002
  1 file changed, 9 insertions(+)
 
 diff --git a/qemu-img.c b/qemu-img.c
-index 9635e9c001..c7884d248a 100644
+index 8bdea40b58..f9050bfaad 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -2079,6 +2079,15 @@ static int convert_do_copy(ImgConvertState *s)
+@@ -2104,6 +2104,15 @@ static int convert_do_copy(ImgConvertState *s)
          s->has_zero_init = bdrv_has_zero_init(blk_bs(s->target));
      }
  

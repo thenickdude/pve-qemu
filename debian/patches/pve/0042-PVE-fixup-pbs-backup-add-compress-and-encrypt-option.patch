@@ -10,10 +10,10 @@ Subject: [PATCH] PVE: fixup pbs backup, add compress and encrypt options
  3 files changed, 21 insertions(+), 2 deletions(-)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index fdc85a5c0e..43aa87487b 100644
+index 056d14deee..46c63b1cf9 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
-@@ -1038,7 +1038,9 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
+@@ -1039,7 +1039,9 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
          false, NULL, // PBS fingerprint
          false, NULL, // PBS backup-id
          false, 0, // PBS backup-time
@@ -78,10 +78,10 @@ index 1cd9d31d7c..bfb648d6b5 100644
          .speed = speed,
          .errp = errp,
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index e00e577c6c..a177fea6cd 100644
+index d4e1c98c50..0fda1e3fd3 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -832,6 +832,10 @@
+@@ -823,6 +823,10 @@
  #
  # @use-dirty-bitmap: use dirty bitmap to detect incremental changes since last job (optional for format 'pbs')
  #
@@ -92,7 +92,7 @@ index e00e577c6c..a177fea6cd 100644
  # Returns: the uuid of the backup job
  #
  ##
-@@ -843,6 +847,8 @@
+@@ -834,6 +838,8 @@
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',
                                      '*use-dirty-bitmap': 'bool',

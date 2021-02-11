@@ -19,6 +19,9 @@ submodule:
 	test -f "${SRCDIR}/configure" || git submodule update --init --recursive
 
 $(BUILDDIR): keycodemapdb | submodule
+	# check if qemu/ was used for a build
+	# if so, please run 'make distclean' in the submodule and try again
+	test ! -f $(SRCDIR)/build/config.status
 	rm -rf $(BUILDDIR)
 	cp -a $(SRCDIR) $(BUILDDIR)
 	cp -a debian $(BUILDDIR)/debian

@@ -5,29 +5,29 @@ Subject: [PATCH] PVE: block: add the zeroinit block driver filter
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- block/Makefile.objs |   1 +
- block/zeroinit.c    | 198 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 199 insertions(+)
+ block/meson.build |   1 +
+ block/zeroinit.c  | 196 ++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 197 insertions(+)
  create mode 100644 block/zeroinit.c
 
-diff --git a/block/Makefile.objs b/block/Makefile.objs
-index 19c6f371c9..d1a9227b8f 100644
---- a/block/Makefile.objs
-+++ b/block/Makefile.objs
-@@ -11,6 +11,7 @@ block-obj-$(CONFIG_QED) += qed.o qed-l2-cache.o qed-table.o qed-cluster.o
- block-obj-$(CONFIG_QED) += qed-check.o
- block-obj-y += vhdx.o vhdx-endian.o vhdx-log.o
- block-obj-y += quorum.o
-+block-obj-y += zeroinit.o
- block-obj-y += blkdebug.o blkverify.o blkreplay.o
- block-obj-$(CONFIG_PARALLELS) += parallels.o
- block-obj-y += blklogwrites.o
+diff --git a/block/meson.build b/block/meson.build
+index 5dcc1e5cce..c10d544864 100644
+--- a/block/meson.build
++++ b/block/meson.build
+@@ -39,6 +39,7 @@ block_ss.add(files(
+   'vmdk.c',
+   'vpc.c',
+   'write-threshold.c',
++  'zeroinit.c',
+ ), zstd, zlib)
+ 
+ softmmu_ss.add(when: 'CONFIG_TCG', if_true: files('blkreplay.c'))
 diff --git a/block/zeroinit.c b/block/zeroinit.c
 new file mode 100644
-index 0000000000..4fbb80eab0
+index 0000000000..5529627f7e
 --- /dev/null
 +++ b/block/zeroinit.c
-@@ -0,0 +1,198 @@
+@@ -0,0 +1,196 @@
 +/*
 + * Filter to fake a zero-initialized block device.
 + *
@@ -211,8 +211,6 @@ index 0000000000..4fbb80eab0
 +    .is_filter                        = true,
 +
 +    .bdrv_has_zero_init               = zeroinit_has_zero_init,
-+
-+    .bdrv_co_block_status             = bdrv_co_block_status_from_file,
 +
 +    .bdrv_co_pdiscard                 = zeroinit_co_pdiscard,
 +

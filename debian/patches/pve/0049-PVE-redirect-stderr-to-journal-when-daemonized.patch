@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Stefan Reiter <s.reiter@proxmox.com>
-Date: Tue, 30 Jun 2020 13:10:10 +0200
+Date: Tue, 12 Jan 2021 14:12:20 +0100
 Subject: [PATCH] PVE: redirect stderr to journal when daemonized
 
 QEMU uses the logging for error messages usually, so LOG_ERR is most
@@ -8,24 +8,32 @@ fitting.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
- Makefile.objs | 1 +
- os-posix.c    | 7 +++++--
- 2 files changed, 6 insertions(+), 2 deletions(-)
+ meson.build | 2 ++
+ os-posix.c  | 7 +++++--
+ 2 files changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/Makefile.objs b/Makefile.objs
-index 240eb503f2..c7ba4e11e7 100644
---- a/Makefile.objs
-+++ b/Makefile.objs
-@@ -54,6 +54,7 @@ common-obj-y += net/
- common-obj-y += qdev-monitor.o
- common-obj-$(CONFIG_WIN32) += os-win32.o
- common-obj-$(CONFIG_POSIX) += os-posix.o
-+os-posix.o-libs := -lsystemd
+diff --git a/meson.build b/meson.build
+index 4d156d35ce..737ea9e5d7 100644
+--- a/meson.build
++++ b/meson.build
+@@ -726,6 +726,7 @@ keyutils = dependency('libkeyutils', required: false,
+ has_gettid = cc.has_function('gettid')
  
- common-obj-$(CONFIG_LINUX) += fsdev/
+ libuuid = cc.find_library('uuid', required: true)
++libsystemd = cc.find_library('systemd', required: true)
+ libproxmox_backup_qemu = cc.find_library('proxmox_backup_qemu', required: true)
  
+ # Malloc tests
+@@ -1539,6 +1540,7 @@ blockdev_ss.add(files(
+ # os-posix.c contains POSIX-specific functions used by qemu-storage-daemon,
+ # os-win32.c does not
+ blockdev_ss.add(when: 'CONFIG_POSIX', if_true: files('os-posix.c'))
++blockdev_ss.add(when: 'CONFIG_POSIX', if_true: libsystemd)
+ softmmu_ss.add(when: 'CONFIG_WIN32', if_true: [files('os-win32.c')])
+ 
+ common_ss.add(files('cpus-common.c'))
 diff --git a/os-posix.c b/os-posix.c
-index 3572db3f44..b45dde63ac 100644
+index 1de2839554..ac4f652923 100644
 --- a/os-posix.c
 +++ b/os-posix.c
 @@ -28,6 +28,8 @@
@@ -37,7 +45,7 @@ index 3572db3f44..b45dde63ac 100644
  
  #include "qemu-common.h"
  /* Needed early for CONFIG_BSD etc. */
-@@ -312,9 +314,10 @@ void os_setup_post(void)
+@@ -288,9 +290,10 @@ void os_setup_post(void)
  
          dup2(fd, 0);
          dup2(fd, 1);

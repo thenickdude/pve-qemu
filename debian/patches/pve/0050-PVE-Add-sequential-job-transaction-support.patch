@@ -33,7 +33,7 @@ index 32aabb1c60..f7a6a0926a 100644
   * Release a reference that was previously acquired with job_txn_add_job or
   * job_txn_new. If it's the last reference to the object, it will be freed.
 diff --git a/job.c b/job.c
-index b8139c80a4..97ee97a192 100644
+index f9884e7d9d..8f06e05fbf 100644
 --- a/job.c
 +++ b/job.c
 @@ -72,6 +72,8 @@ struct JobTxn {

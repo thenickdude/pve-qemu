@@ -22,7 +22,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  1 file changed, 54 insertions(+), 25 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index 4402c0cb17..c7cde0fb0e 100644
+index f3b8ce1f3a..ded90cb822 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -50,6 +50,7 @@ static struct PVEBackupState {

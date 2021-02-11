@@ -14,12 +14,12 @@ safe migration is possible and makes sense.
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
  include/migration/misc.h |   3 ++
- migration/Makefile.objs  |   1 +
+ migration/meson.build    |   2 +
  migration/pbs-state.c    | 106 +++++++++++++++++++++++++++++++++++++++
  pve-backup.c             |   1 +
  qapi/block-core.json     |   6 +++
  softmmu/vl.c             |   1 +
- 6 files changed, 118 insertions(+)
+ 6 files changed, 119 insertions(+)
  create mode 100644 migration/pbs-state.c
 
 diff --git a/include/migration/misc.h b/include/migration/misc.h
@@ -34,18 +34,21 @@ index 34e7d75713..f83816dd3c 100644
 +void pbs_state_mig_init(void);
 +
  #endif
-diff --git a/migration/Makefile.objs b/migration/Makefile.objs
-index 0fc619e380..20b3792599 100644
---- a/migration/Makefile.objs
-+++ b/migration/Makefile.objs
-@@ -9,6 +9,7 @@ common-obj-y += qjson.o
- common-obj-y += block-dirty-bitmap.o
- common-obj-y += multifd.o
- common-obj-y += multifd-zlib.o
-+common-obj-y += pbs-state.o
- common-obj-$(CONFIG_ZSTD) += multifd-zstd.o
+diff --git a/migration/meson.build b/migration/meson.build
+index e62b79b60f..b90a04aa75 100644
+--- a/migration/meson.build
++++ b/migration/meson.build
+@@ -7,8 +7,10 @@ migration_files = files(
+   'qemu-file-channel.c',
+   'qemu-file.c',
+   'qjson.c',
++  'pbs-state.c',
+ )
+ softmmu_ss.add(migration_files)
++softmmu_ss.add(libproxmox_backup_qemu)
  
- common-obj-$(CONFIG_RDMA) += rdma.o
+ softmmu_ss.add(files(
+   'block-dirty-bitmap.c',
 diff --git a/migration/pbs-state.c b/migration/pbs-state.c
 new file mode 100644
 index 0000000000..29f2b3860d
@@ -159,7 +162,7 @@ index 0000000000..29f2b3860d
 +                         NULL);
 +}
 diff --git a/pve-backup.c b/pve-backup.c
-index c7cde0fb0e..f65f1dda26 100644
+index ded90cb822..6b25292ba1 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -1130,5 +1130,6 @@ ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
@@ -170,10 +173,10 @@ index c7cde0fb0e..f65f1dda26 100644
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 29650896e2..0da4b35028 100644
+index b90d6abe64..dee3d87efe 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -890,12 +890,18 @@
+@@ -881,12 +881,18 @@
  #
  # @query-bitmap-info: True if the 'query-pbs-bitmap-info' QMP call is supported.
  #
@@ -193,10 +196,10 @@ index 29650896e2..0da4b35028 100644
  
  ##
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 16aa2186b0..88b13871fd 100644
+index 5b5512128e..6721889fee 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -4288,6 +4288,7 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -4304,6 +4304,7 @@ void qemu_init(int argc, char **argv, char **envp)
      blk_mig_init();
      ram_mig_init();
      dirty_bitmap_mig_init();

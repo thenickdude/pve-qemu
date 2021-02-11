@@ -1,9 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Dietmar Maurer <dietmar@proxmox.com>
 Date: Mon, 6 Apr 2020 12:16:46 +0200
-Subject: [PATCH] PVE: internal snapshot async
-
-Truncate at 1024 boundary (Fabian Ebner will send a patch for stable)
+Subject: [PATCH] PVE: add savevm-async for background state snapshots
 
 Put qemu_savevm_state_{header,setup} into the main loop and the rest
 of the iteration into a coroutine. The former need to lock the
@@ -11,40 +9,37 @@ iothread (and we can't unlock it in the coroutine), and the latter
 can't deal with being in a separate thread, so a coroutine it must
 be.
 
+Truncate output file at 1024 boundary.
+
+Do not block the VM and save the state on aborting a snapshot, as the
+snapshot will be invalid anyway.
+
+Also, when aborting, wait for the target file to be closed, otherwise a
+client might run into race-conditions when trying to remove the file
+still opened by QEMU.
+
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
 Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+[improve aborting]
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
- Makefile.objs                |   1 +
  hmp-commands-info.hx         |  13 +
- hmp-commands.hx              |  32 +++
- include/block/aio.h          |  10 +
+ hmp-commands.hx              |  33 ++
  include/migration/snapshot.h |   1 +
  include/monitor/hmp.h        |   5 +
+ migration/meson.build        |   1 +
+ migration/savevm-async.c     | 591 +++++++++++++++++++++++++++++++++++
  monitor/hmp-cmds.c           |  57 ++++
- qapi/migration.json          |  34 +++
- qapi/misc.json               |  32 +++
+ qapi/migration.json          |  34 ++
+ qapi/misc.json               |  32 ++
  qemu-options.hx              |  12 +
- savevm-async.c               | 542 +++++++++++++++++++++++++++++++++++
  softmmu/vl.c                 |  10 +
- util/async.c                 |  30 ++
- 13 files changed, 779 insertions(+)
- create mode 100644 savevm-async.c
+ 11 files changed, 789 insertions(+)
+ create mode 100644 migration/savevm-async.c
 
-diff --git a/Makefile.objs b/Makefile.objs
-index d22b3b45d7..a1307c12a8 100644
---- a/Makefile.objs
-+++ b/Makefile.objs
-@@ -46,6 +46,7 @@ common-obj-y += bootdevice.o iothread.o
- common-obj-y += dump/
- common-obj-y += job-qmp.o
- common-obj-y += monitor/
-+common-obj-y += savevm-async.o
- common-obj-y += net/
- common-obj-y += qdev-monitor.o
- common-obj-$(CONFIG_WIN32) += os-win32.o
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index 30209e3903..ae8ff21789 100644
+index 117ba25f91..b3b797ca28 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
 @@ -580,6 +580,19 @@ SRST
@@ -68,10 +63,10 @@ index 30209e3903..ae8ff21789 100644
          .name       = "balloon",
          .args_type  = "",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 60f395c276..2b58ac4a1c 100644
+index ff2d7aa8f3..d294c234a5 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
-@@ -1829,3 +1829,35 @@ ERST
+@@ -1866,3 +1866,36 @@ ERST
          .flags      = "p",
      },
  
@@ -105,36 +100,9 @@ index 60f395c276..2b58ac4a1c 100644
 +        .args_type  = "",
 +        .params     = "",
 +        .help       = "Resume VM after snaphot.",
-+        .cmd = hmp_savevm_end,
++        .cmd        = hmp_savevm_end,
++        .coroutine  = true,
 +    },
-diff --git a/include/block/aio.h b/include/block/aio.h
-index b2f703fa3f..c37617b404 100644
---- a/include/block/aio.h
-+++ b/include/block/aio.h
-@@ -17,6 +17,7 @@
- #ifdef CONFIG_LINUX_IO_URING
- #include <liburing.h>
- #endif
-+#include "qemu/coroutine.h"
- #include "qemu/queue.h"
- #include "qemu/event_notifier.h"
- #include "qemu/thread.h"
-@@ -654,6 +655,15 @@ static inline bool aio_node_check(AioContext *ctx, bool is_external)
-  */
- void aio_co_schedule(AioContext *ctx, struct Coroutine *co);
- 
-+/**
-+ * aio_co_reschedule_self:
-+ * @new_ctx: the new context
-+ *
-+ * Move the currently running coroutine to new_ctx. If the coroutine is already
-+ * running in new_ctx, do nothing.
-+ */
-+void coroutine_fn aio_co_reschedule_self(AioContext *new_ctx);
-+
- /**
-  * aio_co_wake:
-  * @co: the coroutine
 diff --git a/include/migration/snapshot.h b/include/migration/snapshot.h
 index c85b6ec75b..4411b7121d 100644
 --- a/include/migration/snapshot.h
@@ -147,7 +115,7 @@ index c85b6ec75b..4411b7121d 100644
  
  #endif
 diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
-index c986cfd28b..243952d32f 100644
+index ed2913fd18..4e06f89e8e 100644
 --- a/include/monitor/hmp.h
 +++ b/include/monitor/hmp.h
 @@ -25,6 +25,7 @@ void hmp_info_status(Monitor *mon, const QDict *qdict);
@@ -169,191 +137,24 @@ index c986cfd28b..243952d32f 100644
  void hmp_sendkey(Monitor *mon, const QDict *qdict);
  void hmp_screendump(Monitor *mon, const QDict *qdict);
  void hmp_chardev_add(Monitor *mon, const QDict *qdict);
-diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 6e26ea2cd0..280bb447a6 100644
---- a/monitor/hmp-cmds.c
-+++ b/monitor/hmp-cmds.c
-@@ -1904,6 +1904,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
-     hmp_handle_error(mon, err);
- }
- 
-+void hmp_savevm_start(Monitor *mon, const QDict *qdict)
-+{
-+    Error *errp = NULL;
-+    const char *statefile = qdict_get_try_str(qdict, "statefile");
-+
-+    qmp_savevm_start(statefile != NULL, statefile, &errp);
-+    hmp_handle_error(mon, errp);
-+}
-+
-+void hmp_snapshot_drive(Monitor *mon, const QDict *qdict)
-+{
-+    Error *errp = NULL;
-+    const char *name = qdict_get_str(qdict, "name");
-+    const char *device = qdict_get_str(qdict, "device");
-+
-+    qmp_snapshot_drive(device, name, &errp);
-+    hmp_handle_error(mon, errp);
-+}
-+
-+void hmp_delete_drive_snapshot(Monitor *mon, const QDict *qdict)
-+{
-+    Error *errp = NULL;
-+    const char *name = qdict_get_str(qdict, "name");
-+    const char *device = qdict_get_str(qdict, "device");
-+
-+    qmp_delete_drive_snapshot(device, name, &errp);
-+    hmp_handle_error(mon, errp);
-+}
-+
-+void hmp_savevm_end(Monitor *mon, const QDict *qdict)
-+{
-+    Error *errp = NULL;
-+
-+    qmp_savevm_end(&errp);
-+    hmp_handle_error(mon, errp);
-+}
-+
-+void hmp_info_savevm(Monitor *mon, const QDict *qdict)
-+{
-+    SaveVMInfo *info;
-+    info = qmp_query_savevm(NULL);
-+
-+    if (info->has_status) {
-+        monitor_printf(mon, "savevm status: %s\n", info->status);
-+        monitor_printf(mon, "total time: %" PRIu64 " milliseconds\n",
-+                       info->total_time);
-+    } else {
-+        monitor_printf(mon, "savevm status: not running\n");
-+    }
-+    if (info->has_bytes) {
-+        monitor_printf(mon, "Bytes saved: %"PRIu64"\n", info->bytes);
-+    }
-+    if (info->has_error) {
-+        monitor_printf(mon, "Error: %s\n", info->error);
-+    }
-+}
-+
- void hmp_info_iothreads(Monitor *mon, const QDict *qdict)
- {
-     IOThreadInfoList *info_list = qmp_query_iothreads(NULL);
-diff --git a/qapi/migration.json b/qapi/migration.json
-index ea53b23dca..c556257544 100644
---- a/qapi/migration.json
-+++ b/qapi/migration.json
-@@ -225,6 +225,40 @@
-            '*compression': 'CompressionStats',
-            '*socket-address': ['SocketAddress'] } }
- 
-+##
-+# @SaveVMInfo:
-+#
-+# Information about current migration process.
-+#
-+# @status: string describing the current savevm status.
-+#          This can be 'active', 'completed', 'failed'.
-+#          If this field is not returned, no savevm process
-+#          has been initiated
-+#
-+# @error: string containing error message is status is failed.
-+#
-+# @total-time: total amount of milliseconds since savevm started.
-+#        If savevm has ended, it returns the total save time
-+#
-+# @bytes: total amount of data transfered
-+#
-+# Since: 1.3
-+##
-+{ 'struct': 'SaveVMInfo',
-+  'data': {'*status': 'str', '*error': 'str',
-+           '*total-time': 'int', '*bytes': 'int'} }
-+
-+##
-+# @query-savevm:
-+#
-+# Returns information about current savevm process.
-+#
-+# Returns: @SaveVMInfo
-+#
-+# Since: 1.3
-+##
-+{ 'command': 'query-savevm', 'returns': 'SaveVMInfo' }
-+
- ##
- # @query-migrate:
- #
-diff --git a/qapi/misc.json b/qapi/misc.json
-index 44b1fb6fa7..9895899f8b 100644
---- a/qapi/misc.json
-+++ b/qapi/misc.json
-@@ -1168,6 +1168,38 @@
- ##
- { 'command': 'query-fdsets', 'returns': ['FdsetInfo'] }
- 
-+##
-+# @savevm-start:
-+#
-+# Prepare for snapshot and halt VM. Save VM state to statefile.
-+#
-+##
-+{ 'command': 'savevm-start', 'data': { '*statefile': 'str' } }
-+
-+##
-+# @snapshot-drive:
-+#
-+# Create an internal drive snapshot.
-+#
-+##
-+{ 'command': 'snapshot-drive', 'data': { 'device': 'str', 'name': 'str' } }
-+
-+##
-+# @delete-drive-snapshot:
-+#
-+# Delete a drive snapshot.
-+#
-+##
-+{ 'command': 'delete-drive-snapshot', 'data': { 'device': 'str', 'name': 'str' } }
-+
-+##
-+# @savevm-end:
-+#
-+# Resume VM after a snapshot.
-+#
-+##
-+{ 'command': 'savevm-end' }
-+
- ##
- # @AcpiTableOptions:
- #
-diff --git a/qemu-options.hx b/qemu-options.hx
-index 708583b4ce..d32995cc50 100644
---- a/qemu-options.hx
-+++ b/qemu-options.hx
-@@ -3866,6 +3866,18 @@ SRST
-     Start right away with a saved state (``loadvm`` in monitor)
- ERST
- 
-+DEF("loadstate", HAS_ARG, QEMU_OPTION_loadstate, \
-+    "-loadstate file\n" \
-+    "                start right away with a saved state\n",
-+    QEMU_ARCH_ALL)
-+SRST
-+``-loadstate file``
-+  Start right away with a saved state. This option does not rollback
-+  disk state like @code{loadvm}, so user must make sure that disk
-+  have correct state. @var{file} can be any valid device URL. See the section
-+  for "Device URL Syntax" for more information.
-+ERST
-+
- #ifndef _WIN32
- DEF("daemonize", 0, QEMU_OPTION_daemonize, \
-     "-daemonize      daemonize QEMU after initializing\n", QEMU_ARCH_ALL)
-diff --git a/savevm-async.c b/savevm-async.c
+diff --git a/migration/meson.build b/migration/meson.build
+index 980e37865c..e62b79b60f 100644
+--- a/migration/meson.build
++++ b/migration/meson.build
+@@ -23,6 +23,7 @@ softmmu_ss.add(files(
+   'multifd-zlib.c',
+   'postcopy-ram.c',
+   'savevm.c',
++  'savevm-async.c',
+   'socket.c',
+   'tls.c',
+ ))
+diff --git a/migration/savevm-async.c b/migration/savevm-async.c
 new file mode 100644
-index 0000000000..f918e18dce
+index 0000000000..4e345c1a7d
 --- /dev/null
-+++ b/savevm-async.c
-@@ -0,0 +1,542 @@
++++ b/migration/savevm-async.c
+@@ -0,0 +1,591 @@
 +#include "qemu/osdep.h"
 +#include "migration/migration.h"
 +#include "migration/savevm.h"
@@ -372,6 +173,7 @@ index 0000000000..f918e18dce
 +#include "qapi/qapi-commands-misc.h"
 +#include "qapi/qapi-commands-block.h"
 +#include "qemu/cutils.h"
++#include "qemu/timer.h"
 +#include "qemu/main-loop.h"
 +#include "qemu/rcu.h"
 +
@@ -408,7 +210,14 @@ index 0000000000..f918e18dce
 +    int64_t total_time;
 +    QEMUBH *finalize_bh;
 +    Coroutine *co;
++    QemuCoSleepState *target_close_wait;
 +} snap_state;
++
++static bool savevm_aborted(void)
++{
++    return snap_state.state == SAVE_STATE_CANCELLED ||
++        snap_state.state == SAVE_STATE_ERROR;
++}
 +
 +SaveVMInfo *qmp_query_savevm(Error **errp)
 +{
@@ -462,17 +271,23 @@ index 0000000000..f918e18dce
 +    }
 +
 +    if (snap_state.target) {
-+        /* try to truncate, but ignore errors (will fail on block devices).
-+         * note1: bdrv_read() need whole blocks, so we need to round up
-+         * note2: PVE requires 1024 (BDRV_SECTOR_SIZE*2) alignment
-+         */
-+        size_t size = QEMU_ALIGN_UP(snap_state.bs_pos, BDRV_SECTOR_SIZE*2);
-+        blk_truncate(snap_state.target, size, false, PREALLOC_MODE_OFF, 0, NULL);
++        if (!savevm_aborted()) {
++            /* try to truncate, but ignore errors (will fail on block devices).
++            * note1: bdrv_read() need whole blocks, so we need to round up
++            * note2: PVE requires 1024 (BDRV_SECTOR_SIZE*2) alignment
++            */
++            size_t size = QEMU_ALIGN_UP(snap_state.bs_pos, BDRV_SECTOR_SIZE*2);
++            blk_truncate(snap_state.target, size, false, PREALLOC_MODE_OFF, 0, NULL);
++        }
 +        blk_op_unblock_all(snap_state.target, snap_state.blocker);
 +        error_free(snap_state.blocker);
 +        snap_state.blocker = NULL;
 +        blk_unref(snap_state.target);
 +        snap_state.target = NULL;
++
++        if (snap_state.target_close_wait) {
++            qemu_co_sleep_wake(snap_state.target_close_wait);
++        }
 +    }
 +
 +    return ret;
@@ -558,6 +373,8 @@ index 0000000000..f918e18dce
 +    AioContext *iohandler_ctx = iohandler_get_aio_context();
 +    MigrationState *ms = migrate_get_current();
 +
++    bool aborted = savevm_aborted();
++
 +#ifdef DEBUG_SAVEVM_STATE
 +    int64_t start_time = qemu_clock_get_ms(QEMU_CLOCK_REALTIME);
 +#endif
@@ -579,10 +396,13 @@ index 0000000000..f918e18dce
 +        save_snapshot_error("vm_stop_force_state error %d", ret);
 +    }
 +
-+    (void)qemu_savevm_state_complete_precopy(snap_state.file, false, false);
-+    ret = qemu_file_get_error(snap_state.file);
-+    if (ret < 0) {
-+            save_snapshot_error("qemu_savevm_state_iterate error %d", ret);
++    if (!aborted) {
++        /* skip state saving if we aborted, snapshot will be invalid anyway */
++        (void)qemu_savevm_state_complete_precopy(snap_state.file, false, false);
++        ret = qemu_file_get_error(snap_state.file);
++        if (ret < 0) {
++                save_snapshot_error("qemu_savevm_state_iterate error %d", ret);
++        }
 +    }
 +
 +    DPRINTF("state saving complete\n");
@@ -591,7 +411,7 @@ index 0000000000..f918e18dce
 +
 +    /* clear migration state */
 +    migrate_set_state(&ms->state, MIGRATION_STATUS_SETUP,
-+                      ret ? MIGRATION_STATUS_FAILED : MIGRATION_STATUS_COMPLETED);
++        ret || aborted ? MIGRATION_STATUS_FAILED : MIGRATION_STATUS_COMPLETED);
 +    ms->to_dst_file = NULL;
 +
 +    qemu_savevm_state_cleanup();
@@ -601,6 +421,9 @@ index 0000000000..f918e18dce
 +        save_snapshot_error("save_snapshot_cleanup error %d", ret);
 +    } else if (snap_state.state == SAVE_STATE_ACTIVE) {
 +        snap_state.state = SAVE_STATE_COMPLETED;
++    } else if (aborted) {
++        save_snapshot_error("process_savevm_cleanup: found aborted state: %d",
++                            snap_state.state);
 +    } else {
 +        save_snapshot_error("process_savevm_cleanup: invalid state: %d",
 +                            snap_state.state);
@@ -790,11 +613,14 @@ index 0000000000..f918e18dce
 +
 +    if (snap_state.saved_vm_running) {
 +        vm_start();
++        snap_state.saved_vm_running = false;
 +    }
 +}
 +
-+void qmp_savevm_end(Error **errp)
++void coroutine_fn qmp_savevm_end(Error **errp)
 +{
++    int64_t timeout;
++
 +    if (snap_state.state == SAVE_STATE_DONE) {
 +        error_set(errp, ERROR_CLASS_GENERIC_ERROR,
 +                  "VM snapshot not started\n");
@@ -803,14 +629,38 @@ index 0000000000..f918e18dce
 +
 +    if (snap_state.state == SAVE_STATE_ACTIVE) {
 +        snap_state.state = SAVE_STATE_CANCELLED;
-+        return;
++        goto wait_for_close;
 +    }
 +
 +    if (snap_state.saved_vm_running) {
 +        vm_start();
++        snap_state.saved_vm_running = false;
 +    }
 +
 +    snap_state.state = SAVE_STATE_DONE;
++
++wait_for_close:
++    if (!snap_state.target) {
++        DPRINTF("savevm-end: no target file open\n");
++        return;
++    }
++
++    /* wait until cleanup is done before returning, this ensures that after this
++     * call exits the statefile will be closed and can be removed immediately */
++    DPRINTF("savevm-end: waiting for cleanup\n");
++    timeout = 30L * 1000 * 1000 * 1000;
++    qemu_co_sleep_ns_wakeable(QEMU_CLOCK_REALTIME, timeout,
++                              &snap_state.target_close_wait);
++    snap_state.target_close_wait = NULL;
++    if (snap_state.target) {
++        save_snapshot_error("timeout waiting for target file close in "
++                            "qmp_savevm_end");
++        /* we cannot assume the snapshot finished in this case, so leave the
++         * state alone - caller has to figure something out */
++        return;
++    }
++
++    DPRINTF("savevm-end: cleanup done\n");
 +}
 +
 +// FIXME: Deprecated
@@ -896,11 +746,190 @@ index 0000000000..f918e18dce
 +    }
 +    return ret;
 +}
+diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
+index 705f08a8f1..77ab152aab 100644
+--- a/monitor/hmp-cmds.c
++++ b/monitor/hmp-cmds.c
+@@ -1949,6 +1949,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
+     hmp_handle_error(mon, err);
+ }
+ 
++void hmp_savevm_start(Monitor *mon, const QDict *qdict)
++{
++    Error *errp = NULL;
++    const char *statefile = qdict_get_try_str(qdict, "statefile");
++
++    qmp_savevm_start(statefile != NULL, statefile, &errp);
++    hmp_handle_error(mon, errp);
++}
++
++void hmp_snapshot_drive(Monitor *mon, const QDict *qdict)
++{
++    Error *errp = NULL;
++    const char *name = qdict_get_str(qdict, "name");
++    const char *device = qdict_get_str(qdict, "device");
++
++    qmp_snapshot_drive(device, name, &errp);
++    hmp_handle_error(mon, errp);
++}
++
++void hmp_delete_drive_snapshot(Monitor *mon, const QDict *qdict)
++{
++    Error *errp = NULL;
++    const char *name = qdict_get_str(qdict, "name");
++    const char *device = qdict_get_str(qdict, "device");
++
++    qmp_delete_drive_snapshot(device, name, &errp);
++    hmp_handle_error(mon, errp);
++}
++
++void coroutine_fn hmp_savevm_end(Monitor *mon, const QDict *qdict)
++{
++    Error *errp = NULL;
++
++    qmp_savevm_end(&errp);
++    hmp_handle_error(mon, errp);
++}
++
++void hmp_info_savevm(Monitor *mon, const QDict *qdict)
++{
++    SaveVMInfo *info;
++    info = qmp_query_savevm(NULL);
++
++    if (info->has_status) {
++        monitor_printf(mon, "savevm status: %s\n", info->status);
++        monitor_printf(mon, "total time: %" PRIu64 " milliseconds\n",
++                       info->total_time);
++    } else {
++        monitor_printf(mon, "savevm status: not running\n");
++    }
++    if (info->has_bytes) {
++        monitor_printf(mon, "Bytes saved: %"PRIu64"\n", info->bytes);
++    }
++    if (info->has_error) {
++        monitor_printf(mon, "Error: %s\n", info->error);
++    }
++}
++
+ void hmp_info_iothreads(Monitor *mon, const QDict *qdict)
+ {
+     IOThreadInfoList *info_list = qmp_query_iothreads(NULL);
+diff --git a/qapi/migration.json b/qapi/migration.json
+index 3c75820527..cb3627884c 100644
+--- a/qapi/migration.json
++++ b/qapi/migration.json
+@@ -242,6 +242,40 @@
+            '*compression': 'CompressionStats',
+            '*socket-address': ['SocketAddress'] } }
+ 
++##
++# @SaveVMInfo:
++#
++# Information about current migration process.
++#
++# @status: string describing the current savevm status.
++#          This can be 'active', 'completed', 'failed'.
++#          If this field is not returned, no savevm process
++#          has been initiated
++#
++# @error: string containing error message is status is failed.
++#
++# @total-time: total amount of milliseconds since savevm started.
++#              If savevm has ended, it returns the total save time
++#
++# @bytes: total amount of data transfered
++#
++# Since: 1.3
++##
++{ 'struct': 'SaveVMInfo',
++  'data': {'*status': 'str', '*error': 'str',
++           '*total-time': 'int', '*bytes': 'int'} }
++
++##
++# @query-savevm:
++#
++# Returns information about current savevm process.
++#
++# Returns: @SaveVMInfo
++#
++# Since: 1.3
++##
++{ 'command': 'query-savevm', 'returns': 'SaveVMInfo' }
++
+ ##
+ # @query-migrate:
+ #
+diff --git a/qapi/misc.json b/qapi/misc.json
+index 40df513856..4f5333d960 100644
+--- a/qapi/misc.json
++++ b/qapi/misc.json
+@@ -476,6 +476,38 @@
+ ##
+ { 'command': 'query-fdsets', 'returns': ['FdsetInfo'] }
+ 
++##
++# @savevm-start:
++#
++# Prepare for snapshot and halt VM. Save VM state to statefile.
++#
++##
++{ 'command': 'savevm-start', 'data': { '*statefile': 'str' } }
++
++##
++# @snapshot-drive:
++#
++# Create an internal drive snapshot.
++#
++##
++{ 'command': 'snapshot-drive', 'data': { 'device': 'str', 'name': 'str' } }
++
++##
++# @delete-drive-snapshot:
++#
++# Delete a drive snapshot.
++#
++##
++{ 'command': 'delete-drive-snapshot', 'data': { 'device': 'str', 'name': 'str' } }
++
++##
++# @savevm-end:
++#
++# Resume VM after a snapshot.
++#
++##
++{ 'command': 'savevm-end', 'coroutine': true }
++
+ ##
+ # @CommandLineParameterType:
+ #
+diff --git a/qemu-options.hx b/qemu-options.hx
+index 104632ea34..c1352312c2 100644
+--- a/qemu-options.hx
++++ b/qemu-options.hx
+@@ -3903,6 +3903,18 @@ SRST
+     Start right away with a saved state (``loadvm`` in monitor)
+ ERST
+ 
++DEF("loadstate", HAS_ARG, QEMU_OPTION_loadstate, \
++    "-loadstate file\n" \
++    "                start right away with a saved state\n",
++    QEMU_ARCH_ALL)
++SRST
++``-loadstate file``
++  Start right away with a saved state. This option does not rollback
++  disk state like @code{loadvm}, so user must make sure that disk
++  have correct state. @var{file} can be any valid device URL. See the section
++  for "Device URL Syntax" for more information.
++ERST
++
+ #ifndef _WIN32
+ DEF("daemonize", 0, QEMU_OPTION_daemonize, \
+     "-daemonize      daemonize QEMU after initializing\n", QEMU_ARCH_ALL)
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 4eb9d1f7fd..670b7e427c 100644
+index e6e0ad5a92..03152c816c 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -2844,6 +2844,7 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -2878,6 +2878,7 @@ void qemu_init(int argc, char **argv, char **envp)
      int optind;
      const char *optarg;
      const char *loadvm = NULL;
@@ -908,7 +937,7 @@ index 4eb9d1f7fd..670b7e427c 100644
      MachineClass *machine_class;
      const char *cpu_option;
      const char *vga_model = NULL;
-@@ -3408,6 +3409,9 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -3439,6 +3440,9 @@ void qemu_init(int argc, char **argv, char **envp)
              case QEMU_OPTION_loadvm:
                  loadvm = optarg;
                  break;
@@ -918,7 +947,7 @@ index 4eb9d1f7fd..670b7e427c 100644
              case QEMU_OPTION_full_screen:
                  dpy.has_full_screen = true;
                  dpy.full_screen = true;
-@@ -4464,6 +4468,12 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -4478,6 +4482,12 @@ void qemu_init(int argc, char **argv, char **envp)
              autostart = 0;
              exit(1);
          }
@@ -931,44 +960,3 @@ index 4eb9d1f7fd..670b7e427c 100644
      }
      if (replay_mode != REPLAY_MODE_NONE) {
          replay_vmstate_init();
-diff --git a/util/async.c b/util/async.c
-index 1319eee3bc..b68e73f488 100644
---- a/util/async.c
-+++ b/util/async.c
-@@ -559,6 +559,36 @@ void aio_co_schedule(AioContext *ctx, Coroutine *co)
-     aio_context_unref(ctx);
- }
- 
-+typedef struct AioCoRescheduleSelf {
-+    Coroutine *co;
-+    AioContext *new_ctx;
-+} AioCoRescheduleSelf;
-+
-+static void aio_co_reschedule_self_bh(void *opaque)
-+{
-+    AioCoRescheduleSelf *data = opaque;
-+    aio_co_schedule(data->new_ctx, data->co);
-+}
-+
-+void coroutine_fn aio_co_reschedule_self(AioContext *new_ctx)
-+{
-+    AioContext *old_ctx = qemu_get_current_aio_context();
-+
-+    if (old_ctx != new_ctx) {
-+        AioCoRescheduleSelf data = {
-+            .co = qemu_coroutine_self(),
-+            .new_ctx = new_ctx,
-+        };
-+        /*
-+         * We can't directly schedule the coroutine in the target context
-+         * because this would be racy: The other thread could try to enter the
-+         * coroutine before it has yielded in this one.
-+         */
-+        aio_bh_schedule_oneshot(old_ctx, aio_co_reschedule_self_bh, &data);
-+        qemu_coroutine_yield();
-+    }
-+}
-+
- void aio_co_wake(struct Coroutine *co)
- {
-     AioContext *ctx;

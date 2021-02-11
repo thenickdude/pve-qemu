@@ -20,7 +20,7 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  1 file changed, 7 insertions(+)
 
 diff --git a/job.c b/job.c
-index 97ee97a192..51984e557c 100644
+index 8f06e05fbf..05b7797e82 100644
 --- a/job.c
 +++ b/job.c
 @@ -1035,6 +1035,13 @@ int job_finish_sync(Job *job, void (*finish)(Job *, Error **errp), Error **errp)

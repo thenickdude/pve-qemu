@@ -7,30 +7,28 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 [error cleanups, file_open implementation]
 Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
 ---
- block/Makefile.objs  |   2 +
+ block/meson.build    |   3 +
  block/pbs.c          | 271 +++++++++++++++++++++++++++++++++++++++++++
- configure            |  10 ++
+ configure            |   9 ++
+ meson.build          |   1 +
  qapi/block-core.json |  14 ++-
- 4 files changed, 296 insertions(+), 1 deletion(-)
+ 5 files changed, 297 insertions(+), 1 deletion(-)
  create mode 100644 block/pbs.c
 
-diff --git a/block/Makefile.objs b/block/Makefile.objs
-index 9ea0477d0b..28fb3b7f7c 100644
---- a/block/Makefile.objs
-+++ b/block/Makefile.objs
-@@ -5,6 +5,7 @@ block-obj-$(CONFIG_CLOOP) += cloop.o
- block-obj-$(CONFIG_BOCHS) += bochs.o
- block-obj-$(CONFIG_VVFAT) += vvfat.o
- block-obj-$(CONFIG_DMG) += dmg.o
-+block-obj-$(CONFIG_PBS_BDRV) += pbs.o
+diff --git a/block/meson.build b/block/meson.build
+index dfae565db3..a070060e53 100644
+--- a/block/meson.build
++++ b/block/meson.build
+@@ -49,6 +49,9 @@ block_ss.add(files(
+   '../pve-backup.c',
+ ), libproxmox_backup_qemu)
  
- block-obj-y += qcow2.o qcow2-refcount.o qcow2-cluster.o qcow2-snapshot.o qcow2-cache.o qcow2-bitmap.o qcow2-threads.o
- block-obj-$(CONFIG_QED) += qed.o qed-l2-cache.o qed-table.o qed-cluster.o
-@@ -75,3 +76,4 @@ io_uring.o-cflags  := $(LINUX_IO_URING_CFLAGS)
- io_uring.o-libs    := $(LINUX_IO_URING_LIBS)
- parallels.o-cflags := $(LIBXML2_CFLAGS)
- parallels.o-libs   := $(LIBXML2_LIBS)
-+pbs.o-libs         := -lproxmox_backup_qemu
++block_ss.add(when: 'CONFIG_PBS_BDRV', if_true: files('pbs.c'))
++block_ss.add(when: 'CONFIG_PBS_BDRV', if_true: libproxmox_backup_qemu)
++
+ 
+ softmmu_ss.add(when: 'CONFIG_TCG', if_true: files('blkreplay.c'))
+ 
 diff --git a/block/pbs.c b/block/pbs.c
 new file mode 100644
 index 0000000000..1481a2bfd1
@@ -309,18 +307,18 @@ index 0000000000..1481a2bfd1
 +
 +block_init(bdrv_pbs_init);
 diff --git a/configure b/configure
-index 2acc4d1465..3fc80d0c2c 100755
+index 18c26e0389..33d9933871 100755
 --- a/configure
 +++ b/configure
-@@ -510,6 +510,7 @@ vvfat="yes"
+@@ -436,6 +436,7 @@ vvfat="yes"
  qed="yes"
  parallels="yes"
- sheepdog="yes"
+ sheepdog="no"
 +pbs_bdrv="yes"
  libxml2=""
  debug_mutex="no"
  libpmem=""
-@@ -1576,6 +1577,10 @@ for opt do
+@@ -1461,6 +1462,10 @@ for opt do
    ;;
    --enable-sheepdog) sheepdog="yes"
    ;;
@@ -331,24 +329,16 @@ index 2acc4d1465..3fc80d0c2c 100755
    --disable-vhost-user) vhost_user="no"
    ;;
    --enable-vhost-user) vhost_user="yes"
-@@ -1936,6 +1941,7 @@ disabled with --disable-FEATURE, default is enabled if available:
+@@ -1843,6 +1848,7 @@ disabled with --disable-FEATURE, default is enabled if available:
    qed             qed image format support
    parallels       parallels image format support
-   sheepdog        sheepdog block driver support
+   sheepdog        sheepdog block driver support (deprecated)
 +  pbs-bdrv        Proxmox backup server read-only block driver support
    crypto-afalg    Linux AF_ALG crypto backend driver
    capstone        capstone disassembler support
    debug-mutex     mutex debugging support
-@@ -7009,6 +7015,7 @@ echo "vvfat support     $vvfat"
- echo "qed support       $qed"
- echo "parallels support $parallels"
- echo "sheepdog support  $sheepdog"
-+echo "pbs-bdrv support  $pbs_bdrv"
- echo "capstone          $capstone"
- echo "libpmem support   $libpmem"
- echo "libdaxctl support $libdaxctl"
-@@ -7885,6 +7892,9 @@ fi
- if test "$sheepdog" = "yes" ; then
+@@ -6682,6 +6688,9 @@ if test "$sheepdog" = "yes" ; then
+   add_to deprecated_features "sheepdog"
    echo "CONFIG_SHEEPDOG=y" >> $config_host_mak
  fi
 +if test "$pbs_bdrv" = "yes" ; then
@@ -357,11 +347,23 @@ index 2acc4d1465..3fc80d0c2c 100755
  if test "$pty_h" = "yes" ; then
    echo "HAVE_PTY_H=y" >> $config_host_mak
  fi
+diff --git a/meson.build b/meson.build
+index 6f1fafee14..4d156d35ce 100644
+--- a/meson.build
++++ b/meson.build
+@@ -2199,6 +2199,7 @@ summary_info += {'vvfat support':     config_host.has_key('CONFIG_VVFAT')}
+ summary_info += {'qed support':       config_host.has_key('CONFIG_QED')}
+ summary_info += {'parallels support': config_host.has_key('CONFIG_PARALLELS')}
+ summary_info += {'sheepdog support':  config_host.has_key('CONFIG_SHEEPDOG')}
++summary_info += {'PBS bdrv support':  config_host.has_key('CONFIG_PBS_BDRV')}
+ summary_info += {'capstone':          capstone_opt == 'disabled' ? false : capstone_opt}
+ summary_info += {'libpmem support':   config_host.has_key('CONFIG_LIBPMEM')}
+ summary_info += {'libdaxctl support': config_host.has_key('CONFIG_LIBDAXCTL')}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index a177fea6cd..f782c2cf96 100644
+index 0fda1e3fd3..553112d998 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -2951,7 +2951,7 @@
+@@ -2975,7 +2975,7 @@
              'luks', 'nbd', 'nfs', 'null-aio', 'null-co', 'nvme', 'parallels',
              'qcow', 'qcow2', 'qed', 'quorum', 'raw', 'rbd',
              { 'name': 'replication', 'if': 'defined(CONFIG_REPLICATION)' },
@@ -370,7 +372,7 @@ index a177fea6cd..f782c2cf96 100644
              'ssh', 'throttle', 'vdi', 'vhdx', 'vmdk', 'vpc', 'vvfat' ] }
  
  ##
-@@ -3015,6 +3015,17 @@
+@@ -3039,6 +3039,17 @@
  { 'struct': 'BlockdevOptionsNull',
    'data': { '*size': 'int', '*latency-ns': 'uint64', '*read-zeroes': 'bool' } }
  
@@ -388,7 +390,7 @@ index a177fea6cd..f782c2cf96 100644
  ##
  # @BlockdevOptionsNVMe:
  #
-@@ -4121,6 +4132,7 @@
+@@ -4148,6 +4159,7 @@
        'nfs':        'BlockdevOptionsNfs',
        'null-aio':   'BlockdevOptionsNull',
        'null-co':    'BlockdevOptionsNull',

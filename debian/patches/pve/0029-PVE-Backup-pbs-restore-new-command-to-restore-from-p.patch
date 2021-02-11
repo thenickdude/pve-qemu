@@ -6,33 +6,26 @@ Subject: [PATCH] PVE-Backup: pbs-restore - new command to restore from proxmox
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- Makefile      |   4 +-
+ meson.build   |   4 +
  pbs-restore.c | 217 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 220 insertions(+), 1 deletion(-)
+ 2 files changed, 221 insertions(+)
  create mode 100644 pbs-restore.c
 
-diff --git a/Makefile b/Makefile
-index aec216968d..b73da29f24 100644
---- a/Makefile
-+++ b/Makefile
-@@ -479,7 +479,7 @@ dummy := $(call unnest-vars,, \
+diff --git a/meson.build b/meson.build
+index 3094f98c47..6f1fafee14 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1913,6 +1913,10 @@ if have_tools
+   vma = executable('vma', files('vma.c', 'vma-reader.c'),
+                    dependencies: [authz, block, crypto, io, qom], install: true)
  
- include $(SRC_PATH)/tests/Makefile.include
- 
--all: $(DOCS) $(if $(BUILD_DOCS),sphinxdocs) $(TOOLS) vma$(EXESUF) $(HELPERS-y) recurse-all modules $(vhost-user-json-y)
-+all: $(DOCS) $(if $(BUILD_DOCS),sphinxdocs) $(TOOLS) vma$(EXESUF) pbs-restore$(EXESUF) $(HELPERS-y) recurse-all modules $(vhost-user-json-y)
- 
- qemu-version.h: FORCE
- 	$(call quiet-command, \
-@@ -604,6 +604,8 @@ qemu-io$(EXESUF): qemu-io.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-o
- qemu-storage-daemon$(EXESUF): qemu-storage-daemon.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(chardev-obj-y) $(io-obj-y) $(qom-obj-y) $(storage-daemon-obj-y) $(COMMON_LDADDS)
- qemu-storage-daemon$(EXESUF): LIBS += -lproxmox_backup_qemu
- vma$(EXESUF): vma.o vma-reader.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
-+pbs-restore$(EXESUF): pbs-restore.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
-+pbs-restore$(EXESUF): LIBS += -lproxmox_backup_qemu
- 
- qemu-bridge-helper$(EXESUF): qemu-bridge-helper.o $(COMMON_LDADDS)
- 
++  pbs_restore = executable('pbs-restore', files('pbs-restore.c'),
++                  dependencies: [authz, block, crypto, io, qom,
++                    libproxmox_backup_qemu], install: true)
++
+   subdir('storage-daemon')
+   subdir('contrib/rdmacm-mux')
+   subdir('contrib/elf2dmp')
 diff --git a/pbs-restore.c b/pbs-restore.c
 new file mode 100644
 index 0000000000..4bf37ef1fa

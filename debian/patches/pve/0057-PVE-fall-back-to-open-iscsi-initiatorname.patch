@@ -20,7 +20,7 @@ Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
  1 file changed, 30 insertions(+)
 
 diff --git a/block/iscsi.c b/block/iscsi.c
-index bd2122a3a4..56437d8b99 100644
+index e30a7e3606..6c70bbe351 100644
 --- a/block/iscsi.c
 +++ b/block/iscsi.c
 @@ -1374,12 +1374,42 @@ static char *get_initiator_name(QemuOpts *opts)
@@ -66,6 +66,3 @@ index bd2122a3a4..56437d8b99 100644
      uuid_info = qmp_query_uuid(NULL);
      if (strcmp(uuid_info->UUID, UUID_NONE) == 0) {
          name = qemu_get_vm_name();
--- 
-2.20.1
-

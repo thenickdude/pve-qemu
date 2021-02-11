@@ -1,31 +1,35 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Date: Mon, 4 May 2020 11:05:08 +0200
-Subject: [PATCH] add optional buffer size to QEMUFile
+Subject: [PATCH] PVE: add optional buffer size to QEMUFile
 
 So we can use a 4M buffer for savevm-async which should
 increase performance storing the state onto ceph.
 
 Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+[increase max IOV count in QEMUFile to actually write more data]
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
- migration/qemu-file.c | 36 ++++++++++++++++++++++++------------
- migration/qemu-file.h |  1 +
- savevm-async.c        |  4 ++--
- 3 files changed, 27 insertions(+), 14 deletions(-)
+ migration/qemu-file.c    | 38 +++++++++++++++++++++++++-------------
+ migration/qemu-file.h    |  1 +
+ migration/savevm-async.c |  4 ++--
+ 3 files changed, 28 insertions(+), 15 deletions(-)
 
 diff --git a/migration/qemu-file.c b/migration/qemu-file.c
-index be21518c57..a4d2e2c8ff 100644
+index be21518c57..1926b5202c 100644
 --- a/migration/qemu-file.c
 +++ b/migration/qemu-file.c
-@@ -30,7 +30,7 @@
+@@ -30,8 +30,8 @@
  #include "trace.h"
  #include "qapi/error.h"
  
 -#define IO_BUF_SIZE 32768
+-#define MAX_IOV_SIZE MIN_CONST(IOV_MAX, 64)
 +#define DEFAULT_IO_BUF_SIZE 32768
- #define MAX_IOV_SIZE MIN_CONST(IOV_MAX, 64)
++#define MAX_IOV_SIZE MIN_CONST(IOV_MAX, 256)
  
  struct QEMUFile {
+     const QEMUFileOps *ops;
 @@ -45,7 +45,8 @@ struct QEMUFile {
                      when reading */
      int buf_index;
@@ -159,11 +163,11 @@ index a9b6d6ccb7..8752d27c74 100644
  void qemu_file_set_hooks(QEMUFile *f, const QEMUFileHooks *hooks);
  int qemu_get_fd(QEMUFile *f);
  int qemu_fclose(QEMUFile *f);
-diff --git a/savevm-async.c b/savevm-async.c
-index f918e18dce..156b7a030e 100644
---- a/savevm-async.c
-+++ b/savevm-async.c
-@@ -392,7 +392,7 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
+diff --git a/migration/savevm-async.c b/migration/savevm-async.c
+index 4e345c1a7d..8a17ec1f74 100644
+--- a/migration/savevm-async.c
++++ b/migration/savevm-async.c
+@@ -414,7 +414,7 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
          goto restart;
      }
  
@@ -172,7 +176,7 @@ index f918e18dce..156b7a030e 100644
  
      if (!snap_state.file) {
          error_set(errp, ERROR_CLASS_GENERIC_ERROR, "failed to open '%s'", statefile);
-@@ -514,7 +514,7 @@ int load_snapshot_from_blockdev(const char *filename, Error **errp)
+@@ -563,7 +563,7 @@ int load_snapshot_from_blockdev(const char *filename, Error **errp)
      blk_op_block_all(be, blocker);
  
      /* restore the VM state */

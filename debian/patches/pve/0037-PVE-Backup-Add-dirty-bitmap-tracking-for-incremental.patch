@@ -29,10 +29,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  6 files changed, 134 insertions(+), 23 deletions(-)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index d485c3ac79..fdc85a5c0e 100644
+index 9ba7c774a2..056d14deee 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
-@@ -1038,6 +1038,7 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
+@@ -1039,6 +1039,7 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
          false, NULL, // PBS fingerprint
          false, NULL, // PBS backup-id
          false, 0, // PBS backup-time
@@ -41,10 +41,10 @@ index d485c3ac79..fdc85a5c0e 100644
          false, NULL, false, NULL, !!devlist,
          devlist, qdict_haskey(qdict, "speed"), speed, &error);
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 0e2d166552..3ff014d32a 100644
+index 182e79c943..604026bb37 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
-@@ -218,19 +218,42 @@ void hmp_info_backup(Monitor *mon, const QDict *qdict)
+@@ -221,19 +221,42 @@ void hmp_info_backup(Monitor *mon, const QDict *qdict)
              monitor_printf(mon, "End time: %s", ctime(&info->end_time));
          }
  
@@ -397,10 +397,10 @@ index d40f3f2fd6..d50f03a050 100644
      qemu_mutex_unlock(&backup_state.stat.lock);
  
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 9db8e26517..6cad1e0e38 100644
+index 9054db608c..aadd5329b3 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -767,8 +767,13 @@
+@@ -758,8 +758,13 @@
  #
  # @total: total amount of bytes involved in the backup process
  #
@@ -414,7 +414,7 @@ index 9db8e26517..6cad1e0e38 100644
  # @zero-bytes: amount of 'zero' bytes detected.
  #
  # @start-time: time (epoch) when backup job started.
-@@ -781,8 +786,8 @@
+@@ -772,8 +777,8 @@
  #
  ##
  { 'struct': 'BackupStatus',
@@ -425,7 +425,7 @@ index 9db8e26517..6cad1e0e38 100644
             '*start-time': 'int', '*end-time': 'int',
             '*backup-file': 'str', '*uuid': 'str' } }
  
-@@ -825,6 +830,8 @@
+@@ -816,6 +821,8 @@
  #
  # @backup-time: backup timestamp (Unix epoch, required for format 'pbs')
  #
@@ -434,7 +434,7 @@ index 9db8e26517..6cad1e0e38 100644
  # Returns: the uuid of the backup job
  #
  ##
-@@ -835,6 +842,7 @@
+@@ -826,6 +833,7 @@
                                      '*fingerprint': 'str',
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',

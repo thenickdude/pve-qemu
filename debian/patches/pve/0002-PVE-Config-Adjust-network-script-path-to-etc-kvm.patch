@@ -5,22 +5,21 @@ Subject: [PATCH] PVE: [Config] Adjust network script path to /etc/kvm/
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- include/net/net.h | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ include/net/net.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/include/net/net.h b/include/net/net.h
-index e7ef42d62b..4fd1144e58 100644
+index 778fc787ca..fb2db6bb75 100644
 --- a/include/net/net.h
 +++ b/include/net/net.h
-@@ -209,8 +209,9 @@ void netdev_add(QemuOpts *opts, Error **errp);
+@@ -210,8 +210,8 @@ void netdev_add(QemuOpts *opts, Error **errp);
  int net_hub_id_for_client(NetClientState *nc, int *id);
  NetClientState *net_hub_port_find(int hub_id);
  
--#define DEFAULT_NETWORK_SCRIPT "/etc/qemu-ifup"
--#define DEFAULT_NETWORK_DOWN_SCRIPT "/etc/qemu-ifdown"
-+#define DEFAULT_NETWORK_SCRIPT "/etc/kvm/kvm-ifup"
-+#define DEFAULT_NETWORK_DOWN_SCRIPT "/etc/kvm/kvm-ifdown"
-+
+-#define DEFAULT_NETWORK_SCRIPT CONFIG_SYSCONFDIR "/qemu-ifup"
+-#define DEFAULT_NETWORK_DOWN_SCRIPT CONFIG_SYSCONFDIR "/qemu-ifdown"
++#define DEFAULT_NETWORK_SCRIPT CONFIG_SYSCONFDIR "/kvm/kvm-ifup"
++#define DEFAULT_NETWORK_DOWN_SCRIPT CONFIG_SYSCONFDIR "/kvm/kvm-ifdown"
  #define DEFAULT_BRIDGE_HELPER CONFIG_QEMU_HELPERDIR "/qemu-bridge-helper"
  #define DEFAULT_BRIDGE_INTERFACE "br0"
  

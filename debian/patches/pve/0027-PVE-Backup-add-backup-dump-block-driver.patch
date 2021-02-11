@@ -8,26 +8,14 @@ Subject: [PATCH] PVE-Backup: add backup-dump block driver
 - block/backup.c - backup-job-create: also consider source cluster size
 - job.c: make job_should_pause non-static
 ---
- block/Makefile.objs       |   1 +
  block/backup-dump.c       | 168 ++++++++++++++++++++++++++++++++++++++
  block/backup.c            |  23 ++----
+ block/meson.build         |   1 +
  include/block/block_int.h |  30 +++++++
  job.c                     |   3 +-
  5 files changed, 206 insertions(+), 19 deletions(-)
  create mode 100644 block/backup-dump.c
 
-diff --git a/block/Makefile.objs b/block/Makefile.objs
-index d1a9227b8f..9ea0477d0b 100644
---- a/block/Makefile.objs
-+++ b/block/Makefile.objs
-@@ -33,6 +33,7 @@ block-obj-$(CONFIG_CURL) += curl.o
- block-obj-$(CONFIG_RBD) += rbd.o
- block-obj-$(CONFIG_GLUSTERFS) += gluster.o
- block-obj-$(CONFIG_LIBSSH) += ssh.o
-+block-obj-y += backup-dump.o
- block-obj-y += accounting.o dirty-bitmap.o
- block-obj-y += write-threshold.o
- block-obj-y += backup.o
 diff --git a/block/backup-dump.c b/block/backup-dump.c
 new file mode 100644
 index 0000000000..93d7f46950
@@ -203,7 +191,7 @@ index 0000000000..93d7f46950
 +    return bs;
 +}
 diff --git a/block/backup.c b/block/backup.c
-index 4f13bb20a5..cd42236b79 100644
+index 9afa0bf3b4..3df3d532d5 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -32,24 +32,6 @@
@@ -231,7 +219,7 @@ index 4f13bb20a5..cd42236b79 100644
  static const BlockJobDriver backup_job_driver;
  
  static void backup_progress_bytes_callback(int64_t bytes, void *opaque)
-@@ -422,6 +404,11 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -423,6 +405,11 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
          goto error;
      }
  
@@ -243,11 +231,23 @@ index 4f13bb20a5..cd42236b79 100644
      /*
       * If source is in backing chain of target assume that target is going to be
       * used for "image fleecing", i.e. it should represent a kind of snapshot of
+diff --git a/block/meson.build b/block/meson.build
+index feffbc8623..2507af1168 100644
+--- a/block/meson.build
++++ b/block/meson.build
+@@ -4,6 +4,7 @@ block_ss.add(files(
+   'aio_task.c',
+   'amend.c',
+   'backup.c',
++  'backup-dump.c',
+   'backup-top.c',
+   'blkdebug.c',
+   'blklogwrites.c',
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 38dec0275b..1efb1f527c 100644
+index 95d9333be1..2645e53282 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
-@@ -62,6 +62,36 @@
+@@ -63,6 +63,36 @@
  
  #define BLOCK_PROBE_BUF_SIZE        512
  
@@ -285,7 +285,7 @@ index 38dec0275b..1efb1f527c 100644
      BDRV_TRACKED_READ,
      BDRV_TRACKED_WRITE,
 diff --git a/job.c b/job.c
-index 53be57a3a0..b8139c80a4 100644
+index 8fecf38960..f9884e7d9d 100644
 --- a/job.c
 +++ b/job.c
 @@ -269,7 +269,8 @@ static bool job_started(Job *job)

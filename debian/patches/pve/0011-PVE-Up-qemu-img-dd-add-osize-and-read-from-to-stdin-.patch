@@ -37,7 +37,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 121 insertions(+), 74 deletions(-)
 
 diff --git a/qemu-img-cmds.hx b/qemu-img-cmds.hx
-index b89c019b76..91d18a4819 100644
+index b3620f29e5..e70ef3dc91 100644
 --- a/qemu-img-cmds.hx
 +++ b/qemu-img-cmds.hx
 @@ -58,9 +58,9 @@ SRST
@@ -53,10 +53,10 @@ index b89c019b76..91d18a4819 100644
  
  DEF("info", img_info,
 diff --git a/qemu-img.c b/qemu-img.c
-index 45aa024acc..af54d0896e 100644
+index 7e6666b5f7..44cf942bd2 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -4819,10 +4819,12 @@ static int img_bitmap(int argc, char **argv)
+@@ -4897,10 +4897,12 @@ static int img_bitmap(int argc, char **argv)
  #define C_IF      04
  #define C_OF      010
  #define C_SKIP    020
@@ -69,7 +69,7 @@ index 45aa024acc..af54d0896e 100644
  };
  
  struct DdIo {
-@@ -4898,6 +4900,19 @@ static int img_dd_skip(const char *arg,
+@@ -4976,6 +4978,19 @@ static int img_dd_skip(const char *arg,
      return 0;
  }
  
@@ -89,7 +89,7 @@ index 45aa024acc..af54d0896e 100644
  static int img_dd(int argc, char **argv)
  {
      int ret = 0;
-@@ -4938,6 +4953,7 @@ static int img_dd(int argc, char **argv)
+@@ -5016,6 +5031,7 @@ static int img_dd(int argc, char **argv)
          { "if", img_dd_if, C_IF },
          { "of", img_dd_of, C_OF },
          { "skip", img_dd_skip, C_SKIP },
@@ -97,7 +97,7 @@ index 45aa024acc..af54d0896e 100644
          { NULL, NULL, 0 }
      };
      const struct option long_options[] = {
-@@ -5016,8 +5032,13 @@ static int img_dd(int argc, char **argv)
+@@ -5094,8 +5110,13 @@ static int img_dd(int argc, char **argv)
          arg = NULL;
      }
  
@@ -113,7 +113,7 @@ index 45aa024acc..af54d0896e 100644
          ret = -1;
          goto out;
      }
-@@ -5029,85 +5050,101 @@ static int img_dd(int argc, char **argv)
+@@ -5107,85 +5128,101 @@ static int img_dd(int argc, char **argv)
          goto out;
      }
  
@@ -279,7 +279,7 @@ index 45aa024acc..af54d0896e 100644
      }
  
      if (dd.flags & C_SKIP && (in.offset > INT64_MAX / in.bsz ||
-@@ -5125,11 +5162,17 @@ static int img_dd(int argc, char **argv)
+@@ -5203,11 +5240,17 @@ static int img_dd(int argc, char **argv)
  
      for (out_pos = 0; in_pos < size; block_count++) {
          int in_ret, out_ret;
@@ -301,7 +301,7 @@ index 45aa024acc..af54d0896e 100644
          }
          if (in_ret < 0) {
              error_report("error while reading from input image file: %s",
-@@ -5139,9 +5182,13 @@ static int img_dd(int argc, char **argv)
+@@ -5217,9 +5260,13 @@ static int img_dd(int argc, char **argv)
          }
          in_pos += in_ret;
  

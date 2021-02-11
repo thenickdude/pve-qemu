@@ -20,7 +20,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  1 file changed, 9 insertions(+), 5 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index f14273645a..bd802c6205 100644
+index 3eba85506a..40c2697b37 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -8,6 +8,7 @@

@@ -11,10 +11,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  3 files changed, 43 insertions(+)
 
 diff --git a/net/net.c b/net/net.c
-index bbaedb3c7a..9de23ec834 100644
+index 6a2c3d9567..a1e9514fb8 100644
 --- a/net/net.c
 +++ b/net/net.c
-@@ -1276,6 +1276,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
+@@ -1277,6 +1277,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
      }
  }
  
@@ -49,7 +49,7 @@ index bbaedb3c7a..9de23ec834 100644
  {
      NetClientState *nc;
 diff --git a/qapi/net.json b/qapi/net.json
-index ddb113e5e5..eb3b785984 100644
+index a3a1336001..b8092c4e20 100644
 --- a/qapi/net.json
 +++ b/qapi/net.json
 @@ -35,6 +35,21 @@

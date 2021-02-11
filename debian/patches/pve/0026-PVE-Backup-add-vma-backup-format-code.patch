@@ -4,51 +4,54 @@ Date: Mon, 6 Apr 2020 12:16:57 +0200
 Subject: [PATCH] PVE-Backup: add vma backup format code
 
 ---
- Makefile      |   3 +-
- Makefile.objs |   1 +
- vma-reader.c  | 857 ++++++++++++++++++++++++++++++++++++++++++++++++++
- vma-writer.c  | 790 ++++++++++++++++++++++++++++++++++++++++++++++
- vma.c         | 839 ++++++++++++++++++++++++++++++++++++++++++++++++
- vma.h         | 150 +++++++++
- 6 files changed, 2639 insertions(+), 1 deletion(-)
+ block/meson.build |   2 +
+ meson.build       |   5 +
+ vma-reader.c      | 857 ++++++++++++++++++++++++++++++++++++++++++++++
+ vma-writer.c      | 790 ++++++++++++++++++++++++++++++++++++++++++
+ vma.c             | 839 +++++++++++++++++++++++++++++++++++++++++++++
+ vma.h             | 150 ++++++++
+ 6 files changed, 2643 insertions(+)
  create mode 100644 vma-reader.c
  create mode 100644 vma-writer.c
  create mode 100644 vma.c
  create mode 100644 vma.h
 
-diff --git a/Makefile b/Makefile
-index 13dd708c4a..7b8c17ce2d 100644
---- a/Makefile
-+++ b/Makefile
-@@ -479,7 +479,7 @@ dummy := $(call unnest-vars,, \
+diff --git a/block/meson.build b/block/meson.build
+index c10d544864..feffbc8623 100644
+--- a/block/meson.build
++++ b/block/meson.build
+@@ -42,6 +42,8 @@ block_ss.add(files(
+   'zeroinit.c',
+ ), zstd, zlib)
  
- include $(SRC_PATH)/tests/Makefile.include
++block_ss.add(files('../vma-writer.c'), libuuid)
++
+ softmmu_ss.add(when: 'CONFIG_TCG', if_true: files('blkreplay.c'))
  
--all: $(DOCS) $(if $(BUILD_DOCS),sphinxdocs) $(TOOLS) $(HELPERS-y) recurse-all modules $(vhost-user-json-y)
-+all: $(DOCS) $(if $(BUILD_DOCS),sphinxdocs) $(TOOLS) vma$(EXESUF) $(HELPERS-y) recurse-all modules $(vhost-user-json-y)
+ block_ss.add(when: 'CONFIG_QCOW1', if_true: files('qcow.c'))
+diff --git a/meson.build b/meson.build
+index e3386196ba..d5b660516b 100644
+--- a/meson.build
++++ b/meson.build
+@@ -725,6 +725,8 @@ keyutils = dependency('libkeyutils', required: false,
  
- qemu-version.h: FORCE
- 	$(call quiet-command, \
-@@ -602,6 +602,7 @@ qemu-img$(EXESUF): qemu-img.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io
- qemu-nbd$(EXESUF): qemu-nbd.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
- qemu-io$(EXESUF): qemu-io.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
- qemu-storage-daemon$(EXESUF): qemu-storage-daemon.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(chardev-obj-y) $(io-obj-y) $(qom-obj-y) $(storage-daemon-obj-y) $(COMMON_LDADDS)
-+vma$(EXESUF): vma.o vma-reader.o $(authz-obj-y) $(block-obj-y) $(crypto-obj-y) $(io-obj-y) $(qom-obj-y) $(COMMON_LDADDS)
+ has_gettid = cc.has_function('gettid')
  
- qemu-bridge-helper$(EXESUF): qemu-bridge-helper.o $(COMMON_LDADDS)
++libuuid = cc.find_library('uuid', required: true)
++
+ # Malloc tests
  
-diff --git a/Makefile.objs b/Makefile.objs
-index a1307c12a8..ade7b17a69 100644
---- a/Makefile.objs
-+++ b/Makefile.objs
-@@ -17,6 +17,7 @@ block-obj-y = block/ nbd/ scsi/
- block-obj-y += block.o blockjob.o job.o
- block-obj-y += qemu-io-cmds.o
- block-obj-$(CONFIG_REPLICATION) += replication.o
-+block-obj-y += vma-writer.o
+ malloc = []
+@@ -1907,6 +1909,9 @@ if have_tools
+   qemu_nbd = executable('qemu-nbd', files('qemu-nbd.c'),
+                dependencies: [blockdev, qemuutil], install: true)
  
- block-obj-m = block/
- 
++  vma = executable('vma', files('vma.c', 'vma-reader.c'),
++                   dependencies: [authz, block, crypto, io, qom], install: true)
++
+   subdir('storage-daemon')
+   subdir('contrib/rdmacm-mux')
+   subdir('contrib/elf2dmp')
 diff --git a/vma-reader.c b/vma-reader.c
 new file mode 100644
 index 0000000000..2b1d1cdab3
@@ -914,7 +917,7 @@ index 0000000000..2b1d1cdab3
 +
 diff --git a/vma-writer.c b/vma-writer.c
 new file mode 100644
-index 0000000000..f5d2c5d23c
+index 0000000000..11d8321ffd
 --- /dev/null
 +++ b/vma-writer.c
 @@ -0,0 +1,790 @@
@@ -1213,20 +1216,20 @@ index 0000000000..f5d2c5d23c
 +
 +        if ((stat(filename, &st) == 0) && S_ISFIFO(st.st_mode)) {
 +            oflags = O_NONBLOCK|O_WRONLY;
-+            vmaw->fd = qemu_open(filename, oflags, 0644);
++            vmaw->fd = qemu_open(filename, oflags, errp);
 +        } else if (strstart(filename, "/dev/fdset/", &tmp_id_str)) {
 +            oflags = O_NONBLOCK|O_WRONLY;
-+            vmaw->fd = qemu_open(filename, oflags, 0644);
++            vmaw->fd = qemu_open(filename, oflags, errp);
 +        } else if (strstart(filename, "/dev/fdname/", &tmp_id_str)) {
-+            vmaw->fd = monitor_get_fd(cur_mon, tmp_id_str, errp);
++            vmaw->fd = monitor_get_fd(monitor_cur(), tmp_id_str, errp);
 +            if (vmaw->fd < 0) {
 +                goto err;
 +            }
 +            /* try to use O_NONBLOCK */
 +            fcntl(vmaw->fd, F_SETFL, fcntl(vmaw->fd, F_GETFL)|O_NONBLOCK);
 +        } else  {
-+            oflags = O_NONBLOCK|O_DIRECT|O_WRONLY|O_CREAT|O_EXCL;
-+            vmaw->fd = qemu_open(filename, oflags, 0644);
++            oflags = O_NONBLOCK|O_DIRECT|O_WRONLY|O_EXCL;
++            vmaw->fd = qemu_create(filename, oflags, 0644, errp);
 +        }
 +
 +        if (vmaw->fd < 0) {

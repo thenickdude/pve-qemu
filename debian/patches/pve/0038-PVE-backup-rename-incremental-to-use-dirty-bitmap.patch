@@ -94,10 +94,10 @@ index d50f03a050..7bf54b4c5d 100644
          .format = format,
          .has_config_file = has_config_file,
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 6cad1e0e38..e00e577c6c 100644
+index aadd5329b3..d4e1c98c50 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -767,7 +767,7 @@
+@@ -758,7 +758,7 @@
  #
  # @total: total amount of bytes involved in the backup process
  #
@@ -106,7 +106,7 @@ index 6cad1e0e38..e00e577c6c 100644
  #         in the backup process which are marked dirty.
  #
  # @transferred: amount of bytes already backed up.
-@@ -830,7 +830,7 @@
+@@ -821,7 +821,7 @@
  #
  # @backup-time: backup timestamp (Unix epoch, required for format 'pbs')
  #
@@ -115,7 +115,7 @@ index 6cad1e0e38..e00e577c6c 100644
  #
  # Returns: the uuid of the backup job
  #
-@@ -842,7 +842,7 @@
+@@ -833,7 +833,7 @@
                                      '*fingerprint': 'str',
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',
