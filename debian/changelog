@@ -1,3 +1,15 @@
+pve-qemu-kvm (5.2.0-1) pve; urgency=medium
+
+  * update to QEMU stable release 5.2.0
+
+  * fix #3084: fall back to open-iscsi initiatorname
+
+  * fix snapshot abort and improve performance in some edge cases
+
+  * add basis for Proxmox Backup Server master key support
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 12 Feb 2021 12:09:59 +0100
+
 pve-qemu-kvm (5.1.0-8) pve; urgency=medium
 
   * disable jemalloc, as it does not play nice with our library written in
