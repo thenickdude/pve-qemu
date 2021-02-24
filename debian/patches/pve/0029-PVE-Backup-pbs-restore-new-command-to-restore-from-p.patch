@@ -7,8 +7,8 @@ Subject: [PATCH] PVE-Backup: pbs-restore - new command to restore from proxmox
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  meson.build   |   4 +
- pbs-restore.c | 217 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 221 insertions(+)
+ pbs-restore.c | 218 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 222 insertions(+)
  create mode 100644 pbs-restore.c
 
 diff --git a/meson.build b/meson.build
@@ -28,10 +28,10 @@ index 3094f98c47..6f1fafee14 100644
    subdir('contrib/elf2dmp')
 diff --git a/pbs-restore.c b/pbs-restore.c
 new file mode 100644
-index 0000000000..4bf37ef1fa
+index 0000000000..d4daee7e91
 --- /dev/null
 +++ b/pbs-restore.c
-@@ -0,0 +1,217 @@
+@@ -0,0 +1,218 @@
 +/*
 + * Qemu image restore helper for Proxmox Backup
 + *
@@ -241,6 +241,7 @@ index 0000000000..4bf37ef1fa
 +        verbose);
 +
 +    proxmox_restore_disconnect(conn);
++    blk_unref(blk);
 +
 +    if (res < 0) {
 +        fprintf(stderr, "restore failed: %s\n", pbs_error);
