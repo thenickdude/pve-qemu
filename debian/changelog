@@ -1,3 +1,12 @@
+pve-qemu-kvm (5.2.0-2) pve; urgency=medium
+
+  * Proxmox Backup restore: ensure all caches are flushed for userspace
+    attached storages (for example, Ceph when librbd and not KRBD is used)
+
+  * ship VirtIOFSd daemon
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 24 Feb 2021 18:25:14 +0100
+
 pve-qemu-kvm (5.2.0-1) pve; urgency=medium
 
   * update to QEMU stable release 5.2.0
