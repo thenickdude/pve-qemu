@@ -49,6 +49,7 @@ ${BUILDDIR}/config.status: configure
 	--with-pkgversion="${DEB_SOURCE}_${DEB_VERSION_UPSTREAM}" \
 	--audio-drv-list="alsa" \
 	--datadir=/usr/share \
+	--libexecdir=/usr/lib/kvm \
 	--disable-capstone \
 	--disable-gtk \
 	--disable-guest-agent \
@@ -72,6 +73,7 @@ ${BUILDDIR}/config.status: configure
 	--enable-spice \
 	--enable-usb-redir \
 	--enable-virtfs \
+	--enable-virtiofsd \
 	--enable-xfsctl
 
 build: build-stamp
@@ -131,7 +133,8 @@ install: build
 	# Remove things we don't package at all, would be a "kvm-dev" package
 	rm -Rf $(destdir)/usr/include/linux/
 	rm -Rf $(destdir)/usr/include
-	rm -Rf $(destdir)/usr/lib*
+	rm -f $(destdir)/usr/lib/kvm/qemu-bridge-helper
+	rm -f $(destdir)/usr/lib/kvm/virtfs-proxy-helper
 
 	# CPU flags are static for QEMU version, allows avoiding more costly checks
 	$(destdir)/usr/bin/qemu-system-x86_64 -cpu help | ./debian/parse-cpu-flags.pl > $(flagfile)
