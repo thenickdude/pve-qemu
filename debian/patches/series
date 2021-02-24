@@ -1,6 +1,11 @@
 extra/0001-Revert-qemu-img-convert-Don-t-pre-zero-images.patch
 extra/0002-docs-don-t-install-man-page-if-guest-agent-is-disabl.patch
 extra/0003-migration-only-check-page-size-match-if-RAM-postcopy.patch
+extra/0004-virtiofsd-extract-lo_do_open-from-lo_open.patch
+extra/0005-virtiofsd-optionally-return-inode-pointer-from-lo_do.patch
+extra/0006-virtiofsd-prevent-opening-of-special-files-CVE-2020-.patch
+extra/0007-virtiofsd-Add-_llseek-to-the-seccomp-whitelist.patch
+extra/0008-virtiofsd-Add-restart_syscall-to-the-seccomp-whiteli.patch
 pve/0001-PVE-Config-block-file-change-locking-default-to-off.patch
 pve/0002-PVE-Config-Adjust-network-script-path-to-etc-kvm.patch
 pve/0003-PVE-Config-set-the-CPU-model-to-kvm64-32-instead-of-.patch
