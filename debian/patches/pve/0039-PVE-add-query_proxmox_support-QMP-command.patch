@@ -16,10 +16,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  2 files changed, 33 insertions(+)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index bfb648d6b5..ba9d0d8a86 100644
+index b8182aaf89..40c2697b37 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
-@@ -1051,3 +1051,11 @@ BackupStatus *qmp_query_backup(Error **errp)
+@@ -1073,3 +1073,11 @@ BackupStatus *qmp_query_backup(Error **errp)
  
      return info;
  }

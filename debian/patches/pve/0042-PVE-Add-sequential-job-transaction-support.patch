@@ -6,8 +6,8 @@ Subject: [PATCH] PVE: Add sequential job transaction support
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
  include/qemu/job.h | 12 ++++++++++++
- job.c              | 24 ++++++++++++++++++++++++
- 2 files changed, 36 insertions(+)
+ job.c              | 31 +++++++++++++++++++++++++++++++
+ 2 files changed, 43 insertions(+)
 
 diff --git a/include/qemu/job.h b/include/qemu/job.h
 index 32aabb1c60..f7a6a0926a 100644
@@ -33,7 +33,7 @@ index 32aabb1c60..f7a6a0926a 100644
   * Release a reference that was previously acquired with job_txn_add_job or
   * job_txn_new. If it's the last reference to the object, it will be freed.
 diff --git a/job.c b/job.c
-index f9884e7d9d..8f06e05fbf 100644
+index f9884e7d9d..05b7797e82 100644
 --- a/job.c
 +++ b/job.c
 @@ -72,6 +72,8 @@ struct JobTxn {
@@ -81,3 +81,17 @@ index f9884e7d9d..8f06e05fbf 100644
              return;
          }
          assert(other_job->ret == 0);
+@@ -1011,6 +1035,13 @@ int job_finish_sync(Job *job, void (*finish)(Job *, Error **errp), Error **errp)
+         return -EBUSY;
+     }
+ 
++    /* in a sequential transaction jobs with status CREATED can appear at time
++     * of cancelling, these have not begun work so job_enter won't do anything,
++     * let's ensure they are marked as ABORTING if required */
++    if (job->status == JOB_STATUS_CREATED && job->txn->sequential) {
++        job_update_rc(job);
++    }
++
+     AIO_WAIT_WHILE(job->aio_context,
+                    (job_enter(job), !job_is_completed(job)));
+ 

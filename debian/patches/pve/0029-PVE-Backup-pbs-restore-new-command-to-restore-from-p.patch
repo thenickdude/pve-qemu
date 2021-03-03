@@ -7,8 +7,8 @@ Subject: [PATCH] PVE-Backup: pbs-restore - new command to restore from proxmox
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  meson.build   |   4 +
- pbs-restore.c | 218 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 222 insertions(+)
+ pbs-restore.c | 224 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 228 insertions(+)
  create mode 100644 pbs-restore.c
 
 diff --git a/meson.build b/meson.build
@@ -28,10 +28,10 @@ index 3094f98c47..6f1fafee14 100644
    subdir('contrib/elf2dmp')
 diff --git a/pbs-restore.c b/pbs-restore.c
 new file mode 100644
-index 0000000000..d4daee7e91
+index 0000000000..4d3f925a1b
 --- /dev/null
 +++ b/pbs-restore.c
-@@ -0,0 +1,218 @@
+@@ -0,0 +1,224 @@
 +/*
 + * Qemu image restore helper for Proxmox Backup
 + *
@@ -195,10 +195,16 @@ index 0000000000..d4daee7e91
 +        fprintf(stderr, "connecting to repository '%s'\n", repository);
 +    }
 +    char *pbs_error = NULL;
-+    ProxmoxRestoreHandle *conn = proxmox_restore_connect(
++    ProxmoxRestoreHandle *conn = proxmox_restore_new(
 +        repository, snapshot, password, keyfile, key_password, fingerprint, &pbs_error);
 +    if (conn == NULL) {
 +        fprintf(stderr, "restore failed: %s\n", pbs_error);
++        return -1;
++    }
++
++    int res = proxmox_restore_connect(conn, &pbs_error);
++    if (res < 0 || pbs_error) {
++        fprintf(stderr, "restore failed (connection error): %s\n", pbs_error);
 +        return -1;
 +    }
 +
@@ -232,7 +238,7 @@ index 0000000000..d4daee7e91
 +        fprintf(stderr, "starting to restore snapshot '%s'\n", snapshot);
 +        fflush(stderr); // ensure we do not get printed after the progress log
 +    }
-+    int res = proxmox_restore_image(
++    res = proxmox_restore_image(
 +        conn,
 +        archive_name,
 +        write_callback,
