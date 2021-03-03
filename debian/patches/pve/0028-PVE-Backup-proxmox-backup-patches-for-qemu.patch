@@ -85,7 +85,7 @@ index d15a2be827..9ba7c774a2 100644
 +    hmp_handle_error(mon, error);
 +}
 diff --git a/blockdev.c b/blockdev.c
-index fe6fb5dc1d..bae80b9177 100644
+index a40c6fd0f6..e2f826ca62 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -36,6 +36,7 @@
@@ -161,7 +161,7 @@ index d294c234a5..0c6b944850 100644
  
      {
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 2645e53282..9fa282ff54 100644
+index 5455102da8..1bd4b64522 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -65,7 +65,7 @@
@@ -1472,7 +1472,7 @@ index 0000000000..d40f3f2fd6
 +    return info;
 +}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 7957b9867d..be67dc3376 100644
+index d285622589..9054db608c 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -745,6 +745,115 @@

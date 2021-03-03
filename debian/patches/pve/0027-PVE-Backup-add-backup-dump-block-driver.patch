@@ -244,7 +244,7 @@ index feffbc8623..2507af1168 100644
    'blkdebug.c',
    'blklogwrites.c',
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 95d9333be1..2645e53282 100644
+index 6f8eda629a..5455102da8 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -63,6 +63,36 @@

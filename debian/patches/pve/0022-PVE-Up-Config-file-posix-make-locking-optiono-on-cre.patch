@@ -128,10 +128,10 @@ index bda3e606dc..037839622e 100644
                                     false, errp);
          if (ret < 0) {
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 04ad80bc1e..7957b9867d 100644
+index 9db3120716..d285622589 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -4203,7 +4203,8 @@
+@@ -4224,7 +4224,8 @@
              'size':                 'size',
              '*preallocation':       'PreallocMode',
              '*nocow':               'bool',

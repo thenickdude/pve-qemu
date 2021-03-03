@@ -15,10 +15,10 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  1 file changed, 3 insertions(+)
 
 diff --git a/blockdev.c b/blockdev.c
-index c79e081f57..827f004069 100644
+index 394920613d..4f8bd38b58 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3030,6 +3030,9 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
+@@ -3029,6 +3029,9 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
          if (bdrv_dirty_bitmap_check(bitmap, BDRV_BITMAP_ALLOW_RO, errp)) {
              return;
          }
