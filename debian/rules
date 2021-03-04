@@ -22,6 +22,7 @@ PACKAGE=pve-qemu-kvm
 destdir := $(CURDIR)/debian/$(PACKAGE)
 
 flagfile := $(destdir)/usr/share/kvm/recognized-CPUID-flags-x86_64
+machinefile := $(destdir)/usr/share/kvm/machine-versions-x86_64
 
 # default QEMU out-of-tree build directory is ./build
 BUILDDIR=build
@@ -124,7 +125,7 @@ install: build
 	rm $(destdir)/usr/share/kvm/qemu_vga.ndrv
 	rm $(destdir)/usr/share/kvm/slof.bin
 	rm $(destdir)/usr/share/kvm/u-boot.e500
-	# remove Aplha files
+	# remove Alpha files
 	rm $(destdir)/usr/share/kvm/palcode-clipper
 	# remove RISC-V files
 	rm $(destdir)/usr/share/kvm/opensbi-riscv32-generic-fw_dynamic.elf
@@ -138,6 +139,7 @@ install: build
 
 	# CPU flags are static for QEMU version, allows avoiding more costly checks
 	$(destdir)/usr/bin/qemu-system-x86_64 -cpu help | ./debian/parse-cpu-flags.pl > $(flagfile)
+	$(destdir)/usr/bin/qemu-system-x86_64 -machine help | ./debian/parse-machines.pl > $(machinefile)
 
 # Build architecture-independent files here.
 binary-indep: build install
