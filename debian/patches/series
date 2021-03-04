@@ -6,6 +6,7 @@ extra/0005-virtiofsd-optionally-return-inode-pointer-from-lo_do.patch
 extra/0006-virtiofsd-prevent-opening-of-special-files-CVE-2020-.patch
 extra/0007-virtiofsd-Add-_llseek-to-the-seccomp-whitelist.patch
 extra/0008-virtiofsd-Add-restart_syscall-to-the-seccomp-whiteli.patch
+extra/0009-i386-acpi-restore-device-paths-for-pre-5.1-vms.patch
 bitmap-mirror/0001-drive-mirror-add-support-for-sync-bitmap-mode-never.patch
 bitmap-mirror/0002-drive-mirror-add-support-for-conditional-and-always-.patch
 bitmap-mirror/0003-mirror-add-check-for-bitmap-mode-without-bitmap.patch
