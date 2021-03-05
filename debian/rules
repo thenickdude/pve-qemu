@@ -22,7 +22,7 @@ PACKAGE=pve-qemu-kvm
 destdir := $(CURDIR)/debian/$(PACKAGE)
 
 flagfile := $(destdir)/usr/share/kvm/recognized-CPUID-flags-x86_64
-machinefile := $(destdir)/usr/share/kvm/machine-versions-x86_64
+machinefile := $(destdir)/usr/share/kvm/machine-versions-x86_64.json
 
 # default QEMU out-of-tree build directory is ./build
 BUILDDIR=build
