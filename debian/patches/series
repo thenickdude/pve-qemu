@@ -56,3 +56,7 @@ pve/0040-migration-block-dirty-bitmap-migrate-other-bitmaps-e.patch
 pve/0041-PVE-fall-back-to-open-iscsi-initiatorname.patch
 pve/0042-PVE-Use-coroutine-QMP-for-backup-cancel_backup.patch
 pve/0043-PBS-add-master-key-support.patch
+pve/0044-PVE-block-pbs-fast-path-reads-without-allocation-if-.patch
+pve/0045-PVE-block-stream-increase-chunk-size.patch
+pve/0046-block-io-accept-NULL-qiov-in-bdrv_pad_request.patch
+pve/0047-block-add-alloc-track-driver.patch

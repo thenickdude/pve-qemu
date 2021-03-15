@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Wed, 9 Dec 2020 11:46:57 +0100
+Subject: [PATCH] PVE: block/pbs: fast-path reads without allocation if
+ possible
+
+...and switch over to g_malloc/g_free while at it to align with other
+QEMU code.
+
+Tracing shows the fast-path is taken almost all the time, though not
+100% so the slow one is still necessary.
+
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+---
+ block/pbs.c | 17 ++++++++++++++---
+ 1 file changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/block/pbs.c b/block/pbs.c
+index 1481a2bfd1..fbf0d8d845 100644
+--- a/block/pbs.c
++++ b/block/pbs.c
+@@ -200,7 +200,16 @@ static coroutine_fn int pbs_co_preadv(BlockDriverState *bs,
+     BDRVPBSState *s = bs->opaque;
+     int ret;
+     char *pbs_error = NULL;
+-    uint8_t *buf = malloc(bytes);
++    uint8_t *buf;
++    bool inline_buf = true;
++
++    /* for single-buffer IO vectors we can fast-path the write directly to it */
++    if (qiov->niov == 1 && qiov->iov->iov_len >= bytes) {
++        buf = qiov->iov->iov_base;
++    } else {
++        inline_buf = false;
++        buf = g_malloc(bytes);
++    }
+ 
+     ReadCallbackData rcb = {
+         .co = qemu_coroutine_self(),
+@@ -218,8 +227,10 @@ static coroutine_fn int pbs_co_preadv(BlockDriverState *bs,
+         return -EIO;
+     }
+ 
+-    qemu_iovec_from_buf(qiov, 0, buf, bytes);
+-    free(buf);
++    if (!inline_buf) {
++        qemu_iovec_from_buf(qiov, 0, buf, bytes);
++        g_free(buf);
++    }
+ 
+     return ret;
+ }
