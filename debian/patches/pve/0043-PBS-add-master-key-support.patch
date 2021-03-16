@@ -30,7 +30,7 @@ index 11c84d5508..0932deb28c 100644
          false, NULL, // PBS backup-id
          false, 0, // PBS backup-time
 diff --git a/pve-backup.c b/pve-backup.c
-index f7597ae55c..0ecadf6ce6 100644
+index dec9c0d188..076146cc1e 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -531,6 +531,7 @@ UuidInfo coroutine_fn *qmp_backup(
@@ -49,15 +49,15 @@ index f7597ae55c..0ecadf6ce6 100644
              has_compress ? compress : true,
              has_encrypt ? encrypt : has_keyfile,
              has_fingerprint ? fingerprint : NULL,
-@@ -1041,5 +1043,6 @@ ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
-     ret->pbs_dirty_bitmap = true;
-     ret->query_bitmap_info = true;
+@@ -1042,5 +1044,6 @@ ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
+     ret->pbs_dirty_bitmap_savevm = true;
      ret->pbs_dirty_bitmap_migration = true;
+     ret->query_bitmap_info = true;
 +    ret->pbs_masterkey = true;
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 82133e2bee..be3d6a0d37 100644
+index 6ff5367383..bef9b65fec 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -818,6 +818,8 @@
@@ -77,7 +77,7 @@ index 82133e2bee..be3d6a0d37 100644
                                      '*fingerprint': 'str',
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',
-@@ -886,6 +889,9 @@
+@@ -889,6 +892,9 @@
  #                              migration cap if this is false/unset may lead
  #                              to crashes on migration!
  #
@@ -87,9 +87,9 @@ index 82133e2bee..be3d6a0d37 100644
  # @pbs-library-version: Running version of libproxmox-backup-qemu0 library.
  #
  ##
-@@ -893,6 +899,7 @@
-   'data': { 'pbs-dirty-bitmap': 'bool',
+@@ -897,6 +903,7 @@
              'query-bitmap-info': 'bool',
+             'pbs-dirty-bitmap-savevm': 'bool',
              'pbs-dirty-bitmap-migration': 'bool',
 +            'pbs-masterkey': 'bool',
              'pbs-library-version': 'str' } }

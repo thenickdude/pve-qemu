@@ -29,13 +29,13 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  include/migration/snapshot.h |   1 +
  include/monitor/hmp.h        |   5 +
  migration/meson.build        |   1 +
- migration/savevm-async.c     | 591 +++++++++++++++++++++++++++++++++++
+ migration/savevm-async.c     | 598 +++++++++++++++++++++++++++++++++++
  monitor/hmp-cmds.c           |  57 ++++
  qapi/migration.json          |  34 ++
  qapi/misc.json               |  32 ++
  qemu-options.hx              |  12 +
  softmmu/vl.c                 |  10 +
- 11 files changed, 789 insertions(+)
+ 11 files changed, 796 insertions(+)
  create mode 100644 migration/savevm-async.c
 
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
@@ -151,10 +151,10 @@ index 980e37865c..e62b79b60f 100644
  ))
 diff --git a/migration/savevm-async.c b/migration/savevm-async.c
 new file mode 100644
-index 0000000000..4e345c1a7d
+index 0000000000..593a619088
 --- /dev/null
 +++ b/migration/savevm-async.c
-@@ -0,0 +1,591 @@
+@@ -0,0 +1,598 @@
 +#include "qemu/osdep.h"
 +#include "migration/migration.h"
 +#include "migration/savevm.h"
@@ -457,7 +457,11 @@ index 0000000000..4e345c1a7d
 +    while (snap_state.state == SAVE_STATE_ACTIVE) {
 +        uint64_t pending_size, pend_precopy, pend_compatible, pend_postcopy;
 +
++        /* pending is expected to be called without iothread lock */
++        qemu_mutex_unlock_iothread();
 +        qemu_savevm_state_pending(snap_state.file, 0, &pend_precopy, &pend_compatible, &pend_postcopy);
++        qemu_mutex_lock_iothread();
++
 +        pending_size = pend_precopy + pend_compatible + pend_postcopy;
 +
 +        maxlen = blk_getlength(snap_state.target) - 30*1024*1024;
@@ -728,6 +732,9 @@ index 0000000000..4e345c1a7d
 +
 +    qemu_system_reset(SHUTDOWN_CAUSE_NONE);
 +    ret = qemu_loadvm_state(f);
++
++    /* dirty bitmap migration has a special case we need to trigger manually */
++    dirty_bitmap_mig_before_vm_start();
 +
 +    qemu_fclose(f);
 +    migration_incoming_state_destroy();

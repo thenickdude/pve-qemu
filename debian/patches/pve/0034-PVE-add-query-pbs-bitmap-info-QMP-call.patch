@@ -68,7 +68,7 @@ index 604026bb37..95f4e7f5c1 100644
                             info->zero_bytes, zero_per);
  
 diff --git a/pve-backup.c b/pve-backup.c
-index 40c2697b37..1e7b92a950 100644
+index 98e79552ef..8305105fd5 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -46,6 +46,7 @@ static struct PVEBackupState {
@@ -314,7 +314,7 @@ index 40c2697b37..1e7b92a950 100644
  err:
  
      l = di_list;
-@@ -1074,10 +1100,41 @@ BackupStatus *qmp_query_backup(Error **errp)
+@@ -1074,11 +1100,42 @@ BackupStatus *qmp_query_backup(Error **errp)
      return info;
  }
  
@@ -353,29 +353,32 @@ index 40c2697b37..1e7b92a950 100644
      ProxmoxSupportStatus *ret = g_malloc0(sizeof(*ret));
      ret->pbs_library_version = g_strdup(proxmox_backup_qemu_version());
      ret->pbs_dirty_bitmap = true;
+     ret->pbs_dirty_bitmap_savevm = true;
 +    ret->query_bitmap_info = true;
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index e0a0a60354..b368371e8e 100644
+index f3608390c4..f57fda122c 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -876,11 +876,14 @@
+@@ -876,6 +876,8 @@
  # @pbs-dirty-bitmap: True if dirty-bitmap-incremental backups to PBS are
  #                    supported.
  #
 +# @query-bitmap-info: True if the 'query-pbs-bitmap-info' QMP call is supported.
 +#
- # @pbs-library-version: Running version of libproxmox-backup-qemu0 library.
+ # @pbs-dirty-bitmap-savevm: True if 'dirty-bitmaps' migration capability can
+ #                           safely be set for savevm-async.
  #
+@@ -884,6 +886,7 @@
  ##
  { 'struct': 'ProxmoxSupportStatus',
    'data': { 'pbs-dirty-bitmap': 'bool',
 +            'query-bitmap-info': 'bool',
+             'pbs-dirty-bitmap-savevm': 'bool',
              'pbs-library-version': 'str' } }
  
- ##
-@@ -893,6 +896,59 @@
+@@ -897,6 +900,59 @@
  ##
  { 'command': 'query-proxmox-support', 'returns': 'ProxmoxSupportStatus' }
  

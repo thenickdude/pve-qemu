@@ -54,7 +54,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  2 files changed, 144 insertions(+), 78 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index f3df43eb8c..ded90cb822 100644
+index d7f2b2206f..e671ed8d48 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -33,7 +33,9 @@ const char *PBS_BITMAP_NAME = "pbs-incremental-dirty-bitmap";
@@ -478,7 +478,7 @@ index f3df43eb8c..ded90cb822 100644
      qemu_mutex_unlock(&backup_state.stat.lock);
  
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index b368371e8e..b90d6abe64 100644
+index f57fda122c..9b827cbe43 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -775,12 +775,15 @@

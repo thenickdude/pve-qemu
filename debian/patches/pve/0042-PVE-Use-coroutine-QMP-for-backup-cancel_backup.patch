@@ -115,7 +115,7 @@ index 4ce7bc0b5e..0923037dec 100644
  static void proxmox_backup_schedule_wake(void *data) {
      CoCtxData *waker = (CoCtxData *)data;
 diff --git a/pve-backup.c b/pve-backup.c
-index 6b25292ba1..f7597ae55c 100644
+index bd2647e5f3..dec9c0d188 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -357,7 +357,7 @@ static void job_cancel_bh(void *opaque) {
@@ -574,7 +574,7 @@ index 6b25292ba1..f7597ae55c 100644
  
  BackupStatus *qmp_query_backup(Error **errp)
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index dee3d87efe..82133e2bee 100644
+index 30eb1262ff..6ff5367383 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -847,7 +847,7 @@
