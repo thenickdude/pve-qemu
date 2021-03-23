@@ -1,3 +1,11 @@
+pve-qemu-kvm (5.2.0-4) pve; urgency=medium
+
+  * monitor/qmp: fix race on CHR_EVENT_CLOSED without OOB
+
+  * improve saving and loading dirty bitmaps in live-snapshots
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 23 Mar 2021 15:41:26 +0100
+
 pve-qemu-kvm (5.2.0-3) pve; urgency=medium
 
   * backport "i386/acpi: restore device paths for pre-5.1 vms" patch
