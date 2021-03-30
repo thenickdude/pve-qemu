@@ -1,3 +1,10 @@
+pve-qemu-kvm (5.2.0-5) pve; urgency=medium
+
+  * cherry-pick fixes for a possible deadlock when resizing a disk while using
+    IO-threads
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 30 Mar 2021 18:18:18 +0200
+
 pve-qemu-kvm (5.2.0-4) pve; urgency=medium
 
   * monitor/qmp: fix race on CHR_EVENT_CLOSED without OOB
