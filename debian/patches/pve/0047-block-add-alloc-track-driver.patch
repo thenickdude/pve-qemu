@@ -314,8 +314,6 @@ index 0000000000..b579380279
 +        return;
 +    }
 +
-+    /* we do not need a bdrv_drained_end, since this is applied only to the node
-+     * which gets removed by bdrv_replace_node */
 +    bdrv_drained_begin(bs);
 +
 +    /* now that we're drained, we can safely set 'DropInProgress' */
@@ -323,6 +321,8 @@ index 0000000000..b579380279
 +    bdrv_child_refresh_perms(bs, bs->file, &error_abort);
 +
 +    bdrv_replace_node(bs, file, &error_abort);
++    bdrv_set_backing_hd(bs, NULL, &error_abort);
++    bdrv_drained_end(bs);
 +    bdrv_unref(bs);
 +}
 +
