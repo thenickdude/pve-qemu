@@ -226,7 +226,7 @@ index 0000000000..b579380279
 +static int coroutine_fn track_co_pwrite_zeroes(BlockDriverState *bs,
 +    int64_t offset, int count, BdrvRequestFlags flags)
 +{
-+    return bdrv_pwrite_zeroes(bs->file, offset, count, flags);
++    return bdrv_co_pwrite_zeroes(bs->file, offset, count, flags);
 +}
 +
 +static int coroutine_fn track_co_pdiscard(BlockDriverState *bs,
