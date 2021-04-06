@@ -241,7 +241,7 @@ index 0000000000..1481a2bfd1
 +
 +    ReadCallbackData rcb = {
 +        .co = qemu_coroutine_self(),
-+        .ctx = qemu_get_current_aio_context(),
++        .ctx = bdrv_get_aio_context(bs),
 +    };
 +
 +    proxmox_restore_read_image_at_async(s->conn, s->aid, buf, offset, bytes,
