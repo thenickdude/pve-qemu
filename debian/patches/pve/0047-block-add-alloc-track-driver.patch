@@ -34,7 +34,7 @@ new file mode 100644
 index 0000000000..b579380279
 --- /dev/null
 +++ b/block/alloc-track.c
-@@ -0,0 +1,342 @@
+@@ -0,0 +1,345 @@
 +/*
 + * Node to allow backing images to be applied to any node. Assumes a blank
 + * image to begin with, only new writes are tracked as allocated, thus this
@@ -313,6 +313,8 @@ index 0000000000..b579380279
 +        aio_bh_schedule_oneshot(qemu_get_aio_context(), track_drop, opaque);
 +        return;
 +    }
++    AioContext *aio_context = bdrv_get_aio_context(bs);
++    aio_context_acquire(aio_context);
 +
 +    bdrv_drained_begin(bs);
 +
@@ -324,6 +326,7 @@ index 0000000000..b579380279
 +    bdrv_set_backing_hd(bs, NULL, &error_abort);
 +    bdrv_drained_end(bs);
 +    bdrv_unref(bs);
++    aio_context_release(aio_context);
 +}
 +
 +static int track_change_backing_file(BlockDriverState *bs,
