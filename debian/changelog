@@ -1,3 +1,10 @@
+pve-qemu-kvm (5.2.0-6) pve; urgency=medium
+
+  * improve the alloc-track and Proxmox Backup Server special block driver when
+    used with IO-threads for the new live-restore feature
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 15 Apr 2021 16:29:48 +0200
+
 pve-qemu-kvm (5.2.0-5) pve; urgency=medium
 
   * cherry-pick fixes for a possible deadlock when resizing a disk while using
