@@ -16,7 +16,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  1 file changed, 49 insertions(+), 118 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index 8305105fd5..d7f2b2206f 100644
+index 032ecc2007..7d254cc1f6 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -52,6 +52,7 @@ static struct PVEBackupState {
@@ -228,19 +228,19 @@ index 8305105fd5..d7f2b2206f 100644
 +    }
 +    backup_state.txn = job_txn_new_seq();
 +
+     BackupPerf perf = { .max_workers = 16 };
+ 
      /* create and start all jobs (paused state) */
-     GList *l =  backup_state.di_list;
-     while (l) {
-@@ -524,7 +448,7 @@ static bool create_backup_jobs(void) {
+@@ -526,7 +450,7 @@ static bool create_backup_jobs(void) {
          BlockJob *job = backup_job_create(
              NULL, di->bs, di->target, backup_state.speed, sync_mode, di->bitmap,
-             bitmap_mode, false, NULL, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
--            JOB_DEFAULT, pvebackup_complete_cb, di, 1, NULL, &local_err);
+             bitmap_mode, false, NULL, &perf, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
+-            JOB_DEFAULT, pvebackup_complete_cb, di, NULL, &local_err);
 +            JOB_DEFAULT, pvebackup_complete_cb, di, backup_state.txn, &local_err);
  
          aio_context_release(aio_context);
  
-@@ -536,7 +460,8 @@ static bool create_backup_jobs(void) {
+@@ -538,7 +462,8 @@ static bool create_backup_jobs(void) {
              pvebackup_propagate_error(create_job_err);
              break;
          }
@@ -250,7 +250,7 @@ index 8305105fd5..d7f2b2206f 100644
  
          bdrv_unref(di->target);
          di->target = NULL;
-@@ -554,6 +479,10 @@ static bool create_backup_jobs(void) {
+@@ -556,6 +481,10 @@ static bool create_backup_jobs(void) {
                  bdrv_unref(di->target);
                  di->target = NULL;
              }
@@ -261,7 +261,7 @@ index 8305105fd5..d7f2b2206f 100644
          }
      }
  
-@@ -944,10 +873,6 @@ err:
+@@ -946,10 +875,6 @@ err:
          PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
          l = g_list_next(l);
  
@@ -272,7 +272,7 @@ index 8305105fd5..d7f2b2206f 100644
          if (di->target) {
              bdrv_unref(di->target);
          }
-@@ -1036,9 +961,15 @@ UuidInfo *qmp_backup(
+@@ -1038,9 +963,15 @@ UuidInfo *qmp_backup(
      block_on_coroutine_fn(pvebackup_co_prepare, &task);
  
      if (*errp == NULL) {

@@ -24,14 +24,14 @@ once the backing image is removed. It will be replaced by 'file'.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
- block/alloc-track.c | 342 ++++++++++++++++++++++++++++++++++++++++++++
+ block/alloc-track.c | 345 ++++++++++++++++++++++++++++++++++++++++++++
  block/meson.build   |   1 +
- 2 files changed, 343 insertions(+)
+ 2 files changed, 346 insertions(+)
  create mode 100644 block/alloc-track.c
 
 diff --git a/block/alloc-track.c b/block/alloc-track.c
 new file mode 100644
-index 0000000000..b579380279
+index 0000000000..35f2737c89
 --- /dev/null
 +++ b/block/alloc-track.c
 @@ -0,0 +1,345 @@
@@ -381,7 +381,7 @@ index 0000000000..b579380279
 +
 +block_init(bdrv_alloc_track_init);
 diff --git a/block/meson.build b/block/meson.build
-index a070060e53..e387990764 100644
+index 574165e577..f56ec7f6bf 100644
 --- a/block/meson.build
 +++ b/block/meson.build
 @@ -2,6 +2,7 @@ block_ss.add(genh)

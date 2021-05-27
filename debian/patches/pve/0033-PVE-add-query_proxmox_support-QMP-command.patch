@@ -16,10 +16,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  2 files changed, 38 insertions(+)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index b8182aaf89..98e79552ef 100644
+index 129ebd0eb4..96e3d731da 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
-@@ -1073,3 +1073,12 @@ BackupStatus *qmp_query_backup(Error **errp)
+@@ -1075,3 +1075,12 @@ BackupStatus *qmp_query_backup(Error **errp)
  
      return info;
  }
@@ -33,10 +33,10 @@ index b8182aaf89..98e79552ef 100644
 +    return ret;
 +}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 553112d998..f3608390c4 100644
+index db11dd6aae..79aef65616 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -868,6 +868,35 @@
+@@ -806,6 +806,35 @@
  ##
  { 'command': 'backup-cancel' }
  

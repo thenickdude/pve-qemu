@@ -16,7 +16,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  3 files changed, 28 insertions(+), 15 deletions(-)
 
 diff --git a/migration/qemu-file.c b/migration/qemu-file.c
-index be21518c57..1926b5202c 100644
+index d6e03dbc0e..1ac188c8e4 100644
 --- a/migration/qemu-file.c
 +++ b/migration/qemu-file.c
 @@ -30,8 +30,8 @@
@@ -131,7 +131,7 @@ index be21518c57..1926b5202c 100644
 -    if (size < IO_BUF_SIZE) {
 +    if (size < f->buf_allocated_size) {
          size_t res;
-         uint8_t *src;
+         uint8_t *src = NULL;
  
 @@ -618,7 +630,7 @@ int qemu_peek_byte(QEMUFile *f, int offset)
      int index = f->buf_index + offset;

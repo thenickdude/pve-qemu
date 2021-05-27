@@ -10,10 +10,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  2 files changed, 43 insertions(+)
 
 diff --git a/include/qemu/job.h b/include/qemu/job.h
-index 32aabb1c60..f7a6a0926a 100644
+index efc6fa7544..942ee43bca 100644
 --- a/include/qemu/job.h
 +++ b/include/qemu/job.h
-@@ -280,6 +280,18 @@ typedef enum JobCreateFlags {
+@@ -285,6 +285,18 @@ typedef enum JobCreateFlags {
   */
  JobTxn *job_txn_new(void);
  
@@ -33,7 +33,7 @@ index 32aabb1c60..f7a6a0926a 100644
   * Release a reference that was previously acquired with job_txn_add_job or
   * job_txn_new. If it's the last reference to the object, it will be freed.
 diff --git a/job.c b/job.c
-index f9884e7d9d..05b7797e82 100644
+index 3999b7728c..3ae018cdad 100644
 --- a/job.c
 +++ b/job.c
 @@ -72,6 +72,8 @@ struct JobTxn {
@@ -71,7 +71,7 @@ index f9884e7d9d..05b7797e82 100644
  static void job_txn_ref(JobTxn *txn)
  {
      txn->refcnt++;
-@@ -841,6 +862,9 @@ static void job_completed_txn_success(Job *job)
+@@ -847,6 +868,9 @@ static void job_completed_txn_success(Job *job)
       */
      QLIST_FOREACH(other_job, &txn->jobs, txn_list) {
          if (!job_is_completed(other_job)) {
@@ -81,7 +81,7 @@ index f9884e7d9d..05b7797e82 100644
              return;
          }
          assert(other_job->ret == 0);
-@@ -1011,6 +1035,13 @@ int job_finish_sync(Job *job, void (*finish)(Job *, Error **errp), Error **errp)
+@@ -1017,6 +1041,13 @@ int job_finish_sync(Job *job, void (*finish)(Job *, Error **errp), Error **errp)
          return -EBUSY;
      }
  

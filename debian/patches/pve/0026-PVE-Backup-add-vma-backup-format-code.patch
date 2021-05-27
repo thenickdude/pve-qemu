@@ -17,12 +17,12 @@ Subject: [PATCH] PVE-Backup: add vma backup format code
  create mode 100644 vma.h
 
 diff --git a/block/meson.build b/block/meson.build
-index c10d544864..feffbc8623 100644
+index cf9b278fa2..d0a8397edf 100644
 --- a/block/meson.build
 +++ b/block/meson.build
-@@ -42,6 +42,8 @@ block_ss.add(files(
+@@ -43,6 +43,8 @@ block_ss.add(files(
    'zeroinit.c',
- ), zstd, zlib)
+ ), zstd, zlib, gnutls)
  
 +block_ss.add(files('../vma-writer.c'), libuuid)
 +
@@ -30,10 +30,10 @@ index c10d544864..feffbc8623 100644
  
  block_ss.add(when: 'CONFIG_QCOW1', if_true: files('qcow.c'))
 diff --git a/meson.build b/meson.build
-index e3386196ba..d5b660516b 100644
+index c6f4b0cf5e..7db08406bd 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -725,6 +725,8 @@ keyutils = dependency('libkeyutils', required: false,
+@@ -945,6 +945,8 @@ keyutils = dependency('libkeyutils', required: false,
  
  has_gettid = cc.has_function('gettid')
  
@@ -42,9 +42,9 @@ index e3386196ba..d5b660516b 100644
  # Malloc tests
  
  malloc = []
-@@ -1907,6 +1909,9 @@ if have_tools
+@@ -2344,6 +2346,9 @@ if have_tools
    qemu_nbd = executable('qemu-nbd', files('qemu-nbd.c'),
-                dependencies: [blockdev, qemuutil], install: true)
+                dependencies: [blockdev, qemuutil, gnutls], install: true)
  
 +  vma = executable('vma', files('vma.c', 'vma-reader.c'),
 +                   dependencies: [authz, block, crypto, io, qom], install: true)

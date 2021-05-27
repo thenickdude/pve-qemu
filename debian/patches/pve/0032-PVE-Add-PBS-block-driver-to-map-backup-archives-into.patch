@@ -16,10 +16,10 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  create mode 100644 block/pbs.c
 
 diff --git a/block/meson.build b/block/meson.build
-index dfae565db3..a070060e53 100644
+index 500d2bf5b3..574165e577 100644
 --- a/block/meson.build
 +++ b/block/meson.build
-@@ -49,6 +49,9 @@ block_ss.add(files(
+@@ -50,6 +50,9 @@ block_ss.add(files(
    '../pve-backup.c',
  ), libproxmox_backup_qemu)
  
@@ -31,7 +31,7 @@ index dfae565db3..a070060e53 100644
  
 diff --git a/block/pbs.c b/block/pbs.c
 new file mode 100644
-index 0000000000..1481a2bfd1
+index 0000000000..78dad0dcc4
 --- /dev/null
 +++ b/block/pbs.c
 @@ -0,0 +1,271 @@
@@ -307,18 +307,18 @@ index 0000000000..1481a2bfd1
 +
 +block_init(bdrv_pbs_init);
 diff --git a/configure b/configure
-index 18c26e0389..33d9933871 100755
+index 4f374b4889..0f44d77455 100755
 --- a/configure
 +++ b/configure
-@@ -436,6 +436,7 @@ vvfat="yes"
- qed="yes"
- parallels="yes"
+@@ -447,6 +447,7 @@ vvfat=${default_feature:-yes}
+ qed=${default_feature:-yes}
+ parallels=${default_feature:-yes}
  sheepdog="no"
 +pbs_bdrv="yes"
- libxml2=""
+ libxml2="$default_feature"
  debug_mutex="no"
- libpmem=""
-@@ -1461,6 +1462,10 @@ for opt do
+ libpmem="$default_feature"
+@@ -1478,6 +1479,10 @@ for opt do
    ;;
    --enable-sheepdog) sheepdog="yes"
    ;;
@@ -329,7 +329,7 @@ index 18c26e0389..33d9933871 100755
    --disable-vhost-user) vhost_user="no"
    ;;
    --enable-vhost-user) vhost_user="yes"
-@@ -1843,6 +1848,7 @@ disabled with --disable-FEATURE, default is enabled if available:
+@@ -1908,6 +1913,7 @@ disabled with --disable-FEATURE, default is enabled if available
    qed             qed image format support
    parallels       parallels image format support
    sheepdog        sheepdog block driver support (deprecated)
@@ -337,42 +337,42 @@ index 18c26e0389..33d9933871 100755
    crypto-afalg    Linux AF_ALG crypto backend driver
    capstone        capstone disassembler support
    debug-mutex     mutex debugging support
-@@ -6682,6 +6688,9 @@ if test "$sheepdog" = "yes" ; then
+@@ -6077,6 +6083,9 @@ if test "$sheepdog" = "yes" ; then
    add_to deprecated_features "sheepdog"
    echo "CONFIG_SHEEPDOG=y" >> $config_host_mak
  fi
 +if test "$pbs_bdrv" = "yes" ; then
 +  echo "CONFIG_PBS_BDRV=y" >> $config_host_mak
 +fi
- if test "$pty_h" = "yes" ; then
-   echo "HAVE_PTY_H=y" >> $config_host_mak
+ if test "$have_mlockall" = "yes" ; then
+   echo "HAVE_MLOCKALL=y" >> $config_host_mak
  fi
 diff --git a/meson.build b/meson.build
-index 6f1fafee14..4d156d35ce 100644
+index 3287cd8a6d..b77b4cd017 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -2199,6 +2199,7 @@ summary_info += {'vvfat support':     config_host.has_key('CONFIG_VVFAT')}
- summary_info += {'qed support':       config_host.has_key('CONFIG_QED')}
- summary_info += {'parallels support': config_host.has_key('CONFIG_PARALLELS')}
- summary_info += {'sheepdog support':  config_host.has_key('CONFIG_SHEEPDOG')}
+@@ -2719,6 +2719,7 @@ summary_info += {'lzfse support':     liblzfse.found()}
+ summary_info += {'zstd support':      zstd.found()}
+ summary_info += {'NUMA host support': config_host.has_key('CONFIG_NUMA')}
+ summary_info += {'libxml2':           config_host.has_key('CONFIG_LIBXML2')}
 +summary_info += {'PBS bdrv support':  config_host.has_key('CONFIG_PBS_BDRV')}
  summary_info += {'capstone':          capstone_opt == 'disabled' ? false : capstone_opt}
  summary_info += {'libpmem support':   config_host.has_key('CONFIG_LIBPMEM')}
  summary_info += {'libdaxctl support': config_host.has_key('CONFIG_LIBDAXCTL')}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 0fda1e3fd3..553112d998 100644
+index 8845742870..db11dd6aae 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -2975,7 +2975,7 @@
+@@ -2962,7 +2962,7 @@
              'luks', 'nbd', 'nfs', 'null-aio', 'null-co', 'nvme', 'parallels',
-             'qcow', 'qcow2', 'qed', 'quorum', 'raw', 'rbd',
+             'preallocate', 'qcow', 'qcow2', 'qed', 'quorum', 'raw', 'rbd',
              { 'name': 'replication', 'if': 'defined(CONFIG_REPLICATION)' },
 -            'sheepdog',
 +            'sheepdog', 'pbs',
              'ssh', 'throttle', 'vdi', 'vhdx', 'vmdk', 'vpc', 'vvfat' ] }
  
  ##
-@@ -3039,6 +3039,17 @@
+@@ -3026,6 +3026,17 @@
  { 'struct': 'BlockdevOptionsNull',
    'data': { '*size': 'int', '*latency-ns': 'uint64', '*read-zeroes': 'bool' } }
  
@@ -390,11 +390,11 @@ index 0fda1e3fd3..553112d998 100644
  ##
  # @BlockdevOptionsNVMe:
  #
-@@ -4148,6 +4159,7 @@
+@@ -4170,6 +4181,7 @@
        'nfs':        'BlockdevOptionsNfs',
        'null-aio':   'BlockdevOptionsNull',
        'null-co':    'BlockdevOptionsNull',
 +      'pbs':        'BlockdevOptionsPbs',
        'nvme':       'BlockdevOptionsNVMe',
        'parallels':  'BlockdevOptionsGenericFormat',
-       'qcow2':      'BlockdevOptionsQcow2',
+       'preallocate':'BlockdevOptionsPreallocate',

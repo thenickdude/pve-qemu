@@ -11,14 +11,14 @@ beforehand.
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 ---
- block/mirror.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ block/mirror.c | 11 ++++-------
+ 1 file changed, 4 insertions(+), 7 deletions(-)
 
 diff --git a/block/mirror.c b/block/mirror.c
-index d1cce079da..e6140cf018 100644
+index 3e37967365..c6f759e279 100644
 --- a/block/mirror.c
 +++ b/block/mirror.c
-@@ -759,8 +759,8 @@ static int mirror_exit_common(Job *job)
+@@ -768,8 +768,8 @@ static int mirror_exit_common(Job *job)
               job->ret == 0 && ret == 0)) {
              /* Success; synchronize copy back to sync. */
              bdrv_clear_dirty_bitmap(s->sync_bitmap, NULL);
@@ -29,14 +29,17 @@ index d1cce079da..e6140cf018 100644
          }
      }
      bdrv_release_dirty_bitmap(s->dirty_bitmap);
-@@ -1793,8 +1793,8 @@ static BlockJob *mirror_start_job(
+@@ -1816,11 +1816,8 @@ static BlockJob *mirror_start_job(
      }
  
      if (s->sync_mode == MIRROR_SYNC_MODE_BITMAP) {
 -        bdrv_merge_dirty_bitmap(s->dirty_bitmap, s->sync_bitmap,
 -                                NULL, &local_err);
+-        if (local_err) {
+-            goto fail;
+-        }
 +        bdrv_dirty_bitmap_merge_internal(s->dirty_bitmap, s->sync_bitmap,
 +                                         NULL, true);
-         if (local_err) {
-             goto fail;
-         }
+     }
+ 
+     ret = block_job_add_bdrv(&s->common, "source", bs, 0,

@@ -9,10 +9,10 @@ Ceph favors bigger chunks, so increase to 4M.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/block/stream.c b/block/stream.c
-index 236384f2f7..a5371420e3 100644
+index 97bee482dc..50093c9f57 100644
 --- a/block/stream.c
 +++ b/block/stream.c
-@@ -26,7 +26,7 @@ enum {
+@@ -28,7 +28,7 @@ enum {
       * large enough to process multiple clusters in a single call, so
       * that populating contiguous regions of the image is efficient.
       */

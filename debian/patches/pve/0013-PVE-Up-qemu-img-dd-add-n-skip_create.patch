@@ -9,10 +9,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 14 insertions(+), 9 deletions(-)
 
 diff --git a/qemu-img.c b/qemu-img.c
-index 5ce60e8a45..86bfd0288b 100644
+index fb1031223d..855d4fa7d3 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -5022,7 +5022,7 @@ static int img_dd(int argc, char **argv)
+@@ -4867,7 +4867,7 @@ static int img_dd(int argc, char **argv)
      const char *fmt = NULL;
      int64_t size = 0, readsize = 0;
      int64_t block_count = 0, out_pos, in_pos;
@@ -21,7 +21,7 @@ index 5ce60e8a45..86bfd0288b 100644
      struct DdInfo dd = {
          .flags = 0,
          .count = 0,
-@@ -5060,7 +5060,7 @@ static int img_dd(int argc, char **argv)
+@@ -4905,7 +4905,7 @@ static int img_dd(int argc, char **argv)
          { 0, 0, 0, 0 }
      };
  
@@ -30,7 +30,7 @@ index 5ce60e8a45..86bfd0288b 100644
          if (c == EOF) {
              break;
          }
-@@ -5080,6 +5080,9 @@ static int img_dd(int argc, char **argv)
+@@ -4925,6 +4925,9 @@ static int img_dd(int argc, char **argv)
          case 'h':
              help();
              break;
@@ -40,7 +40,7 @@ index 5ce60e8a45..86bfd0288b 100644
          case 'U':
              force_share = true;
              break;
-@@ -5220,13 +5223,15 @@ static int img_dd(int argc, char **argv)
+@@ -5055,13 +5058,15 @@ static int img_dd(int argc, char **argv)
                                  size - in.bsz * in.offset, &error_abort);
          }
  

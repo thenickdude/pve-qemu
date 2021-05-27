@@ -18,21 +18,21 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  monitor/hmp-cmds.c             |  44 ++
  proxmox-backup-client.c        | 176 ++++++
  proxmox-backup-client.h        |  59 ++
- pve-backup.c                   | 957 +++++++++++++++++++++++++++++++++
+ pve-backup.c                   | 959 +++++++++++++++++++++++++++++++++
  qapi/block-core.json           | 109 ++++
  qapi/common.json               |  13 +
  qapi/machine.json              |  15 +-
- 15 files changed, 1446 insertions(+), 14 deletions(-)
+ 15 files changed, 1448 insertions(+), 14 deletions(-)
  create mode 100644 proxmox-backup-client.c
  create mode 100644 proxmox-backup-client.h
  create mode 100644 pve-backup.c
 
 diff --git a/block/meson.build b/block/meson.build
-index 2507af1168..dfae565db3 100644
+index 12797a5ca3..500d2bf5b3 100644
 --- a/block/meson.build
 +++ b/block/meson.build
-@@ -44,6 +44,11 @@ block_ss.add(files(
- ), zstd, zlib)
+@@ -45,6 +45,11 @@ block_ss.add(files(
+ ), zstd, zlib, gnutls)
  
  block_ss.add(files('../vma-writer.c'), libuuid)
 +block_ss.add(files(
@@ -44,10 +44,10 @@ index 2507af1168..dfae565db3 100644
  softmmu_ss.add(when: 'CONFIG_TCG', if_true: files('blkreplay.c'))
  
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index d15a2be827..9ba7c774a2 100644
+index ebf1033f31..fc71740026 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
-@@ -1012,3 +1012,36 @@ void hmp_info_snapshots(Monitor *mon, const QDict *qdict)
+@@ -1004,3 +1004,36 @@ void hmp_info_snapshots(Monitor *mon, const QDict *qdict)
      g_free(sn_tab);
      g_free(global_snapshots);
  }
@@ -85,7 +85,7 @@ index d15a2be827..9ba7c774a2 100644
 +    hmp_handle_error(mon, error);
 +}
 diff --git a/blockdev.c b/blockdev.c
-index a40c6fd0f6..e2f826ca62 100644
+index 9cab29e567..5c23744346 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -36,6 +36,7 @@
@@ -97,7 +97,7 @@ index a40c6fd0f6..e2f826ca62 100644
  #include "monitor/monitor.h"
  #include "qemu/error-report.h"
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index b3b797ca28..295e14e64f 100644
+index c72db5f666..be4d252b8e 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
 @@ -513,6 +513,19 @@ SRST
@@ -121,10 +121,10 @@ index b3b797ca28..295e14e64f 100644
      {
          .name       = "usernet",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index d294c234a5..0c6b944850 100644
+index 0b9d526937..a7bd174e5a 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
-@@ -98,6 +98,35 @@ ERST
+@@ -99,6 +99,35 @@ ERST
  SRST
  ``block_stream``
    Copy data from a backing file into a block device.
@@ -161,10 +161,10 @@ index d294c234a5..0c6b944850 100644
  
      {
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 5455102da8..1bd4b64522 100644
+index bd88198792..03eec075e1 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
-@@ -65,7 +65,7 @@
+@@ -66,7 +66,7 @@
  
  typedef int BackupDumpFunc(void *opaque, uint64_t offset, uint64_t bytes, const void *buf);
  
@@ -174,18 +174,18 @@ index 5455102da8..1bd4b64522 100644
      uint64_t byte_size,
      BackupDumpFunc *dump_cb,
 diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
-index 4e06f89e8e..10f52bd92a 100644
+index e287e071d8..1468530adf 100644
 --- a/include/monitor/hmp.h
 +++ b/include/monitor/hmp.h
-@@ -30,6 +30,7 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict);
+@@ -29,6 +29,7 @@ void hmp_info_savevm(Monitor *mon, const QDict *qdict);
+ void hmp_info_migrate(Monitor *mon, const QDict *qdict);
  void hmp_info_migrate_capabilities(Monitor *mon, const QDict *qdict);
  void hmp_info_migrate_parameters(Monitor *mon, const QDict *qdict);
- void hmp_info_migrate_cache_size(Monitor *mon, const QDict *qdict);
 +void hmp_info_backup(Monitor *mon, const QDict *qdict);
  void hmp_info_cpus(Monitor *mon, const QDict *qdict);
  void hmp_info_vnc(Monitor *mon, const QDict *qdict);
  void hmp_info_spice(Monitor *mon, const QDict *qdict);
-@@ -76,6 +77,8 @@ void hmp_x_colo_lost_heartbeat(Monitor *mon, const QDict *qdict);
+@@ -72,6 +73,8 @@ void hmp_x_colo_lost_heartbeat(Monitor *mon, const QDict *qdict);
  void hmp_set_password(Monitor *mon, const QDict *qdict);
  void hmp_expire_password(Monitor *mon, const QDict *qdict);
  void hmp_change(Monitor *mon, const QDict *qdict);
@@ -195,10 +195,10 @@ index 4e06f89e8e..10f52bd92a 100644
  void hmp_device_add(Monitor *mon, const QDict *qdict);
  void hmp_device_del(Monitor *mon, const QDict *qdict);
 diff --git a/meson.build b/meson.build
-index d5b660516b..3094f98c47 100644
+index 7db08406bd..b4a0f7d314 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -726,6 +726,7 @@ keyutils = dependency('libkeyutils', required: false,
+@@ -946,6 +946,7 @@ keyutils = dependency('libkeyutils', required: false,
  has_gettid = cc.has_function('gettid')
  
  libuuid = cc.find_library('uuid', required: true)
@@ -207,7 +207,7 @@ index d5b660516b..3094f98c47 100644
  # Malloc tests
  
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 77ab152aab..182e79c943 100644
+index 948c9d9ff8..65f9148118 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -195,6 +195,50 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
@@ -510,10 +510,10 @@ index 0000000000..1dda8b7d8f
 +#endif /* PROXMOX_BACKUP_CLIENT_H */
 diff --git a/pve-backup.c b/pve-backup.c
 new file mode 100644
-index 0000000000..d40f3f2fd6
+index 0000000000..f9fe6adb55
 --- /dev/null
 +++ b/pve-backup.c
-@@ -0,0 +1,957 @@
+@@ -0,0 +1,959 @@
 +#include "proxmox-backup-client.h"
 +#include "vma.h"
 +
@@ -978,6 +978,8 @@ index 0000000000..d40f3f2fd6
 +
 +    Error *local_err = NULL;
 +
++    BackupPerf perf = { .max_workers = 16 };
++
 +    /* create and start all jobs (paused state) */
 +    GList *l =  backup_state.di_list;
 +    while (l) {
@@ -991,8 +993,8 @@ index 0000000000..d40f3f2fd6
 +
 +        BlockJob *job = backup_job_create(
 +            NULL, di->bs, di->target, backup_state.speed, MIRROR_SYNC_MODE_FULL, NULL,
-+            BITMAP_SYNC_MODE_NEVER, false, NULL, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
-+            JOB_DEFAULT, pvebackup_complete_cb, di, 1, NULL, &local_err);
++            BITMAP_SYNC_MODE_NEVER, false, NULL, &perf, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
++            JOB_DEFAULT, pvebackup_complete_cb, di, NULL, &local_err);
 +
 +        aio_context_release(aio_context);
 +
@@ -1472,10 +1474,10 @@ index 0000000000..d40f3f2fd6
 +    return info;
 +}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index d285622589..9054db608c 100644
+index 46b14cdf67..890fc9dede 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -745,6 +745,115 @@
+@@ -683,6 +683,115 @@
  { 'command': 'query-block', 'returns': ['BlockInfo'] }
  
  
@@ -1592,13 +1594,13 @@ index d285622589..9054db608c 100644
  # @BlockDeviceTimedStats:
  #
 diff --git a/qapi/common.json b/qapi/common.json
-index 716712d4b3..556dab79e1 100644
+index 7c976296f0..0690b07903 100644
 --- a/qapi/common.json
 +++ b/qapi/common.json
-@@ -145,3 +145,16 @@
- ##
- { 'enum': 'PCIELinkWidth',
-   'data': [ '1', '2', '4', '8', '12', '16', '32' ] }
+@@ -197,3 +197,16 @@
+ { 'enum': 'GrabToggleKeys',
+   'data': [ 'ctrl-ctrl', 'alt-alt', 'shift-shift','meta-meta', 'scrolllock',
+             'ctrl-scrolllock' ] }
 +
 +##
 +# @UuidInfo:
@@ -1613,7 +1615,7 @@ index 716712d4b3..556dab79e1 100644
 +##
 +{ 'struct': 'UuidInfo', 'data': {'UUID': 'str'} }
 diff --git a/qapi/machine.json b/qapi/machine.json
-index 32fc674042..145f1a4fa2 100644
+index 7f5ba02c95..9923098e40 100644
 --- a/qapi/machine.json
 +++ b/qapi/machine.json
 @@ -4,6 +4,8 @@
@@ -1625,7 +1627,7 @@ index 32fc674042..145f1a4fa2 100644
  ##
  # = Machines
  ##
-@@ -406,19 +408,6 @@
+@@ -229,19 +231,6 @@
  ##
  { 'command': 'query-target', 'returns': 'TargetInfo' }
  
@@ -1636,7 +1638,7 @@ index 32fc674042..145f1a4fa2 100644
 -#
 -# @UUID: the UUID of the guest
 -#
--# Since: 0.14.0
+-# Since: 0.14
 -#
 -# Notes: If no UUID was specified for the guest, a null UUID is returned.
 -##

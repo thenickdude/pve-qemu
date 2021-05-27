@@ -26,7 +26,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
  hmp-commands-info.hx         |  13 +
  hmp-commands.hx              |  33 ++
- include/migration/snapshot.h |   1 +
+ include/migration/snapshot.h |   2 +
  include/monitor/hmp.h        |   5 +
  migration/meson.build        |   1 +
  migration/savevm-async.c     | 598 +++++++++++++++++++++++++++++++++++
@@ -35,15 +35,15 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  qapi/misc.json               |  32 ++
  qemu-options.hx              |  12 +
  softmmu/vl.c                 |  10 +
- 11 files changed, 796 insertions(+)
+ 11 files changed, 797 insertions(+)
  create mode 100644 migration/savevm-async.c
 
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index 117ba25f91..b3b797ca28 100644
+index ab0c7aa5ee..c72db5f666 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
-@@ -580,6 +580,19 @@ SRST
-     Show current migration xbzrle cache size.
+@@ -567,6 +567,19 @@ SRST
+     Show current migration parameters.
  ERST
  
 +    {
@@ -63,10 +63,10 @@ index 117ba25f91..b3b797ca28 100644
          .name       = "balloon",
          .args_type  = "",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index ff2d7aa8f3..d294c234a5 100644
+index 435c591a1c..0b9d526937 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
-@@ -1866,3 +1866,36 @@ ERST
+@@ -1725,3 +1725,36 @@ ERST
          .flags      = "p",
      },
  
@@ -104,18 +104,18 @@ index ff2d7aa8f3..d294c234a5 100644
 +        .coroutine  = true,
 +    },
 diff --git a/include/migration/snapshot.h b/include/migration/snapshot.h
-index c85b6ec75b..4411b7121d 100644
+index e72083b117..c846d37806 100644
 --- a/include/migration/snapshot.h
 +++ b/include/migration/snapshot.h
-@@ -17,5 +17,6 @@
+@@ -61,4 +61,6 @@ bool delete_snapshot(const char *name,
+                     bool has_devices, strList *devices,
+                     Error **errp);
  
- int save_snapshot(const char *name, Error **errp);
- int load_snapshot(const char *name, Error **errp);
 +int load_snapshot_from_blockdev(const char *filename, Error **errp);
- 
++
  #endif
 diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
-index ed2913fd18..4e06f89e8e 100644
+index 605d57287a..e287e071d8 100644
 --- a/include/monitor/hmp.h
 +++ b/include/monitor/hmp.h
 @@ -25,6 +25,7 @@ void hmp_info_status(Monitor *mon, const QDict *qdict);
@@ -126,7 +126,7 @@ index ed2913fd18..4e06f89e8e 100644
  void hmp_info_migrate(Monitor *mon, const QDict *qdict);
  void hmp_info_migrate_capabilities(Monitor *mon, const QDict *qdict);
  void hmp_info_migrate_parameters(Monitor *mon, const QDict *qdict);
-@@ -83,6 +84,10 @@ void hmp_netdev_add(Monitor *mon, const QDict *qdict);
+@@ -79,6 +80,10 @@ void hmp_netdev_add(Monitor *mon, const QDict *qdict);
  void hmp_netdev_del(Monitor *mon, const QDict *qdict);
  void hmp_getfd(Monitor *mon, const QDict *qdict);
  void hmp_closefd(Monitor *mon, const QDict *qdict);
@@ -138,7 +138,7 @@ index ed2913fd18..4e06f89e8e 100644
  void hmp_screendump(Monitor *mon, const QDict *qdict);
  void hmp_chardev_add(Monitor *mon, const QDict *qdict);
 diff --git a/migration/meson.build b/migration/meson.build
-index 980e37865c..e62b79b60f 100644
+index 3ecedce94d..c8ae813a48 100644
 --- a/migration/meson.build
 +++ b/migration/meson.build
 @@ -23,6 +23,7 @@ softmmu_ss.add(files(
@@ -148,7 +148,7 @@ index 980e37865c..e62b79b60f 100644
 +  'savevm-async.c',
    'socket.c',
    'tls.c',
- ))
+ ), gnutls)
 diff --git a/migration/savevm-async.c b/migration/savevm-async.c
 new file mode 100644
 index 0000000000..593a619088
@@ -754,10 +754,10 @@ index 0000000000..593a619088
 +    return ret;
 +}
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 705f08a8f1..77ab152aab 100644
+index 1116767275..948c9d9ff8 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
-@@ -1949,6 +1949,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
+@@ -1904,6 +1904,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
      hmp_handle_error(mon, err);
  }
  
@@ -822,10 +822,10 @@ index 705f08a8f1..77ab152aab 100644
  {
      IOThreadInfoList *info_list = qmp_query_iothreads(NULL);
 diff --git a/qapi/migration.json b/qapi/migration.json
-index 3c75820527..cb3627884c 100644
+index 0b17cce46b..db80401817 100644
 --- a/qapi/migration.json
 +++ b/qapi/migration.json
-@@ -242,6 +242,40 @@
+@@ -253,6 +253,40 @@
             '*compression': 'CompressionStats',
             '*socket-address': ['SocketAddress'] } }
  
@@ -867,10 +867,10 @@ index 3c75820527..cb3627884c 100644
  # @query-migrate:
  #
 diff --git a/qapi/misc.json b/qapi/misc.json
-index 40df513856..4f5333d960 100644
+index 156f98203e..ad6c7713e2 100644
 --- a/qapi/misc.json
 +++ b/qapi/misc.json
-@@ -476,6 +476,38 @@
+@@ -427,6 +427,38 @@
  ##
  { 'command': 'query-fdsets', 'returns': ['FdsetInfo'] }
  
@@ -910,10 +910,10 @@ index 40df513856..4f5333d960 100644
  # @CommandLineParameterType:
  #
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 104632ea34..c1352312c2 100644
+index fd21002bd6..83841e6703 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -3903,6 +3903,18 @@ SRST
+@@ -4015,6 +4015,18 @@ SRST
      Start right away with a saved state (``loadvm`` in monitor)
  ERST
  
@@ -933,28 +933,18 @@ index 104632ea34..c1352312c2 100644
  DEF("daemonize", 0, QEMU_OPTION_daemonize, \
      "-daemonize      daemonize QEMU after initializing\n", QEMU_ARCH_ALL)
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index e6e0ad5a92..03152c816c 100644
+index aadb526138..721196281c 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -2878,6 +2878,7 @@ void qemu_init(int argc, char **argv, char **envp)
-     int optind;
-     const char *optarg;
-     const char *loadvm = NULL;
-+    const char *loadstate = NULL;
-     MachineClass *machine_class;
-     const char *cpu_option;
-     const char *vga_model = NULL;
-@@ -3439,6 +3440,9 @@ void qemu_init(int argc, char **argv, char **envp)
-             case QEMU_OPTION_loadvm:
-                 loadvm = optarg;
-                 break;
-+            case QEMU_OPTION_loadstate:
-+                loadstate = optarg;
-+                break;
-             case QEMU_OPTION_full_screen:
-                 dpy.has_full_screen = true;
-                 dpy.full_screen = true;
-@@ -4478,6 +4482,12 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -145,6 +145,7 @@ static const char *cpu_option;
+ static const char *mem_path;
+ static const char *incoming;
+ static const char *loadvm;
++static const char *loadstate;
+ static QTAILQ_HEAD(, ObjectOption) object_opts = QTAILQ_HEAD_INITIALIZER(object_opts);
+ static ram_addr_t maxram_size;
+ static uint64_t ram_slots;
+@@ -2596,6 +2597,12 @@ void qmp_x_exit_preconfig(Error **errp)
              autostart = 0;
              exit(1);
          }
@@ -967,3 +957,13 @@ index e6e0ad5a92..03152c816c 100644
      }
      if (replay_mode != REPLAY_MODE_NONE) {
          replay_vmstate_init();
+@@ -3131,6 +3138,9 @@ void qemu_init(int argc, char **argv, char **envp)
+             case QEMU_OPTION_loadvm:
+                 loadvm = optarg;
+                 break;
++            case QEMU_OPTION_loadstate:
++                loadstate = optarg;
++                break;
+             case QEMU_OPTION_full_screen:
+                 dpy.has_full_screen = true;
+                 dpy.full_screen = true;

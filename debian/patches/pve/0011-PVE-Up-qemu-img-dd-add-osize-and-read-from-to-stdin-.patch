@@ -33,8 +33,8 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  qemu-img-cmds.hx |   4 +-
- qemu-img.c       | 191 +++++++++++++++++++++++++++++------------------
- 2 files changed, 121 insertions(+), 74 deletions(-)
+ qemu-img.c       | 187 +++++++++++++++++++++++++++++------------------
+ 2 files changed, 119 insertions(+), 72 deletions(-)
 
 diff --git a/qemu-img-cmds.hx b/qemu-img-cmds.hx
 index b3620f29e5..e70ef3dc91 100644
@@ -53,10 +53,10 @@ index b3620f29e5..e70ef3dc91 100644
  
  DEF("info", img_info,
 diff --git a/qemu-img.c b/qemu-img.c
-index 7e6666b5f7..44cf942bd2 100644
+index 6377499c5e..10db094561 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -4897,10 +4897,12 @@ static int img_bitmap(int argc, char **argv)
+@@ -4742,10 +4742,12 @@ static int img_bitmap(int argc, char **argv)
  #define C_IF      04
  #define C_OF      010
  #define C_SKIP    020
@@ -69,7 +69,7 @@ index 7e6666b5f7..44cf942bd2 100644
  };
  
  struct DdIo {
-@@ -4976,6 +4978,19 @@ static int img_dd_skip(const char *arg,
+@@ -4821,6 +4823,19 @@ static int img_dd_skip(const char *arg,
      return 0;
  }
  
@@ -89,7 +89,7 @@ index 7e6666b5f7..44cf942bd2 100644
  static int img_dd(int argc, char **argv)
  {
      int ret = 0;
-@@ -5016,6 +5031,7 @@ static int img_dd(int argc, char **argv)
+@@ -4861,6 +4876,7 @@ static int img_dd(int argc, char **argv)
          { "if", img_dd_if, C_IF },
          { "of", img_dd_of, C_OF },
          { "skip", img_dd_skip, C_SKIP },
@@ -97,7 +97,7 @@ index 7e6666b5f7..44cf942bd2 100644
          { NULL, NULL, 0 }
      };
      const struct option long_options[] = {
-@@ -5094,8 +5110,13 @@ static int img_dd(int argc, char **argv)
+@@ -4936,91 +4952,112 @@ static int img_dd(int argc, char **argv)
          arg = NULL;
      }
  
@@ -105,53 +105,30 @@ index 7e6666b5f7..44cf942bd2 100644
 -        error_report("Must specify both input and output files");
 +    if (!(dd.flags & C_IF) && (!fmt || strcmp(fmt, "raw") != 0)) {
 +        error_report("Input format must be raw when readin from stdin");
-+        ret = -1;
-+        goto out;
-+    }
+         ret = -1;
+         goto out;
+     }
+-
+-    blk1 = img_open(image_opts, in.filename, fmt, 0, false, false,
+-                    force_share);
+-
+-    if (!blk1) {
 +    if (!(dd.flags & C_OF) && strcmp(out_fmt, "raw") != 0) {
 +        error_report("Output format must be raw when writing to stdout");
          ret = -1;
          goto out;
      }
-@@ -5107,85 +5128,101 @@ static int img_dd(int argc, char **argv)
-         goto out;
-     }
- 
--    blk1 = img_open(image_opts, in.filename, fmt, 0, false, false,
--                    force_share);
-+    if (dd.flags & C_IF) {
-+        blk1 = img_open(image_opts, in.filename, fmt, 0, false, false,
-+                        force_share);
- 
--    if (!blk1) {
--        ret = -1;
--        goto out;
-+        if (!blk1) {
-+            ret = -1;
-+            goto out;
-+        }
-     }
  
 -    drv = bdrv_find_format(out_fmt);
 -    if (!drv) {
 -        error_report("Unknown file format");
-+    if (dd.flags & C_OSIZE) {
-+        size = dd.osize;
-+    } else if (dd.flags & C_IF) {
-+        size = blk_getlength(blk1);
-+        if (size < 0) {
-+            error_report("Failed to get size for '%s'", in.filename);
-+            ret = -1;
-+            goto out;
-+        }
-+    } else if (dd.flags & C_COUNT) {
-+        size = dd.count * in.bsz;
-+    } else {
-+        error_report("Output size must be known when reading from stdin");
-         ret = -1;
-         goto out;
-     }
+-        ret = -1;
+-        goto out;
+-    }
 -    proto_drv = bdrv_find_protocol(out.filename, true, &local_err);
++    if (dd.flags & C_IF) {
++        blk1 = img_open(image_opts, in.filename, fmt, 0, false, false,
++                        force_share);
  
 -    if (!proto_drv) {
 -        error_report_err(local_err);
@@ -169,14 +146,50 @@ index 7e6666b5f7..44cf942bd2 100644
 -                     proto_drv->format_name);
 -        ret = -1;
 -        goto out;
-+    if (!(dd.flags & C_OSIZE) && dd.flags & C_COUNT && dd.count <= INT64_MAX / in.bsz &&
-+        dd.count * in.bsz < size) {
-+        size = dd.count * in.bsz;
++        if (!blk1) {
++            ret = -1;
++            goto out;
++        }
      }
 -    create_opts = qemu_opts_append(create_opts, drv->create_opts);
 -    create_opts = qemu_opts_append(create_opts, proto_drv->create_opts);
  
 -    opts = qemu_opts_create(create_opts, NULL, 0, &error_abort);
+-
+-    size = blk_getlength(blk1);
+-    if (size < 0) {
+-        error_report("Failed to get size for '%s'", in.filename);
++    if (dd.flags & C_OSIZE) {
++        size = dd.osize;
++    } else if (dd.flags & C_IF) {
++        size = blk_getlength(blk1);
++        if (size < 0) {
++            error_report("Failed to get size for '%s'", in.filename);
++            ret = -1;
++            goto out;
++        }
++    } else if (dd.flags & C_COUNT) {
++        size = dd.count * in.bsz;
++    } else {
++        error_report("Output size must be known when reading from stdin");
+         ret = -1;
+         goto out;
+     }
+ 
+-    if (dd.flags & C_COUNT && dd.count <= INT64_MAX / in.bsz &&
++    if (!(dd.flags & C_OSIZE) && dd.flags & C_COUNT && dd.count <= INT64_MAX / in.bsz &&
+         dd.count * in.bsz < size) {
+         size = dd.count * in.bsz;
+     }
+ 
+-    /* Overflow means the specified offset is beyond input image's size */
+-    if (dd.flags & C_SKIP && (in.offset > INT64_MAX / in.bsz ||
+-                              size < in.bsz * in.offset)) {
+-        qemu_opt_set_number(opts, BLOCK_OPT_SIZE, 0, &error_abort);
+-    } else {
+-        qemu_opt_set_number(opts, BLOCK_OPT_SIZE,
+-                            size - in.bsz * in.offset, &error_abort);
+-    }
 +    if (dd.flags & C_OF) {
 +        drv = bdrv_find_format(out_fmt);
 +        if (!drv) {
@@ -186,9 +199,11 @@ index 7e6666b5f7..44cf942bd2 100644
 +        }
 +        proto_drv = bdrv_find_protocol(out.filename, true, &local_err);
  
--    size = blk_getlength(blk1);
--    if (size < 0) {
--        error_report("Failed to get size for '%s'", in.filename);
+-    ret = bdrv_create(drv, out.filename, opts, &local_err);
+-    if (ret < 0) {
+-        error_reportf_err(local_err,
+-                          "%s: error while creating output image: ",
+-                          out.filename);
 -        ret = -1;
 -        goto out;
 -    }
@@ -212,20 +227,18 @@ index 7e6666b5f7..44cf942bd2 100644
 +        create_opts = qemu_opts_append(create_opts, drv->create_opts);
 +        create_opts = qemu_opts_append(create_opts, proto_drv->create_opts);
  
--    if (dd.flags & C_COUNT && dd.count <= INT64_MAX / in.bsz &&
--        dd.count * in.bsz < size) {
--        size = dd.count * in.bsz;
--    }
+-    /* TODO, we can't honour --image-opts for the target,
+-     * since it needs to be given in a format compatible
+-     * with the bdrv_create() call above which does not
+-     * support image-opts style.
+-     */
+-    blk2 = img_open_file(out.filename, NULL, out_fmt, BDRV_O_RDWR,
+-                         false, false, false);
 +        opts = qemu_opts_create(create_opts, NULL, 0, &error_abort);
  
--    /* Overflow means the specified offset is beyond input image's size */
--    if (dd.flags & C_SKIP && (in.offset > INT64_MAX / in.bsz ||
--                              size < in.bsz * in.offset)) {
--        qemu_opt_set_number(opts, BLOCK_OPT_SIZE, 0, &error_abort);
--    } else {
--        qemu_opt_set_number(opts, BLOCK_OPT_SIZE,
--                            size - in.bsz * in.offset, &error_abort);
--    }
+-    if (!blk2) {
+-        ret = -1;
+-        goto out;
 +        /* Overflow means the specified offset is beyond input image's size */
 +        if (dd.flags & C_OSIZE) {
 +            qemu_opt_set_number(opts, BLOCK_OPT_SIZE, size, &error_abort);
@@ -236,15 +249,7 @@ index 7e6666b5f7..44cf942bd2 100644
 +            qemu_opt_set_number(opts, BLOCK_OPT_SIZE,
 +                                size - in.bsz * in.offset, &error_abort);
 +        }
- 
--    ret = bdrv_create(drv, out.filename, opts, &local_err);
--    if (ret < 0) {
--        error_reportf_err(local_err,
--                          "%s: error while creating output image: ",
--                          out.filename);
--        ret = -1;
--        goto out;
--    }
++
 +        ret = bdrv_create(drv, out.filename, opts, &local_err);
 +        if (ret < 0) {
 +            error_reportf_err(local_err,
@@ -253,14 +258,7 @@ index 7e6666b5f7..44cf942bd2 100644
 +            ret = -1;
 +            goto out;
 +        }
- 
--    /* TODO, we can't honour --image-opts for the target,
--     * since it needs to be given in a format compatible
--     * with the bdrv_create() call above which does not
--     * support image-opts style.
--     */
--    blk2 = img_open_file(out.filename, NULL, out_fmt, BDRV_O_RDWR,
--                         false, false, false);
++
 +        /* TODO, we can't honour --image-opts for the target,
 +         * since it needs to be given in a format compatible
 +         * with the bdrv_create() call above which does not
@@ -268,10 +266,7 @@ index 7e6666b5f7..44cf942bd2 100644
 +         */
 +        blk2 = img_open_file(out.filename, NULL, out_fmt, BDRV_O_RDWR,
 +                             false, false, false);
- 
--    if (!blk2) {
--        ret = -1;
--        goto out;
++
 +        if (!blk2) {
 +            ret = -1;
 +            goto out;
@@ -279,7 +274,7 @@ index 7e6666b5f7..44cf942bd2 100644
      }
  
      if (dd.flags & C_SKIP && (in.offset > INT64_MAX / in.bsz ||
-@@ -5203,11 +5240,17 @@ static int img_dd(int argc, char **argv)
+@@ -5038,11 +5075,17 @@ static int img_dd(int argc, char **argv)
  
      for (out_pos = 0; in_pos < size; block_count++) {
          int in_ret, out_ret;
@@ -301,7 +296,7 @@ index 7e6666b5f7..44cf942bd2 100644
          }
          if (in_ret < 0) {
              error_report("error while reading from input image file: %s",
-@@ -5217,9 +5260,13 @@ static int img_dd(int argc, char **argv)
+@@ -5052,9 +5095,13 @@ static int img_dd(int argc, char **argv)
          }
          in_pos += in_ret;
  

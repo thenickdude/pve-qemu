@@ -1,15 +1,4 @@
-extra/0001-Revert-qemu-img-convert-Don-t-pre-zero-images.patch
-extra/0002-docs-don-t-install-man-page-if-guest-agent-is-disabl.patch
-extra/0003-migration-only-check-page-size-match-if-RAM-postcopy.patch
-extra/0004-virtiofsd-extract-lo_do_open-from-lo_open.patch
-extra/0005-virtiofsd-optionally-return-inode-pointer-from-lo_do.patch
-extra/0006-virtiofsd-prevent-opening-of-special-files-CVE-2020-.patch
-extra/0007-virtiofsd-Add-_llseek-to-the-seccomp-whitelist.patch
-extra/0008-virtiofsd-Add-restart_syscall-to-the-seccomp-whiteli.patch
-extra/0009-i386-acpi-restore-device-paths-for-pre-5.1-vms.patch
-extra/0010-monitor-qmp-fix-race-on-CHR_EVENT_CLOSED-without-OOB.patch
-extra/0011-block-Fix-locking-in-qmp_block_resize.patch
-extra/0012-block-Fix-deadlock-in-bdrv_co_yield_to_drain.patch
+extra/0001-monitor-qmp-fix-race-on-CHR_EVENT_CLOSED-without-OOB.patch
 bitmap-mirror/0001-drive-mirror-add-support-for-sync-bitmap-mode-never.patch
 bitmap-mirror/0002-drive-mirror-add-support-for-conditional-and-always-.patch
 bitmap-mirror/0003-mirror-add-check-for-bitmap-mode-without-bitmap.patch
@@ -63,3 +52,5 @@ pve/0044-PVE-block-pbs-fast-path-reads-without-allocation-if-.patch
 pve/0045-PVE-block-stream-increase-chunk-size.patch
 pve/0046-block-io-accept-NULL-qiov-in-bdrv_pad_request.patch
 pve/0047-block-add-alloc-track-driver.patch
+pve/0048-PVE-whitelist-invalid-QAPI-names-for-backwards-compa.patch
+pve/0049-PVE-savevm-async-register-yank-before-migration_inco.patch

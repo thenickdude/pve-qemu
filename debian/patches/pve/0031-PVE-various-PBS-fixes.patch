@@ -18,10 +18,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  3 files changed, 54 insertions(+), 13 deletions(-)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index 056d14deee..46c63b1cf9 100644
+index da5043b973..f509959a32 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
-@@ -1039,7 +1039,9 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
+@@ -1031,7 +1031,9 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
          false, NULL, // PBS fingerprint
          false, NULL, // PBS backup-id
          false, 0, // PBS backup-time
@@ -33,7 +33,7 @@ index 056d14deee..46c63b1cf9 100644
          false, NULL, false, NULL, !!devlist,
          devlist, qdict_haskey(qdict, "speed"), speed, &error);
 diff --git a/pve-backup.c b/pve-backup.c
-index 1cd9d31d7c..b8182aaf89 100644
+index 98fd28a8f2..129ebd0eb4 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -8,6 +8,7 @@
@@ -123,7 +123,7 @@ index 1cd9d31d7c..b8182aaf89 100644
          if (ret < 0) {
              Error *local_err = NULL;
              vma_writer_error_propagate(backup_state.vmaw, &local_err);
-@@ -567,6 +583,10 @@ typedef struct QmpBackupTask {
+@@ -569,6 +585,10 @@ typedef struct QmpBackupTask {
      const char *firewall_file;
      bool has_devlist;
      const char *devlist;
@@ -134,7 +134,7 @@ index 1cd9d31d7c..b8182aaf89 100644
      bool has_speed;
      int64_t speed;
      Error **errp;
-@@ -690,6 +710,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -692,6 +712,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
  
          bool use_dirty_bitmap = task->has_use_dirty_bitmap && task->use_dirty_bitmap;
  
@@ -142,7 +142,7 @@ index 1cd9d31d7c..b8182aaf89 100644
          char *pbs_err = NULL;
          pbs = proxmox_backup_new(
              task->backup_file,
-@@ -699,8 +720,10 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -701,8 +722,10 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
              task->has_password ? task->password : NULL,
              task->has_keyfile ? task->keyfile : NULL,
              task->has_key_password ? task->key_password : NULL,
@@ -154,7 +154,7 @@ index 1cd9d31d7c..b8182aaf89 100644
  
          if (!pbs) {
              error_set(task->errp, ERROR_CLASS_GENERIC_ERROR,
-@@ -719,6 +742,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -721,6 +744,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
              PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
              l = g_list_next(l);
  
@@ -163,7 +163,7 @@ index 1cd9d31d7c..b8182aaf89 100644
              const char *devname = bdrv_get_device_name(di->bs);
  
              BdrvDirtyBitmap *bitmap = bdrv_find_dirty_bitmap(di->bs, PBS_BITMAP_NAME);
-@@ -939,6 +964,8 @@ UuidInfo *qmp_backup(
+@@ -941,6 +966,8 @@ UuidInfo *qmp_backup(
      bool has_backup_id, const char *backup_id,
      bool has_backup_time, int64_t backup_time,
      bool has_use_dirty_bitmap, bool use_dirty_bitmap,
@@ -172,7 +172,7 @@ index 1cd9d31d7c..b8182aaf89 100644
      bool has_format, BackupFormat format,
      bool has_config_file, const char *config_file,
      bool has_firewall_file, const char *firewall_file,
-@@ -949,6 +976,8 @@ UuidInfo *qmp_backup(
+@@ -951,6 +978,8 @@ UuidInfo *qmp_backup(
          .backup_file = backup_file,
          .has_password = has_password,
          .password = password,
@@ -181,7 +181,7 @@ index 1cd9d31d7c..b8182aaf89 100644
          .has_key_password = has_key_password,
          .key_password = key_password,
          .has_fingerprint = has_fingerprint,
-@@ -959,6 +988,10 @@ UuidInfo *qmp_backup(
+@@ -961,6 +990,10 @@ UuidInfo *qmp_backup(
          .backup_time = backup_time,
          .has_use_dirty_bitmap = has_use_dirty_bitmap,
          .use_dirty_bitmap = use_dirty_bitmap,
@@ -193,10 +193,10 @@ index 1cd9d31d7c..b8182aaf89 100644
          .format = format,
          .has_config_file = has_config_file,
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index d4e1c98c50..0fda1e3fd3 100644
+index eb1e851606..8845742870 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -823,6 +823,10 @@
+@@ -761,6 +761,10 @@
  #
  # @use-dirty-bitmap: use dirty bitmap to detect incremental changes since last job (optional for format 'pbs')
  #
@@ -207,7 +207,7 @@ index d4e1c98c50..0fda1e3fd3 100644
  # Returns: the uuid of the backup job
  #
  ##
-@@ -834,6 +838,8 @@
+@@ -772,6 +776,8 @@
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',
                                      '*use-dirty-bitmap': 'bool',

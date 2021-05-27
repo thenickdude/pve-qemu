@@ -20,10 +20,10 @@ Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
  1 file changed, 30 insertions(+)
 
 diff --git a/block/iscsi.c b/block/iscsi.c
-index e30a7e3606..6c70bbe351 100644
+index 4d2a416ce7..c345d30812 100644
 --- a/block/iscsi.c
 +++ b/block/iscsi.c
-@@ -1374,12 +1374,42 @@ static char *get_initiator_name(QemuOpts *opts)
+@@ -1372,12 +1372,42 @@ static char *get_initiator_name(QemuOpts *opts)
      const char *name;
      char *iscsi_name;
      UuidInfo *uuid_info;

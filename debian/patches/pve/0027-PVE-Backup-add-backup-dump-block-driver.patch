@@ -9,11 +9,11 @@ Subject: [PATCH] PVE-Backup: add backup-dump block driver
 - job.c: make job_should_pause non-static
 ---
  block/backup-dump.c       | 168 ++++++++++++++++++++++++++++++++++++++
- block/backup.c            |  23 ++----
+ block/backup.c            |  32 +++-----
  block/meson.build         |   1 +
- include/block/block_int.h |  30 +++++++
+ include/block/block_int.h |  35 ++++++++
  job.c                     |   3 +-
- 5 files changed, 206 insertions(+), 19 deletions(-)
+ 5 files changed, 216 insertions(+), 23 deletions(-)
  create mode 100644 block/backup-dump.c
 
 diff --git a/block/backup-dump.c b/block/backup-dump.c
@@ -191,10 +191,10 @@ index 0000000000..93d7f46950
 +    return bs;
 +}
 diff --git a/block/backup.c b/block/backup.c
-index 9afa0bf3b4..3df3d532d5 100644
+index 6cf2f974aa..8c865a43a8 100644
 --- a/block/backup.c
 +++ b/block/backup.c
-@@ -32,24 +32,6 @@
+@@ -31,28 +31,6 @@
  
  #define BACKUP_CLUSTER_SIZE_DEFAULT (1 << 16)
  
@@ -202,6 +202,7 @@ index 9afa0bf3b4..3df3d532d5 100644
 -    BlockJob common;
 -    BlockDriverState *backup_top;
 -    BlockDriverState *source_bs;
+-    BlockDriverState *target_bs;
 -
 -    BdrvDirtyBitmap *sync_bitmap;
 -
@@ -210,19 +211,27 @@ index 9afa0bf3b4..3df3d532d5 100644
 -    BlockdevOnError on_source_error;
 -    BlockdevOnError on_target_error;
 -    uint64_t len;
--    uint64_t bytes_read;
 -    int64_t cluster_size;
+-    BackupPerf perf;
 -
 -    BlockCopyState *bcs;
+-
+-    bool wait;
+-    BlockCopyCallState *bg_bcs_call;
 -} BackupBlockJob;
 -
  static const BlockJobDriver backup_job_driver;
  
- static void backup_progress_bytes_callback(int64_t bytes, void *opaque)
-@@ -423,6 +405,11 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+ static void backup_cleanup_sync_bitmap(BackupBlockJob *job, int ret)
+@@ -504,6 +482,16 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
          goto error;
      }
  
++    cluster_size = backup_calculate_cluster_size(target, errp);
++    if (cluster_size < 0) {
++        goto error;
++    }
++
 +    BlockDriverInfo bdi;
 +    if (bdrv_get_info(bs, &bdi) == 0) {
 +        cluster_size = MAX(cluster_size, bdi.cluster_size);
@@ -232,7 +241,7 @@ index 9afa0bf3b4..3df3d532d5 100644
       * If source is in backing chain of target assume that target is going to be
       * used for "image fleecing", i.e. it should represent a kind of snapshot of
 diff --git a/block/meson.build b/block/meson.build
-index feffbc8623..2507af1168 100644
+index d0a8397edf..12797a5ca3 100644
 --- a/block/meson.build
 +++ b/block/meson.build
 @@ -4,6 +4,7 @@ block_ss.add(files(
@@ -244,10 +253,18 @@ index feffbc8623..2507af1168 100644
    'blkdebug.c',
    'blklogwrites.c',
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 6f8eda629a..5455102da8 100644
+index 1c399bdb16..bd88198792 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
-@@ -63,6 +63,36 @@
+@@ -26,6 +26,7 @@
+ 
+ #include "block/accounting.h"
+ #include "block/block.h"
++#include "block/block-copy.h"
+ #include "block/aio-wait.h"
+ #include "qemu/queue.h"
+ #include "qemu/coroutine.h"
+@@ -63,6 +64,40 @@
  
  #define BLOCK_PROBE_BUF_SIZE        512
  
@@ -267,6 +284,7 @@ index 6f8eda629a..5455102da8 100644
 +    BlockJob common;
 +    BlockDriverState *backup_top;
 +    BlockDriverState *source_bs;
++    BlockDriverState *target_bs;
 +
 +    BdrvDirtyBitmap *sync_bitmap;
 +
@@ -275,17 +293,20 @@ index 6f8eda629a..5455102da8 100644
 +    BlockdevOnError on_source_error;
 +    BlockdevOnError on_target_error;
 +    uint64_t len;
-+    uint64_t bytes_read;
 +    int64_t cluster_size;
++    BackupPerf perf;
 +
 +    BlockCopyState *bcs;
++
++    bool wait;
++    BlockCopyCallState *bg_bcs_call;
 +} BackupBlockJob;
 +
  enum BdrvTrackedRequestType {
      BDRV_TRACKED_READ,
      BDRV_TRACKED_WRITE,
 diff --git a/job.c b/job.c
-index 8fecf38960..f9884e7d9d 100644
+index 4aff13d95a..3999b7728c 100644
 --- a/job.c
 +++ b/job.c
 @@ -269,7 +269,8 @@ static bool job_started(Job *job)

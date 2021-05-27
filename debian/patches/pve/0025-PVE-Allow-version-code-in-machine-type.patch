@@ -18,10 +18,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  4 files changed, 25 insertions(+), 2 deletions(-)
 
 diff --git a/hw/core/machine-qmp-cmds.c b/hw/core/machine-qmp-cmds.c
-index 3fcb82ce2f..7868241bd5 100644
+index 76195de9e0..e622f65bca 100644
 --- a/hw/core/machine-qmp-cmds.c
 +++ b/hw/core/machine-qmp-cmds.c
-@@ -238,6 +238,12 @@ MachineInfoList *qmp_query_machines(Error **errp)
+@@ -104,6 +104,12 @@ MachineInfoList *qmp_query_machines(Error **errp)
          if (strcmp(mc->name, MACHINE_GET_CLASS(current_machine)->name) == 0) {
              info->has_is_current = true;
              info->is_current = true;
@@ -35,10 +35,10 @@ index 3fcb82ce2f..7868241bd5 100644
  
          if (mc->default_cpu_type) {
 diff --git a/include/hw/boards.h b/include/hw/boards.h
-index a49e3a6b44..8e0a8c5571 100644
+index ad6c8fd537..00ee74c5eb 100644
 --- a/include/hw/boards.h
 +++ b/include/hw/boards.h
-@@ -165,6 +165,8 @@ struct MachineClass {
+@@ -206,6 +206,8 @@ struct MachineClass {
      const char *desc;
      const char *deprecation_reason;
  
@@ -48,19 +48,19 @@ index a49e3a6b44..8e0a8c5571 100644
      void (*reset)(MachineState *state);
      void (*wakeup)(MachineState *state);
 diff --git a/qapi/machine.json b/qapi/machine.json
-index dfc1a49d3c..32fc674042 100644
+index 6e7e93d68f..7f5ba02c95 100644
 --- a/qapi/machine.json
 +++ b/qapi/machine.json
-@@ -337,6 +337,8 @@
+@@ -160,6 +160,8 @@
  #
  # @default-ram-id: the default ID of initial RAM memory backend (since 5.2)
  #
 +# @pve-version: custom PVE version suffix specified as 'machine+pveN'
 +#
- # Since: 1.2.0
+ # Since: 1.2
  ##
  { 'struct': 'MachineInfo',
-@@ -344,7 +346,7 @@
+@@ -167,7 +169,7 @@
              '*is-default': 'bool', '*is-current': 'bool', 'cpu-max': 'int',
              'hotpluggable-cpus': 'bool',  'numa-mem-supported': 'bool',
              'deprecated': 'bool', '*default-cpu-type': 'str',
@@ -70,10 +70,10 @@ index dfc1a49d3c..32fc674042 100644
  ##
  # @query-machines:
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index da204d24f0..5b5512128e 100644
+index 12ec053422..a3c7ef0ab4 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -2325,6 +2325,8 @@ static MachineClass *machine_parse(const char *name, GSList *machines)
+@@ -1537,6 +1537,8 @@ static MachineClass *machine_parse(const char *name, GSList *machines)
  {
      MachineClass *mc;
      GSList *el;
@@ -82,7 +82,7 @@ index da204d24f0..5b5512128e 100644
  
      if (is_help_option(name)) {
          printf("Supported machines are:\n");
-@@ -2341,12 +2343,23 @@ static MachineClass *machine_parse(const char *name, GSList *machines)
+@@ -1553,12 +1555,23 @@ static MachineClass *machine_parse(const char *name, GSList *machines)
          exit(0);
      }
  

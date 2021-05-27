@@ -16,7 +16,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  1 file changed, 14 insertions(+), 3 deletions(-)
 
 diff --git a/block/pbs.c b/block/pbs.c
-index 1481a2bfd1..fbf0d8d845 100644
+index 78dad0dcc4..ac54e816c0 100644
 --- a/block/pbs.c
 +++ b/block/pbs.c
 @@ -200,7 +200,16 @@ static coroutine_fn int pbs_co_preadv(BlockDriverState *bs,

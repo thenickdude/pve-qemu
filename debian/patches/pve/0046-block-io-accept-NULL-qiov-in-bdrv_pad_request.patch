@@ -11,32 +11,21 @@ it wants to extend its passed vector.
 Simply check for NULL and do nothing, there's no reason to pad the
 target if it will be discarded anyway.
 ---
- block/io.c | 13 ++++++++-----
- 1 file changed, 8 insertions(+), 5 deletions(-)
+ block/io.c | 4 ++++
+ 1 file changed, 4 insertions(+)
 
 diff --git a/block/io.c b/block/io.c
-index ec5e152bb7..08dee005ec 100644
+index ca2dca3007..a9e70a4f91 100644
 --- a/block/io.c
 +++ b/block/io.c
-@@ -1613,13 +1613,16 @@ static bool bdrv_pad_request(BlockDriverState *bs,
-         return false;
-     }
+@@ -1731,6 +1731,10 @@ static int bdrv_pad_request(BlockDriverState *bs,
+ {
+     int ret;
  
--    qemu_iovec_init_extended(&pad->local_qiov, pad->buf, pad->head,
--                             *qiov, *qiov_offset, *bytes,
--                             pad->buf + pad->buf_len - pad->tail, pad->tail);
-+    if (*qiov) {
-+        qemu_iovec_init_extended(&pad->local_qiov, pad->buf, pad->head,
-+                                *qiov, *qiov_offset, *bytes,
-+                                pad->buf + pad->buf_len - pad->tail, pad->tail);
-+        *qiov = &pad->local_qiov;
-+        *qiov_offset = 0;
++    if (!qiov) {
++        return 0;
 +    }
 +
-     *bytes += pad->head + pad->tail;
-     *offset -= pad->head;
--    *qiov = &pad->local_qiov;
--    *qiov_offset = 0;
+     bdrv_check_qiov_request(*offset, *bytes, *qiov, *qiov_offset, &error_abort);
  
-     return true;
- }
+     if (!bdrv_init_padding(bs, *offset, *bytes, pad)) {

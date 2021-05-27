@@ -29,10 +29,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  6 files changed, 142 insertions(+), 23 deletions(-)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index 9ba7c774a2..056d14deee 100644
+index fc71740026..da5043b973 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
-@@ -1039,6 +1039,7 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
+@@ -1031,6 +1031,7 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
          false, NULL, // PBS fingerprint
          false, NULL, // PBS backup-id
          false, 0, // PBS backup-time
@@ -41,7 +41,7 @@ index 9ba7c774a2..056d14deee 100644
          false, NULL, false, NULL, !!devlist,
          devlist, qdict_haskey(qdict, "speed"), speed, &error);
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 182e79c943..604026bb37 100644
+index 65f9148118..a6a289968f 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -221,19 +221,42 @@ void hmp_info_backup(Monitor *mon, const QDict *qdict)
@@ -132,7 +132,7 @@ index 1dda8b7d8f..8cbf645b2c 100644
  
  
 diff --git a/pve-backup.c b/pve-backup.c
-index d40f3f2fd6..1cd9d31d7c 100644
+index f9fe6adb55..98fd28a8f2 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -28,6 +28,8 @@
@@ -232,7 +232,7 @@ index d40f3f2fd6..1cd9d31d7c 100644
      g_free(di);
  
      qemu_mutex_unlock(&backup_state.backup_mutex);
-@@ -470,12 +495,18 @@ static bool create_backup_jobs(void) {
+@@ -472,12 +497,18 @@ static bool create_backup_jobs(void) {
  
          assert(di->target != NULL);
  
@@ -247,13 +247,13 @@ index d40f3f2fd6..1cd9d31d7c 100644
  
          BlockJob *job = backup_job_create(
 -            NULL, di->bs, di->target, backup_state.speed, MIRROR_SYNC_MODE_FULL, NULL,
--            BITMAP_SYNC_MODE_NEVER, false, NULL, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
+-            BITMAP_SYNC_MODE_NEVER, false, NULL, &perf, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
 +            NULL, di->bs, di->target, backup_state.speed, sync_mode, di->bitmap,
-+            bitmap_mode, false, NULL, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
-             JOB_DEFAULT, pvebackup_complete_cb, di, 1, NULL, &local_err);
++            bitmap_mode, false, NULL, &perf, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
+             JOB_DEFAULT, pvebackup_complete_cb, di, NULL, &local_err);
  
          aio_context_release(aio_context);
-@@ -526,6 +557,8 @@ typedef struct QmpBackupTask {
+@@ -528,6 +559,8 @@ typedef struct QmpBackupTask {
      const char *fingerprint;
      bool has_fingerprint;
      int64_t backup_time;
@@ -262,7 +262,7 @@ index d40f3f2fd6..1cd9d31d7c 100644
      bool has_format;
      BackupFormat format;
      bool has_config_file;
-@@ -617,6 +650,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -619,6 +652,7 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
      }
  
      size_t total = 0;
@@ -270,7 +270,7 @@ index d40f3f2fd6..1cd9d31d7c 100644
  
      l = di_list;
      while (l) {
-@@ -654,6 +688,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -656,6 +690,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
          int dump_cb_block_size = PROXMOX_BACKUP_DEFAULT_CHUNK_SIZE; // Hardcoded (4M)
          firewall_name = "fw.conf";
  
@@ -279,7 +279,7 @@ index d40f3f2fd6..1cd9d31d7c 100644
          char *pbs_err = NULL;
          pbs = proxmox_backup_new(
              task->backup_file,
-@@ -673,7 +709,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -675,7 +711,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
              goto err;
          }
  
@@ -289,7 +289,7 @@ index d40f3f2fd6..1cd9d31d7c 100644
              goto err;
  
          /* register all devices */
-@@ -684,9 +721,40 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -686,9 +723,40 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
  
              const char *devname = bdrv_get_device_name(di->bs);
  
@@ -332,7 +332,7 @@ index d40f3f2fd6..1cd9d31d7c 100644
  
              if (!(di->target = bdrv_backup_dump_create(dump_cb_block_size, di->size, pvebackup_co_dump_pbs_cb, di, task->errp))) {
                  goto err;
-@@ -695,6 +763,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -697,6 +765,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
              di->dev_id = dev_id;
          }
      } else if (format == BACKUP_FORMAT_VMA) {
@@ -341,7 +341,7 @@ index d40f3f2fd6..1cd9d31d7c 100644
          vmaw = vma_writer_create(task->backup_file, uuid, &local_err);
          if (!vmaw) {
              if (local_err) {
-@@ -722,6 +792,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -724,6 +794,8 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
              }
          }
      } else if (format == BACKUP_FORMAT_DIR) {
@@ -350,7 +350,7 @@ index d40f3f2fd6..1cd9d31d7c 100644
          if (mkdir(task->backup_file, 0640) != 0) {
              error_setg_errno(task->errp, errno, "can't create directory '%s'\n",
                               task->backup_file);
-@@ -794,8 +866,10 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
+@@ -796,8 +868,10 @@ static void coroutine_fn pvebackup_co_prepare(void *opaque)
      char *uuid_str = g_strdup(backup_state.stat.uuid_str);
  
      backup_state.stat.total = total;
@@ -361,7 +361,7 @@ index d40f3f2fd6..1cd9d31d7c 100644
  
      qemu_mutex_unlock(&backup_state.stat.lock);
  
-@@ -819,6 +893,10 @@ err:
+@@ -821,6 +895,10 @@ err:
          PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
          l = g_list_next(l);
  
@@ -372,7 +372,7 @@ index d40f3f2fd6..1cd9d31d7c 100644
          if (di->target) {
              bdrv_unref(di->target);
          }
-@@ -860,6 +938,7 @@ UuidInfo *qmp_backup(
+@@ -862,6 +940,7 @@ UuidInfo *qmp_backup(
      bool has_fingerprint, const char *fingerprint,
      bool has_backup_id, const char *backup_id,
      bool has_backup_time, int64_t backup_time,
@@ -380,7 +380,7 @@ index d40f3f2fd6..1cd9d31d7c 100644
      bool has_format, BackupFormat format,
      bool has_config_file, const char *config_file,
      bool has_firewall_file, const char *firewall_file,
-@@ -878,6 +957,8 @@ UuidInfo *qmp_backup(
+@@ -880,6 +959,8 @@ UuidInfo *qmp_backup(
          .backup_id = backup_id,
          .has_backup_time = has_backup_time,
          .backup_time = backup_time,
@@ -389,7 +389,7 @@ index d40f3f2fd6..1cd9d31d7c 100644
          .has_format = has_format,
          .format = format,
          .has_config_file = has_config_file,
-@@ -946,10 +1027,14 @@ BackupStatus *qmp_query_backup(Error **errp)
+@@ -948,10 +1029,14 @@ BackupStatus *qmp_query_backup(Error **errp)
  
      info->has_total = true;
      info->total = backup_state.stat.total;
@@ -405,10 +405,10 @@ index d40f3f2fd6..1cd9d31d7c 100644
      qemu_mutex_unlock(&backup_state.stat.lock);
  
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 9054db608c..d4e1c98c50 100644
+index 890fc9dede..eb1e851606 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -758,8 +758,13 @@
+@@ -696,8 +696,13 @@
  #
  # @total: total amount of bytes involved in the backup process
  #
@@ -422,7 +422,7 @@ index 9054db608c..d4e1c98c50 100644
  # @zero-bytes: amount of 'zero' bytes detected.
  #
  # @start-time: time (epoch) when backup job started.
-@@ -772,8 +777,8 @@
+@@ -710,8 +715,8 @@
  #
  ##
  { 'struct': 'BackupStatus',
@@ -433,7 +433,7 @@ index 9054db608c..d4e1c98c50 100644
             '*start-time': 'int', '*end-time': 'int',
             '*backup-file': 'str', '*uuid': 'str' } }
  
-@@ -816,6 +821,8 @@
+@@ -754,6 +759,8 @@
  #
  # @backup-time: backup timestamp (Unix epoch, required for format 'pbs')
  #
@@ -442,7 +442,7 @@ index 9054db608c..d4e1c98c50 100644
  # Returns: the uuid of the backup job
  #
  ##
-@@ -826,6 +833,7 @@
+@@ -764,6 +771,7 @@
                                      '*fingerprint': 'str',
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',

@@ -23,8 +23,7 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 ---
  tests/qemu-iotests/384     |  547 +++++++
  tests/qemu-iotests/384.out | 2846 ++++++++++++++++++++++++++++++++++++
- tests/qemu-iotests/group   |    1 +
- 3 files changed, 3394 insertions(+)
+ 2 files changed, 3393 insertions(+)
  create mode 100755 tests/qemu-iotests/384
  create mode 100644 tests/qemu-iotests/384.out
 
@@ -3433,15 +3432,3 @@ index 0000000000..9b7408b6d6
 +{"execute": "blockdev-mirror", "arguments": {"bitmap": "bitmap0", "device": "drive0", "filter-node-name": "mirror-top", "job-id": "api_job", "sync": "none", "target": "mirror_target"}}
 +{"error": {"class": "GenericError", "desc": "bitmap-mode must be specified if a bitmap is provided"}}
 +
-diff --git a/tests/qemu-iotests/group b/tests/qemu-iotests/group
-index 2960dff728..952dceba1f 100644
---- a/tests/qemu-iotests/group
-+++ b/tests/qemu-iotests/group
-@@ -270,6 +270,7 @@
- 253 rw quick
- 254 rw backing quick
- 255 rw quick
-+384 rw
- 256 rw auto quick
- 257 rw
- 258 rw quick

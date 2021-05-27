@@ -15,18 +15,18 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 ---
  include/migration/misc.h |   3 ++
  migration/meson.build    |   2 +
+ migration/migration.c    |   1 +
  migration/pbs-state.c    | 106 +++++++++++++++++++++++++++++++++++++++
  pve-backup.c             |   1 +
  qapi/block-core.json     |   6 +++
- softmmu/vl.c             |   1 +
  6 files changed, 119 insertions(+)
  create mode 100644 migration/pbs-state.c
 
 diff --git a/include/migration/misc.h b/include/migration/misc.h
-index 34e7d75713..f83816dd3c 100644
+index 738675ef52..2b89db4b8e 100644
 --- a/include/migration/misc.h
 +++ b/include/migration/misc.h
-@@ -75,4 +75,7 @@ bool migration_in_incoming_postcopy(void);
+@@ -76,4 +76,7 @@ bool migration_in_bg_snapshot(void);
  /* migration/block-dirty-bitmap.c */
  void dirty_bitmap_mig_init(void);
  
@@ -35,13 +35,13 @@ index 34e7d75713..f83816dd3c 100644
 +
  #endif
 diff --git a/migration/meson.build b/migration/meson.build
-index e62b79b60f..b90a04aa75 100644
+index c8ae813a48..49108c79ef 100644
 --- a/migration/meson.build
 +++ b/migration/meson.build
 @@ -7,8 +7,10 @@ migration_files = files(
    'qemu-file-channel.c',
    'qemu-file.c',
-   'qjson.c',
+   'yank_functions.c',
 +  'pbs-state.c',
  )
  softmmu_ss.add(migration_files)
@@ -49,6 +49,18 @@ index e62b79b60f..b90a04aa75 100644
  
  softmmu_ss.add(files(
    'block-dirty-bitmap.c',
+diff --git a/migration/migration.c b/migration/migration.c
+index 8ca034136b..a5ce875685 100644
+--- a/migration/migration.c
++++ b/migration/migration.c
+@@ -221,6 +221,7 @@ void migration_object_init(void)
+     blk_mig_init();
+     ram_mig_init();
+     dirty_bitmap_mig_init();
++    pbs_state_mig_init();
+ }
+ 
+ void migration_shutdown(void)
 diff --git a/migration/pbs-state.c b/migration/pbs-state.c
 new file mode 100644
 index 0000000000..29f2b3860d
@@ -162,10 +174,10 @@ index 0000000000..29f2b3860d
 +                         NULL);
 +}
 diff --git a/pve-backup.c b/pve-backup.c
-index e671ed8d48..bd2647e5f3 100644
+index 59b4034871..ecff792760 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
-@@ -1130,6 +1130,7 @@ ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
+@@ -1132,6 +1132,7 @@ ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
      ret->pbs_library_version = g_strdup(proxmox_backup_qemu_version());
      ret->pbs_dirty_bitmap = true;
      ret->pbs_dirty_bitmap_savevm = true;
@@ -174,10 +186,10 @@ index e671ed8d48..bd2647e5f3 100644
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 9b827cbe43..30eb1262ff 100644
+index 710b8dfb2d..cf3cbf2a56 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -884,6 +884,11 @@
+@@ -822,6 +822,11 @@
  # @pbs-dirty-bitmap-savevm: True if 'dirty-bitmaps' migration capability can
  #                           safely be set for savevm-async.
  #
@@ -189,7 +201,7 @@ index 9b827cbe43..30eb1262ff 100644
  # @pbs-library-version: Running version of libproxmox-backup-qemu0 library.
  #
  ##
-@@ -891,6 +896,7 @@
+@@ -829,6 +834,7 @@
    'data': { 'pbs-dirty-bitmap': 'bool',
              'query-bitmap-info': 'bool',
              'pbs-dirty-bitmap-savevm': 'bool',
@@ -197,15 +209,3 @@ index 9b827cbe43..30eb1262ff 100644
              'pbs-library-version': 'str' } }
  
  ##
-diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 5b5512128e..6721889fee 100644
---- a/softmmu/vl.c
-+++ b/softmmu/vl.c
-@@ -4304,6 +4304,7 @@ void qemu_init(int argc, char **argv, char **envp)
-     blk_mig_init();
-     ram_mig_init();
-     dirty_bitmap_mig_init();
-+    pbs_state_mig_init();
- 
-     qemu_opts_foreach(qemu_find_opts("mon"),
-                       mon_init_func, NULL, &error_fatal);
