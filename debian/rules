@@ -41,6 +41,7 @@ ${BUILDDIR}/config.status: configure
 
 	# guest-agent is only required for guest systems
 	./configure \
+	--with-git-submodules=ignore \
 	--docdir=/usr/share/doc/pve-qemu-kvm \
 	--localstatedir=/var \
 	--prefix=/usr \
