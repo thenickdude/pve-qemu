@@ -69,6 +69,7 @@ ${BUILDDIR}/config.status: configure
 	--enable-libiscsi \
 	--enable-libusb \
 	--enable-linux-aio \
+	--enable-linux-io-uring \
 	--enable-numa \
 	--enable-rbd \
 	--enable-seccomp \
