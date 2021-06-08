@@ -49,7 +49,7 @@ update:
 
 .PHONY: upload
 upload: $(DEBS)
-	tar cf - ${DEBS} | ssh repoman@repo.proxmox.com upload --product pve --dist buster
+	tar cf - ${DEBS} | ssh repoman@repo.proxmox.com upload --product pve --dist bullseye
 
 .PHONY: distclean clean
 distclean: clean
