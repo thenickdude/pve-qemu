@@ -1,4 +1,5 @@
 extra/0001-monitor-qmp-fix-race-on-CHR_EVENT_CLOSED-without-OOB.patch
+extra/0002-block-io_uring-resubmit-when-result-is-EAGAIN.patch
 bitmap-mirror/0001-drive-mirror-add-support-for-sync-bitmap-mode-never.patch
 bitmap-mirror/0002-drive-mirror-add-support-for-conditional-and-always-.patch
 bitmap-mirror/0003-mirror-add-check-for-bitmap-mode-without-bitmap.patch

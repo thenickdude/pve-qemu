@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fabian Ebner <f.ebner@proxmox.com>
+Date: Fri, 23 Jul 2021 12:42:23 +0200
+Subject: [PATCH] block/io_uring: resubmit when result is -EAGAIN
+
+Linux SCSI can throw spurious -EAGAIN in some corner cases in its
+completion path, which will end up being the result in the completed
+io_uring request.
+
+Resubmitting such requests should allow block jobs to complete, even
+if such spurious errors are encountered.
+
+Co-authored-by: Stefan Hajnoczi <stefanha@gmail.com>
+Reviewed-by: Stefano Garzarella <sgarzare@redhat.com>
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+---
+ block/io_uring.c | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/block/io_uring.c b/block/io_uring.c
+index 00a3ee9fb8..dfa475cc87 100644
+--- a/block/io_uring.c
++++ b/block/io_uring.c
+@@ -165,7 +165,21 @@ static void luring_process_completions(LuringState *s)
+         total_bytes = ret + luringcb->total_read;
+ 
+         if (ret < 0) {
+-            if (ret == -EINTR) {
++            /*
++             * Only writev/readv/fsync requests on regular files or host block
++             * devices are submitted. Therefore -EAGAIN is not expected but it's
++             * known to happen sometimes with Linux SCSI. Submit again and hope
++             * the request completes successfully.
++             *
++             * For more information, see:
++             * https://lore.kernel.org/io-uring/20210727165811.284510-3-axboe@kernel.dk/T/#u
++             *
++             * If the code is changed to submit other types of requests in the
++             * future, then this workaround may need to be extended to deal with
++             * genuine -EAGAIN results that should not be resubmitted
++             * immediately.
++             */
++            if (ret == -EINTR || ret == -EAGAIN) {
+                 luring_resubmit(s, luringcb);
+                 continue;
+             }
+-- 
+2.30.2
+
