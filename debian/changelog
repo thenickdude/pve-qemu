@@ -1,3 +1,9 @@
+pve-qemu-kvm (6.0.0-3) bullseye; urgency=medium
+
+  * io_uring: resubmit when result is -EAGAIN
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 3 Aug 2021 15:01:31 +0200
+
 pve-qemu-kvm (6.0.0-2) bullseye; urgency=medium
 
   * enable io-uring support in QEMU builds
