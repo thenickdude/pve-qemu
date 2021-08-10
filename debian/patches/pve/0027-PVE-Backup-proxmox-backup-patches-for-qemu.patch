@@ -510,7 +510,7 @@ index 0000000000..1dda8b7d8f
 +#endif /* PROXMOX_BACKUP_CLIENT_H */
 diff --git a/pve-backup.c b/pve-backup.c
 new file mode 100644
-index 0000000000..f9fe6adb55
+index 0000000000..66868dec14
 --- /dev/null
 +++ b/pve-backup.c
 @@ -0,0 +1,959 @@

@@ -54,7 +54,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  2 files changed, 144 insertions(+), 78 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index 7d254cc1f6..59b4034871 100644
+index 2e628d68e4..9c20ef3a5e 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -33,7 +33,9 @@ const char *PBS_BITMAP_NAME = "pbs-incremental-dirty-bitmap";

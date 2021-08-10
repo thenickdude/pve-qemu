@@ -132,7 +132,7 @@ index 1dda8b7d8f..8cbf645b2c 100644
  
  
 diff --git a/pve-backup.c b/pve-backup.c
-index f9fe6adb55..98fd28a8f2 100644
+index 66868dec14..6cdbd40529 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -28,6 +28,8 @@

@@ -115,7 +115,7 @@ index 4ce7bc0b5e..0923037dec 100644
  static void proxmox_backup_schedule_wake(void *data) {
      CoCtxData *waker = (CoCtxData *)data;
 diff --git a/pve-backup.c b/pve-backup.c
-index ecff792760..ed6cdc1b94 100644
+index 59ccb38ceb..f858003a06 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -357,7 +357,7 @@ static void job_cancel_bh(void *opaque) {
