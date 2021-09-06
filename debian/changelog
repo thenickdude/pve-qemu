@@ -1,3 +1,13 @@
+pve-qemu-kvm (6.0.0-4) bullseye; urgency=medium
+
+  * drop the ancient workaround that force disabled SMM due to observing VM
+    hangs on old kernel versions.
+
+  * monitor/qmp: fix race with clients disconnecting early resulting in other
+    clients receiving a message with the (now wrong) ID of the former
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 06 Sep 2021 07:30:00 +0200
+
 pve-qemu-kvm (6.0.0-3) bullseye; urgency=medium
 
   * io_uring: resubmit when result is -EAGAIN
