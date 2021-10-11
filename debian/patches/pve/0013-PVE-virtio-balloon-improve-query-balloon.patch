@@ -14,10 +14,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  3 files changed, 81 insertions(+), 4 deletions(-)
 
 diff --git a/hw/virtio/virtio-balloon.c b/hw/virtio/virtio-balloon.c
-index d120bf8f43..26077223ac 100644
+index 4b5d9e5e50..fddb5a4b82 100644
 --- a/hw/virtio/virtio-balloon.c
 +++ b/hw/virtio/virtio-balloon.c
-@@ -809,8 +809,37 @@ static uint64_t virtio_balloon_get_features(VirtIODevice *vdev, uint64_t f,
+@@ -807,8 +807,37 @@ static uint64_t virtio_balloon_get_features(VirtIODevice *vdev, uint64_t f,
  static void virtio_balloon_stat(void *opaque, BalloonInfo *info)
  {
      VirtIOBalloon *dev = opaque;
@@ -58,7 +58,7 @@ index d120bf8f43..26077223ac 100644
  
  static void virtio_balloon_to_target(void *opaque, ram_addr_t target)
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 0ad5b77477..1116767275 100644
+index e00255f7ee..f528055cb6 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -698,7 +698,35 @@ void hmp_info_balloon(Monitor *mon, const QDict *qdict)
@@ -99,10 +99,10 @@ index 0ad5b77477..1116767275 100644
      qapi_free_BalloonInfo(info);
  }
 diff --git a/qapi/machine.json b/qapi/machine.json
-index 6e90d463fc..f8da4a0d98 100644
+index 157712f006..34035c25d1 100644
 --- a/qapi/machine.json
 +++ b/qapi/machine.json
-@@ -1008,10 +1008,30 @@
+@@ -1018,10 +1018,30 @@
  # @actual: the logical size of the VM in bytes
  #          Formula used: logical_vm_size = vm_ram_size - balloon_size
  #

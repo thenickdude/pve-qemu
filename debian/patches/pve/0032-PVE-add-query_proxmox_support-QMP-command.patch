@@ -33,10 +33,10 @@ index 7527885251..8cba8e97d3 100644
 +    return ret;
 +}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index db11dd6aae..79aef65616 100644
+index e4d0c923a4..3eebe7ff71 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -806,6 +806,35 @@
+@@ -822,6 +822,35 @@
  ##
  { 'command': 'backup-cancel' }
  

@@ -10,7 +10,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  block/meson.build              |   5 +
  block/monitor/block-hmp-cmds.c |  33 ++
  blockdev.c                     |   1 +
- hmp-commands-info.hx           |  13 +
+ hmp-commands-info.hx           |  14 +
  hmp-commands.hx                |  29 +
  include/block/block_int.h      |   2 +-
  include/monitor/hmp.h          |   3 +
@@ -22,16 +22,16 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  qapi/block-core.json           | 109 ++++
  qapi/common.json               |  13 +
  qapi/machine.json              |  15 +-
- 15 files changed, 1448 insertions(+), 14 deletions(-)
+ 15 files changed, 1449 insertions(+), 14 deletions(-)
  create mode 100644 proxmox-backup-client.c
  create mode 100644 proxmox-backup-client.h
  create mode 100644 pve-backup.c
 
 diff --git a/block/meson.build b/block/meson.build
-index 12797a5ca3..500d2bf5b3 100644
+index 19bc2b7cbb..9e433daf2e 100644
 --- a/block/meson.build
 +++ b/block/meson.build
-@@ -45,6 +45,11 @@ block_ss.add(files(
+@@ -46,6 +46,11 @@ block_ss.add(files(
  ), zstd, zlib, gnutls)
  
  block_ss.add(files('../vma-writer.c'), libuuid)
@@ -44,10 +44,10 @@ index 12797a5ca3..500d2bf5b3 100644
  softmmu_ss.add(when: 'CONFIG_TCG', if_true: files('blkreplay.c'))
  
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index ebf1033f31..fc71740026 100644
+index 3e6670c963..1e29681d30 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
-@@ -1004,3 +1004,36 @@ void hmp_info_snapshots(Monitor *mon, const QDict *qdict)
+@@ -1015,3 +1015,36 @@ void hmp_info_snapshots(Monitor *mon, const QDict *qdict)
      g_free(sn_tab);
      g_free(global_snapshots);
  }
@@ -85,7 +85,7 @@ index ebf1033f31..fc71740026 100644
 +    hmp_handle_error(mon, error);
 +}
 diff --git a/blockdev.c b/blockdev.c
-index 9cab29e567..5c23744346 100644
+index b6f797b41f..84e9b898be 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -36,6 +36,7 @@
@@ -97,13 +97,14 @@ index 9cab29e567..5c23744346 100644
  #include "monitor/monitor.h"
  #include "qemu/error-report.h"
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index c72db5f666..be4d252b8e 100644
+index e6dd3be07a..15ddecada1 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
-@@ -513,6 +513,19 @@ SRST
-     Show CPU statistics.
+@@ -497,6 +497,20 @@ SRST
+     Show the current VM UUID.
  ERST
  
++
 +    {
 +        .name       = "backup",
 +        .args_type  = "",
@@ -121,7 +122,7 @@ index c72db5f666..be4d252b8e 100644
      {
          .name       = "usernet",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 0b9d526937..a7bd174e5a 100644
+index 96bd7e00bd..b18063ce19 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
 @@ -99,6 +99,35 @@ ERST
@@ -161,7 +162,7 @@ index 0b9d526937..a7bd174e5a 100644
  
      {
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index bd88198792..03eec075e1 100644
+index 4bd5fdb191..10452dd50b 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -66,7 +66,7 @@
@@ -174,7 +175,7 @@ index bd88198792..03eec075e1 100644
      uint64_t byte_size,
      BackupDumpFunc *dump_cb,
 diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
-index e287e071d8..1468530adf 100644
+index 1247d7362a..8d3df46c93 100644
 --- a/include/monitor/hmp.h
 +++ b/include/monitor/hmp.h
 @@ -29,6 +29,7 @@ void hmp_info_savevm(Monitor *mon, const QDict *qdict);
@@ -195,10 +196,10 @@ index e287e071d8..1468530adf 100644
  void hmp_device_add(Monitor *mon, const QDict *qdict);
  void hmp_device_del(Monitor *mon, const QDict *qdict);
 diff --git a/meson.build b/meson.build
-index 7db08406bd..b4a0f7d314 100644
+index b84f62f882..c05c926cc3 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -946,6 +946,7 @@ keyutils = dependency('libkeyutils', required: false,
+@@ -1065,6 +1065,7 @@ keyutils = dependency('libkeyutils', required: false,
  has_gettid = cc.has_function('gettid')
  
  libuuid = cc.find_library('uuid', required: true)
@@ -207,7 +208,7 @@ index 7db08406bd..b4a0f7d314 100644
  # Malloc tests
  
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 948c9d9ff8..65f9148118 100644
+index 42a1eaf370..55033530fb 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -195,6 +195,50 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
@@ -1474,10 +1475,10 @@ index 0000000000..66868dec14
 +    return info;
 +}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 46b14cdf67..890fc9dede 100644
+index fdfa579d00..c5d604693f 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -683,6 +683,115 @@
+@@ -699,6 +699,115 @@
  { 'command': 'query-block', 'returns': ['BlockInfo'] }
  
  
@@ -1615,7 +1616,7 @@ index 7c976296f0..0690b07903 100644
 +##
 +{ 'struct': 'UuidInfo', 'data': {'UUID': 'str'} }
 diff --git a/qapi/machine.json b/qapi/machine.json
-index 7f5ba02c95..9923098e40 100644
+index a6f483af4f..6effa7ad30 100644
 --- a/qapi/machine.json
 +++ b/qapi/machine.json
 @@ -4,6 +4,8 @@

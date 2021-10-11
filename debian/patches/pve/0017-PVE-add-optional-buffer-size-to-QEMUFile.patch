@@ -16,7 +16,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  3 files changed, 28 insertions(+), 15 deletions(-)
 
 diff --git a/migration/qemu-file.c b/migration/qemu-file.c
-index d6e03dbc0e..1ac188c8e4 100644
+index 6338d8e2ff..6697a93a7e 100644
 --- a/migration/qemu-file.c
 +++ b/migration/qemu-file.c
 @@ -30,8 +30,8 @@
@@ -40,34 +40,34 @@ index d6e03dbc0e..1ac188c8e4 100644
  
      DECLARE_BITMAP(may_free, MAX_IOV_SIZE);
      struct iovec iov[MAX_IOV_SIZE];
-@@ -101,7 +102,7 @@ bool qemu_file_mode_is_not_valid(const char *mode)
+@@ -103,7 +104,7 @@ bool qemu_file_mode_is_not_valid(const char *mode)
      return false;
  }
  
--QEMUFile *qemu_fopen_ops(void *opaque, const QEMUFileOps *ops)
-+QEMUFile *qemu_fopen_ops_sized(void *opaque, const QEMUFileOps *ops, size_t buffer_size)
+-QEMUFile *qemu_fopen_ops(void *opaque, const QEMUFileOps *ops, bool has_ioc)
++QEMUFile *qemu_fopen_ops_sized(void *opaque, const QEMUFileOps *ops, bool has_ioc, size_t buffer_size)
  {
      QEMUFile *f;
  
-@@ -109,9 +110,17 @@ QEMUFile *qemu_fopen_ops(void *opaque, const QEMUFileOps *ops)
- 
+@@ -112,9 +113,17 @@ QEMUFile *qemu_fopen_ops(void *opaque, const QEMUFileOps *ops, bool has_ioc)
      f->opaque = opaque;
      f->ops = ops;
+     f->has_ioc = has_ioc;
 +    f->buf_allocated_size = buffer_size;
 +    f->buf = malloc(buffer_size);
 +
      return f;
  }
  
-+QEMUFile *qemu_fopen_ops(void *opaque, const QEMUFileOps *ops)
++QEMUFile *qemu_fopen_ops(void *opaque, const QEMUFileOps *ops, bool has_ioc)
 +{
-+    return qemu_fopen_ops_sized(opaque, ops, DEFAULT_IO_BUF_SIZE);
++    return qemu_fopen_ops_sized(opaque, ops, has_ioc, DEFAULT_IO_BUF_SIZE);
 +}
 +
  
  void qemu_file_set_hooks(QEMUFile *f, const QEMUFileHooks *hooks)
  {
-@@ -346,7 +355,7 @@ static ssize_t qemu_fill_buffer(QEMUFile *f)
+@@ -349,7 +358,7 @@ static ssize_t qemu_fill_buffer(QEMUFile *f)
      }
  
      len = f->ops->get_buffer(f->opaque, f->buf + pending, f->pos,
@@ -76,7 +76,7 @@ index d6e03dbc0e..1ac188c8e4 100644
      if (len > 0) {
          f->buf_size += len;
          f->pos += len;
-@@ -386,6 +395,9 @@ int qemu_fclose(QEMUFile *f)
+@@ -389,6 +398,9 @@ int qemu_fclose(QEMUFile *f)
              ret = ret2;
          }
      }
@@ -86,7 +86,7 @@ index d6e03dbc0e..1ac188c8e4 100644
      /* If any error was spotted before closing, we should report it
       * instead of the close() return value.
       */
-@@ -435,7 +447,7 @@ static void add_buf_to_iovec(QEMUFile *f, size_t len)
+@@ -443,7 +455,7 @@ static void add_buf_to_iovec(QEMUFile *f, size_t len)
  {
      if (!add_to_iovec(f, f->buf + f->buf_index, len, false)) {
          f->buf_index += len;
@@ -95,7 +95,7 @@ index d6e03dbc0e..1ac188c8e4 100644
              qemu_fflush(f);
          }
      }
-@@ -461,7 +473,7 @@ void qemu_put_buffer(QEMUFile *f, const uint8_t *buf, size_t size)
+@@ -469,7 +481,7 @@ void qemu_put_buffer(QEMUFile *f, const uint8_t *buf, size_t size)
      }
  
      while (size > 0) {
@@ -104,7 +104,7 @@ index d6e03dbc0e..1ac188c8e4 100644
          if (l > size) {
              l = size;
          }
-@@ -508,8 +520,8 @@ size_t qemu_peek_buffer(QEMUFile *f, uint8_t **buf, size_t size, size_t offset)
+@@ -516,8 +528,8 @@ size_t qemu_peek_buffer(QEMUFile *f, uint8_t **buf, size_t size, size_t offset)
      size_t index;
  
      assert(!qemu_file_is_writable(f));
@@ -115,7 +115,7 @@ index d6e03dbc0e..1ac188c8e4 100644
  
      /* The 1st byte to read from */
      index = f->buf_index + offset;
-@@ -559,7 +571,7 @@ size_t qemu_get_buffer(QEMUFile *f, uint8_t *buf, size_t size)
+@@ -567,7 +579,7 @@ size_t qemu_get_buffer(QEMUFile *f, uint8_t *buf, size_t size)
          size_t res;
          uint8_t *src;
  
@@ -124,7 +124,7 @@ index d6e03dbc0e..1ac188c8e4 100644
          if (res == 0) {
              return done;
          }
-@@ -593,7 +605,7 @@ size_t qemu_get_buffer(QEMUFile *f, uint8_t *buf, size_t size)
+@@ -601,7 +613,7 @@ size_t qemu_get_buffer(QEMUFile *f, uint8_t *buf, size_t size)
   */
  size_t qemu_get_buffer_in_place(QEMUFile *f, uint8_t **buf, size_t size)
  {
@@ -133,7 +133,7 @@ index d6e03dbc0e..1ac188c8e4 100644
          size_t res;
          uint8_t *src = NULL;
  
-@@ -618,7 +630,7 @@ int qemu_peek_byte(QEMUFile *f, int offset)
+@@ -626,7 +638,7 @@ int qemu_peek_byte(QEMUFile *f, int offset)
      int index = f->buf_index + offset;
  
      assert(!qemu_file_is_writable(f));
@@ -142,7 +142,7 @@ index d6e03dbc0e..1ac188c8e4 100644
  
      if (index >= f->buf_size) {
          qemu_fill_buffer(f);
-@@ -770,7 +782,7 @@ static int qemu_compress_data(z_stream *stream, uint8_t *dest, size_t dest_len,
+@@ -778,7 +790,7 @@ static int qemu_compress_data(z_stream *stream, uint8_t *dest, size_t dest_len,
  ssize_t qemu_put_compression_data(QEMUFile *f, z_stream *stream,
                                    const uint8_t *p, size_t size)
  {
@@ -152,19 +152,19 @@ index d6e03dbc0e..1ac188c8e4 100644
      if (blen < compressBound(size)) {
          return -1;
 diff --git a/migration/qemu-file.h b/migration/qemu-file.h
-index a9b6d6ccb7..8752d27c74 100644
+index 3f36d4dc8c..67501fd9cf 100644
 --- a/migration/qemu-file.h
 +++ b/migration/qemu-file.h
-@@ -120,6 +120,7 @@ typedef struct QEMUFileHooks {
+@@ -121,6 +121,7 @@ typedef struct QEMUFileHooks {
  } QEMUFileHooks;
  
- QEMUFile *qemu_fopen_ops(void *opaque, const QEMUFileOps *ops);
-+QEMUFile *qemu_fopen_ops_sized(void *opaque, const QEMUFileOps *ops, size_t buffer_size);
+ QEMUFile *qemu_fopen_ops(void *opaque, const QEMUFileOps *ops, bool has_ioc);
++QEMUFile *qemu_fopen_ops_sized(void *opaque, const QEMUFileOps *ops, bool has_ioc, size_t buffer_size);
  void qemu_file_set_hooks(QEMUFile *f, const QEMUFileHooks *hooks);
  int qemu_get_fd(QEMUFile *f);
  int qemu_fclose(QEMUFile *f);
 diff --git a/migration/savevm-async.c b/migration/savevm-async.c
-index 593a619088..cc2552d977 100644
+index 79a0cda906..970ee3b3fc 100644
 --- a/migration/savevm-async.c
 +++ b/migration/savevm-async.c
 @@ -418,7 +418,7 @@ void qmp_savevm_start(bool has_statefile, const char *statefile, Error **errp)
@@ -172,7 +172,7 @@ index 593a619088..cc2552d977 100644
      }
  
 -    snap_state.file = qemu_fopen_ops(&snap_state, &block_file_ops);
-+    snap_state.file = qemu_fopen_ops_sized(&snap_state, &block_file_ops, 4 * 1024 * 1024);
++    snap_state.file = qemu_fopen_ops_sized(&snap_state, &block_file_ops, false, 4 * 1024 * 1024);
  
      if (!snap_state.file) {
          error_set(errp, ERROR_CLASS_GENERIC_ERROR, "failed to open '%s'", statefile);
@@ -181,7 +181,7 @@ index 593a619088..cc2552d977 100644
  
      /* restore the VM state */
 -    f = qemu_fopen_ops(be, &loadstate_file_ops);
-+    f = qemu_fopen_ops_sized(be, &loadstate_file_ops, 4 * 1024 * 1024);
++    f = qemu_fopen_ops_sized(be, &loadstate_file_ops, false, 4 * 1024 * 1024);
      if (!f) {
          error_setg(errp, "Could not open VM state file");
          goto the_end;

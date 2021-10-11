@@ -15,10 +15,10 @@ target if it will be discarded anyway.
  1 file changed, 4 insertions(+)
 
 diff --git a/block/io.c b/block/io.c
-index ca2dca3007..a9e70a4f91 100644
+index a19942718b..9fa8252258 100644
 --- a/block/io.c
 +++ b/block/io.c
-@@ -1731,6 +1731,10 @@ static int bdrv_pad_request(BlockDriverState *bs,
+@@ -1763,6 +1763,10 @@ static int bdrv_pad_request(BlockDriverState *bs,
  {
      int ret;
  

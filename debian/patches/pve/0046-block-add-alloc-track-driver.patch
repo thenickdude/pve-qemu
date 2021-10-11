@@ -381,7 +381,7 @@ index 0000000000..35f2737c89
 +
 +block_init(bdrv_alloc_track_init);
 diff --git a/block/meson.build b/block/meson.build
-index 574165e577..f56ec7f6bf 100644
+index e3ed5ac97c..d1ee260048 100644
 --- a/block/meson.build
 +++ b/block/meson.build
 @@ -2,6 +2,7 @@ block_ss.add(genh)

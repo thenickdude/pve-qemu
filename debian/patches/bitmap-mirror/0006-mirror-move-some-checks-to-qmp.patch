@@ -18,10 +18,10 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  3 files changed, 70 insertions(+), 59 deletions(-)
 
 diff --git a/block/mirror.c b/block/mirror.c
-index c6f759e279..ce2b13b4d8 100644
+index 46e3d0860b..33477ade1b 100644
 --- a/block/mirror.c
 +++ b/block/mirror.c
-@@ -1613,31 +1613,13 @@ static BlockJob *mirror_start_job(
+@@ -1628,31 +1628,13 @@ static BlockJob *mirror_start_job(
      uint64_t target_perms, target_shared_perms;
      int ret;
  
@@ -59,10 +59,10 @@ index c6f759e279..ce2b13b4d8 100644
  
          if (bitmap_mode != BITMAP_SYNC_MODE_NEVER) {
 diff --git a/blockdev.c b/blockdev.c
-index c025fbf567..9cab29e567 100644
+index 9e14feec87..b6f797b41f 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3041,7 +3041,36 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
+@@ -3035,7 +3035,36 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
          sync = MIRROR_SYNC_MODE_FULL;
      }
  

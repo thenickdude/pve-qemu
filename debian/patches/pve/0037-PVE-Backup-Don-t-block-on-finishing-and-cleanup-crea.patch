@@ -478,10 +478,10 @@ index 2e628d68e4..9c20ef3a5e 100644
      qemu_mutex_unlock(&backup_state.stat.lock);
  
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 808ec6027e..710b8dfb2d 100644
+index 170c13984d..a0d1d278e9 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -713,12 +713,15 @@
+@@ -729,12 +729,15 @@
  #
  # @uuid: uuid for this backup job
  #

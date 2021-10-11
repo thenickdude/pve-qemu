@@ -23,10 +23,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  create mode 100644 migration/pbs-state.c
 
 diff --git a/include/migration/misc.h b/include/migration/misc.h
-index 738675ef52..2b89db4b8e 100644
+index 465906710d..4f0aeceb6f 100644
 --- a/include/migration/misc.h
 +++ b/include/migration/misc.h
-@@ -76,4 +76,7 @@ bool migration_in_bg_snapshot(void);
+@@ -75,4 +75,7 @@ bool migration_in_bg_snapshot(void);
  /* migration/block-dirty-bitmap.c */
  void dirty_bitmap_mig_init(void);
  
@@ -35,7 +35,7 @@ index 738675ef52..2b89db4b8e 100644
 +
  #endif
 diff --git a/migration/meson.build b/migration/meson.build
-index c8ae813a48..49108c79ef 100644
+index ea9aedeefc..c27dc9bd97 100644
 --- a/migration/meson.build
 +++ b/migration/meson.build
 @@ -7,8 +7,10 @@ migration_files = files(
@@ -50,17 +50,17 @@ index c8ae813a48..49108c79ef 100644
  softmmu_ss.add(files(
    'block-dirty-bitmap.c',
 diff --git a/migration/migration.c b/migration/migration.c
-index 8ca034136b..a5ce875685 100644
+index 041b8451a6..9df2eed75e 100644
 --- a/migration/migration.c
 +++ b/migration/migration.c
-@@ -221,6 +221,7 @@ void migration_object_init(void)
+@@ -218,6 +218,7 @@ void migration_object_init(void)
      blk_mig_init();
      ram_mig_init();
      dirty_bitmap_mig_init();
 +    pbs_state_mig_init();
  }
  
- void migration_shutdown(void)
+ void migration_cancel(void)
 diff --git a/migration/pbs-state.c b/migration/pbs-state.c
 new file mode 100644
 index 0000000000..29f2b3860d
@@ -186,10 +186,10 @@ index 9c20ef3a5e..59ccb38ceb 100644
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 710b8dfb2d..cf3cbf2a56 100644
+index a0d1d278e9..e5de769dc1 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -822,6 +822,11 @@
+@@ -838,6 +838,11 @@
  # @pbs-dirty-bitmap-savevm: True if 'dirty-bitmaps' migration capability can
  #                           safely be set for savevm-async.
  #
@@ -201,7 +201,7 @@ index 710b8dfb2d..cf3cbf2a56 100644
  # @pbs-library-version: Running version of libproxmox-backup-qemu0 library.
  #
  ##
-@@ -829,6 +834,7 @@
+@@ -845,6 +850,7 @@
    'data': { 'pbs-dirty-bitmap': 'bool',
              'query-bitmap-info': 'bool',
              'pbs-dirty-bitmap-savevm': 'bool',

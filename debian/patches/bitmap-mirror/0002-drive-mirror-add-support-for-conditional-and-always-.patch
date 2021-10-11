@@ -23,10 +23,10 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  1 file changed, 18 insertions(+), 6 deletions(-)
 
 diff --git a/block/mirror.c b/block/mirror.c
-index f1416d96f3..3e37967365 100644
+index 9d73875bd6..8148df1f80 100644
 --- a/block/mirror.c
 +++ b/block/mirror.c
-@@ -655,8 +655,6 @@ static int mirror_exit_common(Job *job)
+@@ -667,8 +667,6 @@ static int mirror_exit_common(Job *job)
          bdrv_unfreeze_backing_chain(mirror_top_bs, target_bs);
      }
  
@@ -35,7 +35,7 @@ index f1416d96f3..3e37967365 100644
      /* Make sure that the source BDS doesn't go away during bdrv_replace_node,
       * before we can call bdrv_drained_end */
      bdrv_ref(src);
-@@ -764,6 +762,18 @@ static int mirror_exit_common(Job *job)
+@@ -776,6 +774,18 @@ static int mirror_exit_common(Job *job)
      blk_set_perm(bjob->blk, 0, BLK_PERM_ALL, &error_abort);
      blk_insert_bs(bjob->blk, mirror_top_bs, &error_abort);
  
@@ -54,7 +54,7 @@ index f1416d96f3..3e37967365 100644
      bs_opaque->job = NULL;
  
      bdrv_drained_end(src);
-@@ -1613,10 +1623,6 @@ static BlockJob *mirror_start_job(
+@@ -1628,10 +1638,6 @@ static BlockJob *mirror_start_job(
                         " sync mode",
                         MirrorSyncMode_str(sync_mode));
              return NULL;
@@ -65,7 +65,7 @@ index f1416d96f3..3e37967365 100644
          }
      } else if (bitmap) {
          error_setg(errp,
-@@ -1633,6 +1639,12 @@ static BlockJob *mirror_start_job(
+@@ -1648,6 +1654,12 @@ static BlockJob *mirror_start_job(
              return NULL;
          }
          granularity = bdrv_dirty_bitmap_granularity(bitmap);

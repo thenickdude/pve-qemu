@@ -10,7 +10,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  1 file changed, 5 insertions(+)
 
 diff --git a/migration/savevm-async.c b/migration/savevm-async.c
-index cc2552d977..f863411dea 100644
+index 970ee3b3fc..b3ccc069f1 100644
 --- a/migration/savevm-async.c
 +++ b/migration/savevm-async.c
 @@ -19,6 +19,7 @@

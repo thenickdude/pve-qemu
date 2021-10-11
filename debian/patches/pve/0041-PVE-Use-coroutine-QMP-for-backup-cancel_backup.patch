@@ -31,10 +31,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  5 files changed, 77 insertions(+), 196 deletions(-)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index f509959a32..89336d93ef 100644
+index 69254396d5..b838586fc0 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
-@@ -1005,7 +1005,7 @@ void hmp_info_snapshots(Monitor *mon, const QDict *qdict)
+@@ -1016,7 +1016,7 @@ void hmp_info_snapshots(Monitor *mon, const QDict *qdict)
      g_free(global_snapshots);
  }
  
@@ -43,7 +43,7 @@ index f509959a32..89336d93ef 100644
  {
      Error *error = NULL;
  
-@@ -1014,7 +1014,7 @@ void hmp_backup_cancel(Monitor *mon, const QDict *qdict)
+@@ -1025,7 +1025,7 @@ void hmp_backup_cancel(Monitor *mon, const QDict *qdict)
      hmp_handle_error(mon, error);
  }
  
@@ -53,7 +53,7 @@ index f509959a32..89336d93ef 100644
      Error *error = NULL;
  
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index a7bd174e5a..e01ca13ca8 100644
+index b18063ce19..02c8f83ca3 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
 @@ -109,6 +109,7 @@ ERST
@@ -574,10 +574,10 @@ index 59ccb38ceb..f858003a06 100644
  
  BackupStatus *qmp_query_backup(Error **errp)
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index cf3cbf2a56..7b6e79df9f 100644
+index e5de769dc1..afa67c28d2 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -785,7 +785,7 @@
+@@ -801,7 +801,7 @@
                                      '*config-file': 'str',
                                      '*firewall-file': 'str',
                                      '*devlist': 'str', '*speed': 'int' },
@@ -586,7 +586,7 @@ index cf3cbf2a56..7b6e79df9f 100644
  
  ##
  # @query-backup:
-@@ -807,7 +807,7 @@
+@@ -823,7 +823,7 @@
  # Notes: This command succeeds even if there is no backup process running.
  #
  ##

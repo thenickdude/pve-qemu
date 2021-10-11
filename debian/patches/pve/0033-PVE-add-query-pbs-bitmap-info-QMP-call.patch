@@ -14,7 +14,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  3 files changed, 159 insertions(+), 42 deletions(-)
 
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index a6a289968f..f7a211e5a4 100644
+index 27d35ab91b..4fe2bbb26d 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -198,6 +198,7 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
@@ -358,10 +358,10 @@ index 8cba8e97d3..22420db26a 100644
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 79aef65616..808ec6027e 100644
+index 3eebe7ff71..170c13984d 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -814,6 +814,8 @@
+@@ -830,6 +830,8 @@
  # @pbs-dirty-bitmap: True if dirty-bitmap-incremental backups to PBS are
  #                    supported.
  #
@@ -370,7 +370,7 @@ index 79aef65616..808ec6027e 100644
  # @pbs-dirty-bitmap-savevm: True if 'dirty-bitmaps' migration capability can
  #                           safely be set for savevm-async.
  #
-@@ -822,6 +824,7 @@
+@@ -838,6 +840,7 @@
  ##
  { 'struct': 'ProxmoxSupportStatus',
    'data': { 'pbs-dirty-bitmap': 'bool',
@@ -378,7 +378,7 @@ index 79aef65616..808ec6027e 100644
              'pbs-dirty-bitmap-savevm': 'bool',
              'pbs-library-version': 'str' } }
  
-@@ -835,6 +838,59 @@
+@@ -851,6 +854,59 @@
  ##
  { 'command': 'query-proxmox-support', 'returns': 'ProxmoxSupportStatus' }
  

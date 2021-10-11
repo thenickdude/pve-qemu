@@ -18,10 +18,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  3 files changed, 11 insertions(+)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index 89336d93ef..b9e659a0d2 100644
+index b838586fc0..5b52b93232 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
-@@ -1028,6 +1028,7 @@ void coroutine_fn hmp_backup(Monitor *mon, const QDict *qdict)
+@@ -1039,6 +1039,7 @@ void coroutine_fn hmp_backup(Monitor *mon, const QDict *qdict)
          false, NULL, // PBS password
          false, NULL, // PBS keyfile
          false, NULL, // PBS key_password
@@ -57,10 +57,10 @@ index f858003a06..04ebfc1e33 100644
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 7b6e79df9f..6d3ea72706 100644
+index afa67c28d2..84e4406d21 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -756,6 +756,8 @@
+@@ -772,6 +772,8 @@
  #
  # @key-password: password for keyfile (optional for format 'pbs')
  #
@@ -69,7 +69,7 @@ index 7b6e79df9f..6d3ea72706 100644
  # @fingerprint: server cert fingerprint (optional for format 'pbs')
  #
  # @backup-id: backup ID (required for format 'pbs')
-@@ -775,6 +777,7 @@
+@@ -791,6 +793,7 @@
                                      '*password': 'str',
                                      '*keyfile': 'str',
                                      '*key-password': 'str',
@@ -77,7 +77,7 @@ index 7b6e79df9f..6d3ea72706 100644
                                      '*fingerprint': 'str',
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',
-@@ -827,6 +830,9 @@
+@@ -843,6 +846,9 @@
  #                              migration cap if this is false/unset may lead
  #                              to crashes on migration!
  #
@@ -87,7 +87,7 @@ index 7b6e79df9f..6d3ea72706 100644
  # @pbs-library-version: Running version of libproxmox-backup-qemu0 library.
  #
  ##
-@@ -835,6 +841,7 @@
+@@ -851,6 +857,7 @@
              'query-bitmap-info': 'bool',
              'pbs-dirty-bitmap-savevm': 'bool',
              'pbs-dirty-bitmap-migration': 'bool',

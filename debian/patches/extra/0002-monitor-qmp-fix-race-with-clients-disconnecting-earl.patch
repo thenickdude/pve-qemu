@@ -47,7 +47,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  6 files changed, 59 insertions(+), 5 deletions(-)
 
 diff --git a/include/monitor/monitor.h b/include/monitor/monitor.h
-index af3887bb71..ff6db1448b 100644
+index 1a8a369b50..2c8a558c67 100644
 --- a/include/monitor/monitor.h
 +++ b/include/monitor/monitor.h
 @@ -16,6 +16,7 @@ extern QemuOptsList qemu_mon_opts;
@@ -77,10 +77,10 @@ index 9c3a09cb01..a92be8c3f7 100644
  
  /**
 diff --git a/monitor/monitor.c b/monitor/monitor.c
-index 636bcc81c5..ee5ac26c37 100644
+index 46a171bca6..5ccdd2424b 100644
 --- a/monitor/monitor.c
 +++ b/monitor/monitor.c
-@@ -136,6 +136,21 @@ bool monitor_cur_is_qmp(void)
+@@ -135,6 +135,21 @@ bool monitor_cur_is_qmp(void)
      return cur_mon && monitor_is_qmp(cur_mon);
  }
  
@@ -103,7 +103,7 @@ index 636bcc81c5..ee5ac26c37 100644
   * Is @mon is using readline?
   * Note: not all HMP monitors use readline, e.g., gdbserver has a
 diff --git a/monitor/qmp.c b/monitor/qmp.c
-index 0ef7cebb78..3ec67e32d3 100644
+index 092c527b6f..6b8cfcf6d8 100644
 --- a/monitor/qmp.c
 +++ b/monitor/qmp.c
 @@ -141,6 +141,8 @@ static void monitor_qmp_dispatch(MonitorQMP *mon, QObject *req)

@@ -17,10 +17,10 @@ Subject: [PATCH] PVE-Backup: add vma backup format code
  create mode 100644 vma.h
 
 diff --git a/block/meson.build b/block/meson.build
-index cf9b278fa2..d0a8397edf 100644
+index 7a0bc3df09..9ce9246194 100644
 --- a/block/meson.build
 +++ b/block/meson.build
-@@ -43,6 +43,8 @@ block_ss.add(files(
+@@ -44,6 +44,8 @@ block_ss.add(files(
    'zeroinit.c',
  ), zstd, zlib, gnutls)
  
@@ -30,10 +30,10 @@ index cf9b278fa2..d0a8397edf 100644
  
  block_ss.add(when: 'CONFIG_QCOW1', if_true: files('qcow.c'))
 diff --git a/meson.build b/meson.build
-index c6f4b0cf5e..7db08406bd 100644
+index b3e7ec0e92..b84f62f882 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -945,6 +945,8 @@ keyutils = dependency('libkeyutils', required: false,
+@@ -1064,6 +1064,8 @@ keyutils = dependency('libkeyutils', required: false,
  
  has_gettid = cc.has_function('gettid')
  
@@ -42,7 +42,7 @@ index c6f4b0cf5e..7db08406bd 100644
  # Malloc tests
  
  malloc = []
-@@ -2344,6 +2346,9 @@ if have_tools
+@@ -2743,6 +2745,9 @@ if have_tools
    qemu_nbd = executable('qemu-nbd', files('qemu-nbd.c'),
                 dependencies: [blockdev, qemuutil, gnutls], install: true)
  

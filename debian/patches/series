@@ -1,6 +1,8 @@
-extra/0001-monitor-qmp-fix-race-on-CHR_EVENT_CLOSED-without-OOB.patch
-extra/0002-block-io_uring-resubmit-when-result-is-EAGAIN.patch
-extra/0003-monitor-qmp-fix-race-with-clients-disconnecting-earl.patch
+extra/0001-qemu-sockets-fix-unix-socket-path-copy-again.patch
+extra/0002-monitor-qmp-fix-race-with-clients-disconnecting-earl.patch
+extra/0003-monitor-hmp-add-support-for-flag-argument-with-value.patch
+extra/0004-monitor-refactor-set-expire_password-and-allow-VNC-d.patch
+extra/0005-monitor-hmp-correctly-invert-password-argument-detec.patch
 bitmap-mirror/0001-drive-mirror-add-support-for-sync-bitmap-mode-never.patch
 bitmap-mirror/0002-drive-mirror-add-support-for-conditional-and-always-.patch
 bitmap-mirror/0003-mirror-add-check-for-bitmap-mode-without-bitmap.patch
