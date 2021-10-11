@@ -1,3 +1,9 @@
+pve-qemu-kvm (6.1.0-1) bullseye; urgency=medium
+
+  * update to QEMU stable release 6.1.0
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 11 Oct 2021 15:15:19 +0200
+
 pve-qemu-kvm (6.0.0-4) bullseye; urgency=medium
 
   * drop the ancient workaround that force disabled SMM due to observing VM
