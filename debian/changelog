@@ -1,3 +1,9 @@
+pve-qemu-kvm (6.1.0-2) bullseye; urgency=medium
+
+  * avoid a possible segmentation fault during block (disk) mirror
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 16 Nov 2021 09:38:10 +0100
+
 pve-qemu-kvm (6.1.0-1) bullseye; urgency=medium
 
   * update to QEMU stable release 6.1.0
