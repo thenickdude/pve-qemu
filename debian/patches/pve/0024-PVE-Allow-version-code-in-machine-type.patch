@@ -93,7 +93,7 @@ index d87cf6e103..e5010236f3 100644
      g_slist_free(machines);
      if (local_err) {
          error_append_hint(&local_err, "Use -machine help to list supported machines\n");
-@@ -3312,12 +3318,29 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -3312,12 +3318,31 @@ void qemu_init(int argc, char **argv, char **envp)
              case QEMU_OPTION_machine:
                  {
                      bool help;
@@ -109,15 +109,17 @@ index d87cf6e103..e5010236f3 100644
 +
 +                    // PVE version is specified with '+' as seperator, e.g. pc-i440fx+pvever
 +                    name = qdict_get_try_str(machine_opts_dict, "type");
-+                    name_len = strlen(name);
-+                    pvever_index = strcspn(name, "+");
-+                    if (pvever_index < name_len) {
-+                        name_clean = g_strndup(name, pvever_index);
-+                        pvever = g_strndup(name + pvever_index + 1, name_len - pvever_index - 1);
-+                        qdict_put_str(machine_opts_dict, "pvever", pvever);
-+                        qdict_put_str(machine_opts_dict, "type", name_clean);
-+                        g_free(name_clean);
-+                        g_free(pvever);
++                    if (name != NULL) {
++                        name_len = strlen(name);
++                        pvever_index = strcspn(name, "+");
++                        if (pvever_index < name_len) {
++                            name_clean = g_strndup(name, pvever_index);
++                            pvever = g_strndup(name + pvever_index + 1, name_len - pvever_index - 1);
++                            qdict_put_str(machine_opts_dict, "pvever", pvever);
++                            qdict_put_str(machine_opts_dict, "type", name_clean);
++                            g_free(name_clean);
++                            g_free(pvever);
++                        }
 +                    }
 +
                      break;
