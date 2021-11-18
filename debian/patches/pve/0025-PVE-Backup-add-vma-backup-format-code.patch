@@ -46,7 +46,7 @@ index b3e7ec0e92..b84f62f882 100644
    qemu_nbd = executable('qemu-nbd', files('qemu-nbd.c'),
                 dependencies: [blockdev, qemuutil, gnutls], install: true)
  
-+  vma = executable('vma', files('vma.c', 'vma-reader.c'),
++  vma = executable('vma', files('vma.c', 'vma-reader.c') + genh,
 +                   dependencies: [authz, block, crypto, io, qom], install: true)
 +
    subdir('storage-daemon')

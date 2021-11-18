@@ -16,10 +16,10 @@ index c05c926cc3..69a0fe80ef 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -2749,6 +2749,10 @@ if have_tools
-   vma = executable('vma', files('vma.c', 'vma-reader.c'),
+   vma = executable('vma', files('vma.c', 'vma-reader.c') + genh,
                     dependencies: [authz, block, crypto, io, qom], install: true)
  
-+  pbs_restore = executable('pbs-restore', files('pbs-restore.c'),
++  pbs_restore = executable('pbs-restore', files('pbs-restore.c') + genh,
 +                  dependencies: [authz, block, crypto, io, qom,
 +                    libproxmox_backup_qemu], install: true)
 +
