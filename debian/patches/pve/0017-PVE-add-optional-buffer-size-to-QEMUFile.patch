@@ -9,6 +9,7 @@ increase performance storing the state onto ceph.
 Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
 [increase max IOV count in QEMUFile to actually write more data]
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  migration/qemu-file.c    | 38 +++++++++++++++++++++++++-------------
  migration/qemu-file.h    |  1 +

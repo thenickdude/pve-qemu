@@ -10,12 +10,13 @@ Version is made available as 'pve-version' in query-machines (same as,
 and only if 'is-current').
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  hw/core/machine-qmp-cmds.c |  6 ++++++
  include/hw/boards.h        |  2 ++
  qapi/machine.json          |  4 +++-
- softmmu/vl.c               | 23 +++++++++++++++++++++++
- 4 files changed, 34 insertions(+), 1 deletion(-)
+ softmmu/vl.c               | 25 +++++++++++++++++++++++++
+ 4 files changed, 36 insertions(+), 1 deletion(-)
 
 diff --git a/hw/core/machine-qmp-cmds.c b/hw/core/machine-qmp-cmds.c
 index 8f8d5d5276..370e66d9cc 100644
@@ -70,7 +71,7 @@ index cf120ac343..a6f483af4f 100644
  ##
  # @query-machines:
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index d87cf6e103..e5010236f3 100644
+index d87cf6e103..e9d40065bc 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
 @@ -1621,6 +1621,7 @@ static const QEMUOption *lookup_opt(int argc, char **argv,

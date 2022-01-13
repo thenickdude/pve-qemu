@@ -13,6 +13,7 @@ that are obviously marked as "busy", which would cause none at all to be
 transferred.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  migration/block-dirty-bitmap.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)

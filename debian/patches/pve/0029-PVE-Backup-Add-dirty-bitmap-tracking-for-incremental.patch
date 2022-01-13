@@ -41,7 +41,7 @@ index 1e29681d30..3fca3ce3e9 100644
          false, NULL, false, NULL, !!devlist,
          devlist, qdict_haskey(qdict, "speed"), speed, &error);
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 55033530fb..27d35ab91b 100644
+index 7efcd2d641..b2b5f1298b 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -221,19 +221,42 @@ void hmp_info_backup(Monitor *mon, const QDict *qdict)

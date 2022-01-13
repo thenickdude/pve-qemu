@@ -11,9 +11,10 @@ To keep the rate-limiting and IO impact from before, we use a sequential
 transaction, so drives will still be backed up one after the other.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- pve-backup.c | 167 +++++++++++++++------------------------------------
- 1 file changed, 49 insertions(+), 118 deletions(-)
+ pve-backup.c | 169 +++++++++++++++------------------------------------
+ 1 file changed, 50 insertions(+), 119 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
 index 22420db26a..2e628d68e4 100644
@@ -120,8 +121,22 @@ index 22420db26a..2e628d68e4 100644
          proxmox_backup_abort(backup_state.pbs, "backup canceled");
      }
  
--    qemu_mutex_unlock(&backup_state.backup_mutex);
--
++    /* it's enough to cancel one job in the transaction, the rest will follow
++     * automatically */
++    GList *bdi = g_list_first(backup_state.di_list);
++    BlockJob *cancel_job = bdi && bdi->data ?
++        ((PVEBackupDevInfo *)bdi->data)->job :
++        NULL;
++
++    /* ref the job before releasing the mutex, just to be safe */
++    if (cancel_job) {
++        job_ref(&cancel_job->job);
++    }
++
++    /* job_cancel_sync may enter the job, so we need to release the
++     * backup_mutex to avoid deadlock */
+     qemu_mutex_unlock(&backup_state.backup_mutex);
+ 
 -    for(;;) {
 -
 -        BlockJob *next_job = NULL;
@@ -132,29 +147,16 @@ index 22420db26a..2e628d68e4 100644
 -        while (l) {
 -            PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
 -            l = g_list_next(l);
-+    /* it's enough to cancel one job in the transaction, the rest will follow
-+     * automatically */
-+    GList *bdi = g_list_first(backup_state.di_list);
-+    BlockJob *cancel_job = bdi && bdi->data ?
-+        ((PVEBackupDevInfo *)bdi->data)->job :
-+        NULL;
- 
+-
 -            BlockJob *job = lookup_active_block_job(di);
 -            if (job != NULL) {
 -                next_job = job;
 -                break;
 -            }
 -        }
-+    /* ref the job before releasing the mutex, just to be safe */
-+    if (cancel_job) {
-+        job_ref(&cancel_job->job);
-+    }
- 
+-
 -        qemu_mutex_unlock(&backup_state.backup_mutex);
-+    /* job_cancel_sync may enter the job, so we need to release the
-+     * backup_mutex to avoid deadlock */
-+    qemu_mutex_unlock(&backup_state.backup_mutex);
- 
+-
 -        if (next_job) {
 -            AioContext *aio_context = next_job->job.aio_context;
 -            aio_context_acquire(aio_context);

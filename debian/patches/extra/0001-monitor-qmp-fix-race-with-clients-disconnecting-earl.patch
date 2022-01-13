@@ -37,6 +37,7 @@ looping to open a connection, send the greeting, then exiting no longer
 crashes other, normally behaving clients with unrelated responses.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  include/monitor/monitor.h  |  1 +
  monitor/monitor-internal.h |  7 +++++++

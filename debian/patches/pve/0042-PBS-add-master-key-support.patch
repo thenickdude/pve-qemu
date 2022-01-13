@@ -11,6 +11,7 @@ from the PVE side to avoid QMP calls with unsupported parameters.
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/monitor/block-hmp-cmds.c | 1 +
  pve-backup.c                   | 3 +++

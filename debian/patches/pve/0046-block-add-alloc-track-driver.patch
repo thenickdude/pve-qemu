@@ -23,6 +23,7 @@ If 'auto-remove' is set, alloc-track will automatically detach itself
 once the backing image is removed. It will be replaced by 'file'.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/alloc-track.c | 345 ++++++++++++++++++++++++++++++++++++++++++++
  block/meson.build   |   1 +

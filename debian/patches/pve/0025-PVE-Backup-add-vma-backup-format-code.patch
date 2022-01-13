@@ -3,6 +3,7 @@ From: Dietmar Maurer <dietmar@proxmox.com>
 Date: Mon, 6 Apr 2020 12:16:57 +0200
 Subject: [PATCH] PVE-Backup: add vma backup format code
 
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/meson.build |   2 +
  meson.build       |   5 +
@@ -30,7 +31,7 @@ index 7a0bc3df09..9ce9246194 100644
  
  block_ss.add(when: 'CONFIG_QCOW1', if_true: files('qcow.c'))
 diff --git a/meson.build b/meson.build
-index b3e7ec0e92..b84f62f882 100644
+index b3e7ec0e92..cc46eabb42 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -1064,6 +1064,8 @@ keyutils = dependency('libkeyutils', required: false,

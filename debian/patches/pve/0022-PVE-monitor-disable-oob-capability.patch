@@ -18,10 +18,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/monitor/qmp.c b/monitor/qmp.c
-index 092c527b6f..0ef7cebb78 100644
+index 6b8cfcf6d8..3ec67e32d3 100644
 --- a/monitor/qmp.c
 +++ b/monitor/qmp.c
-@@ -506,8 +506,7 @@ void monitor_init_qmp(Chardev *chr, bool pretty, Error **errp)
+@@ -519,8 +519,7 @@ void monitor_init_qmp(Chardev *chr, bool pretty, Error **errp)
      qemu_chr_fe_set_echo(&mon->common.chr, true);
  
      /* Note: we run QMP monitor in I/O thread when @chr supports that */

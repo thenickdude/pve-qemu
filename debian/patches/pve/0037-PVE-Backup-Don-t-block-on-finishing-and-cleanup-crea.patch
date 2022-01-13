@@ -48,6 +48,7 @@ before.
 [0] https://lists.gnu.org/archive/html/qemu-devel/2020-09/msg03515.html
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  pve-backup.c         | 217 ++++++++++++++++++++++++++++---------------
  qapi/block-core.json |   5 +-
@@ -207,7 +208,7 @@ index 2e628d68e4..9c20ef3a5e 100644
 -    assert(!qemu_in_coroutine());
 +    PVEBackupDevInfo *di = opaque;
 +    di->completed_ret = ret;
-+
+ 
 +    /*
 +     * Schedule stream cleanup in async coroutine. close_image and finish might
 +     * take a while, so we can't block on them here. This way it also doesn't
@@ -232,7 +233,7 @@ index 2e628d68e4..9c20ef3a5e 100644
 +    aio_context_release(job_ctx);
 +    aio_co_enter(data->ctx, data->co);
 +}
- 
++
 +static void coroutine_fn pvebackup_co_cancel(void *opaque)
 +{
      Error *cancel_err = NULL;
@@ -308,13 +309,13 @@ index 2e628d68e4..9c20ef3a5e 100644
 -        if (!job || local_err != NULL) {
 -            Error *create_job_err = NULL;
 -            error_setg(&create_job_err, "backup_job_create failed: %s",
--                       local_err ? error_get_pretty(local_err) : "null");
 +        di->job = job;
- 
--            pvebackup_propagate_error(create_job_err);
++
 +        if (!job || local_err) {
 +            error_setg(errp, "backup_job_create failed: %s",
-+                       local_err ? error_get_pretty(local_err) : "null");
+                        local_err ? error_get_pretty(local_err) : "null");
+-
+-            pvebackup_propagate_error(create_job_err);
              break;
          }
  

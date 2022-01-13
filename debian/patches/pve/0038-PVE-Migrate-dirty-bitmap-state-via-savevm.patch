@@ -12,6 +12,7 @@ Also add a flag to query-proxmox-support so qemu-server can determine if
 safe migration is possible and makes sense.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  include/migration/misc.h |   3 ++
  migration/meson.build    |   2 +

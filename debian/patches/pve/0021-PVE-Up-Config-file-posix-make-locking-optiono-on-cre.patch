@@ -13,7 +13,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 42 insertions(+), 20 deletions(-)
 
 diff --git a/block/file-posix.c b/block/file-posix.c
-index 1bbeb9e658..f28c5a3e52 100644
+index 3ac5177cbb..907aa3f22e 100644
 --- a/block/file-posix.c
 +++ b/block/file-posix.c
 @@ -2443,6 +2443,7 @@ raw_co_create(BlockdevCreateOptions *options, Error **errp)

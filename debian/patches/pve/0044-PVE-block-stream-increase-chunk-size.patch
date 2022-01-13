@@ -4,6 +4,8 @@ Date: Tue, 2 Mar 2021 16:34:28 +0100
 Subject: [PATCH] PVE: block/stream: increase chunk size
 
 Ceph favors bigger chunks, so increase to 4M.
+
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/stream.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)

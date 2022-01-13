@@ -22,6 +22,7 @@ monitor for that coroutine ourselves, but let's just fix it the right
 way instead)
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/monitor/block-hmp-cmds.c |   4 +-
  hmp-commands.hx                |   2 +
@@ -53,7 +54,7 @@ index 69254396d5..b838586fc0 100644
      Error *error = NULL;
  
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index b18063ce19..02c8f83ca3 100644
+index 7faba36b39..dca4e58858 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
 @@ -109,6 +109,7 @@ ERST

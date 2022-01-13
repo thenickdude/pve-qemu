@@ -11,6 +11,7 @@ mode was never available for drive-mirror, it makes the interface more
 uniform w.r.t. backup block jobs.
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/mirror.c             | 28 +++------------
  blockdev.c                 | 29 +++++++++++++++
@@ -18,10 +19,10 @@ Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
  3 files changed, 70 insertions(+), 59 deletions(-)
 
 diff --git a/block/mirror.c b/block/mirror.c
-index 46e3d0860b..33477ade1b 100644
+index a7f829f766..6a126d18c8 100644
 --- a/block/mirror.c
 +++ b/block/mirror.c
-@@ -1628,31 +1628,13 @@ static BlockJob *mirror_start_job(
+@@ -1635,31 +1635,13 @@ static BlockJob *mirror_start_job(
      uint64_t target_perms, target_shared_perms;
      int ret;
  

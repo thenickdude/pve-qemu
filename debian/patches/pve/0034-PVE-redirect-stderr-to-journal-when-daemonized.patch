@@ -7,13 +7,14 @@ QEMU uses the logging for error messages usually, so LOG_ERR is most
 fitting.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  meson.build | 2 ++
  os-posix.c  | 7 +++++--
  2 files changed, 7 insertions(+), 2 deletions(-)
 
 diff --git a/meson.build b/meson.build
-index 3faec72a80..bae9ebe0c0 100644
+index 45c1f2de73..44071acbb7 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -1065,6 +1065,7 @@ keyutils = dependency('libkeyutils', required: false,

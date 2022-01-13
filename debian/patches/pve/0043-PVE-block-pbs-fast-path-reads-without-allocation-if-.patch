@@ -11,6 +11,7 @@ Tracing shows the fast-path is taken almost all the time, though not
 100% so the slow one is still necessary.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/pbs.c | 17 ++++++++++++++---
  1 file changed, 14 insertions(+), 3 deletions(-)

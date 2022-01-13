@@ -12,6 +12,7 @@ omitted if the flag is not given.
 
 Reviewed-by: Eric Blake <eblake@redhat.com>
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  monitor/hmp.c | 17 ++++++++++++++++-
  1 file changed, 16 insertions(+), 1 deletion(-)

@@ -7,6 +7,7 @@ Returns advanced information about dirty bitmaps used (or not used) for
 the latest PBS backup.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  monitor/hmp-cmds.c   |  28 ++++++-----
  pve-backup.c         | 117 ++++++++++++++++++++++++++++++++-----------
@@ -14,7 +15,7 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  3 files changed, 159 insertions(+), 42 deletions(-)
 
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 27d35ab91b..4fe2bbb26d 100644
+index b2b5f1298b..7a449edafa 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -198,6 +198,7 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)

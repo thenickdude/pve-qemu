@@ -134,7 +134,11 @@ index 5dc1d0a2ca..f773182bd0 100644
 -        error_report_err(local_err);
 -        ret = -1;
 -        goto out;
--    }
++        if (!blk1) {
++            ret = -1;
++            goto out;
++        }
+     }
 -    if (!drv->create_opts) {
 -        error_report("Format driver '%s' does not support image creation",
 -                     drv->format_name);
@@ -146,16 +150,12 @@ index 5dc1d0a2ca..f773182bd0 100644
 -                     proto_drv->format_name);
 -        ret = -1;
 -        goto out;
-+        if (!blk1) {
-+            ret = -1;
-+            goto out;
-+        }
-     }
+-    }
 -    create_opts = qemu_opts_append(create_opts, drv->create_opts);
 -    create_opts = qemu_opts_append(create_opts, proto_drv->create_opts);
- 
--    opts = qemu_opts_create(create_opts, NULL, 0, &error_abort);
 -
+-    opts = qemu_opts_create(create_opts, NULL, 0, &error_abort);
+ 
 -    size = blk_getlength(blk1);
 -    if (size < 0) {
 -        error_report("Failed to get size for '%s'", in.filename);

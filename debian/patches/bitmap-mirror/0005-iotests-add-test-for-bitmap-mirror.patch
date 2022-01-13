@@ -20,6 +20,7 @@ intentionally keeping copyright and ownership of original test case to
 honor provenance.
 
 Signed-off-by: Fabian Grünbichler <f.gruenbichler@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  tests/qemu-iotests/384     |  547 +++++++
  tests/qemu-iotests/384.out | 2846 ++++++++++++++++++++++++++++++++++++

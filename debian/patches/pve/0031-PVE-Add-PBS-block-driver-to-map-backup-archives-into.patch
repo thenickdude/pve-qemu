@@ -6,6 +6,7 @@ Subject: [PATCH] PVE: Add PBS block driver to map backup archives into VMs
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 [error cleanups, file_open implementation]
 Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/meson.build    |   3 +
  block/pbs.c          | 271 +++++++++++++++++++++++++++++++++++++++++++
@@ -307,7 +308,7 @@ index 0000000000..78dad0dcc4
 +
 +block_init(bdrv_pbs_init);
 diff --git a/configure b/configure
-index 9a79a004d7..7cb181b61a 100755
+index 6e308ed77f..869e97c72f 100755
 --- a/configure
 +++ b/configure
 @@ -428,6 +428,7 @@ vdi=${default_feature:-yes}
@@ -337,7 +338,7 @@ index 9a79a004d7..7cb181b61a 100755
    crypto-afalg    Linux AF_ALG crypto backend driver
    capstone        capstone disassembler support
    debug-mutex     mutex debugging support
-@@ -4622,6 +4628,9 @@ fi
+@@ -4624,6 +4630,9 @@ fi
  if test "$linux_aio" = "yes" ; then
    echo "CONFIG_LINUX_AIO=y" >> $config_host_mak
  fi
@@ -348,7 +349,7 @@ index 9a79a004d7..7cb181b61a 100755
    echo "CONFIG_VHOST_SCSI=y" >> $config_host_mak
  fi
 diff --git a/meson.build b/meson.build
-index 69a0fe80ef..3faec72a80 100644
+index dd1c5bdb4e..45c1f2de73 100644
 --- a/meson.build
 +++ b/meson.build
 @@ -3111,6 +3111,7 @@ summary_info += {'lzfse support':     liblzfse.found()}

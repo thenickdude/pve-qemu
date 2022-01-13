@@ -5,6 +5,7 @@ Subject: [PATCH] PVE: savevm-async: register yank before
  migration_incoming_state_destroy
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  migration/savevm-async.c | 5 +++++
  1 file changed, 5 insertions(+)

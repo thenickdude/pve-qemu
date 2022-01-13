@@ -7,6 +7,8 @@ Subject: [PATCH] PVE-Backup: add backup-dump block driver
 - move BackupBlockJob declaration from block/backup.c to include/block/block_int.h
 - block/backup.c - backup-job-create: also consider source cluster size
 - job.c: make job_should_pause non-static
+
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/backup-dump.c       | 168 ++++++++++++++++++++++++++++++++++++++
  block/backup.c            |  32 +++-----
@@ -253,7 +255,7 @@ index 9ce9246194..19bc2b7cbb 100644
    'blkdebug.c',
    'blklogwrites.c',
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 3e625a4261..4bd5fdb191 100644
+index 11442893d0..8f6135e6a5 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -26,6 +26,7 @@

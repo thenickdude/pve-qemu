@@ -4,6 +4,7 @@ Date: Wed, 26 May 2021 15:26:30 +0200
 Subject: [PATCH] PVE: whitelist 'invalid' QAPI names for backwards compat
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  qapi/pragma.json | 5 ++++-
  1 file changed, 4 insertions(+), 1 deletion(-)

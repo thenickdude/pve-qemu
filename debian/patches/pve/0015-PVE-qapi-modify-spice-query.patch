@@ -12,10 +12,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 8 insertions(+)
 
 diff --git a/qapi/ui.json b/qapi/ui.json
-index fd9677d48e..4497bb9c1f 100644
+index cba8665b73..081115ea8a 100644
 --- a/qapi/ui.json
 +++ b/qapi/ui.json
-@@ -216,11 +216,14 @@
+@@ -333,11 +333,14 @@
  #
  # @channels: a list of @SpiceChannel for each active spice channel
  #

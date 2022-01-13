@@ -63,10 +63,10 @@ index 27206ac049..e6dd3be07a 100644
          .name       = "balloon",
          .args_type  = "",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 8e45bce2cd..96bd7e00bd 100644
+index d78e4cfc47..42203dbe92 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
-@@ -1743,3 +1743,36 @@ ERST
+@@ -1744,3 +1744,36 @@ ERST
          .help       = "start a round of guest dirty rate measurement",
          .cmd        = hmp_calc_dirty_rate,
      },
@@ -754,10 +754,10 @@ index 0000000000..79a0cda906
 +    return ret;
 +}
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index f528055cb6..42a1eaf370 100644
+index c8b97909e7..64a84cf4ee 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
-@@ -1908,6 +1908,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
+@@ -1961,6 +1961,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
      hmp_handle_error(mon, err);
  }
  

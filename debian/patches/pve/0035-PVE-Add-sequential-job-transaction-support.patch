@@ -4,6 +4,7 @@ Date: Thu, 20 Aug 2020 14:31:59 +0200
 Subject: [PATCH] PVE: Add sequential job transaction support
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  include/qemu/job.h | 12 ++++++++++++
  job.c              | 31 +++++++++++++++++++++++++++++++
