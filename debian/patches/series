@@ -61,3 +61,4 @@ pve/0045-block-io-accept-NULL-qiov-in-bdrv_pad_request.patch
 pve/0046-block-add-alloc-track-driver.patch
 pve/0047-PVE-whitelist-invalid-QAPI-names-for-backwards-compa.patch
 pve/0048-PVE-savevm-async-register-yank-before-migration_inco.patch
+pve/0049-qemu-img-dd-add-l-option-for-loading-a-snapshot.patch
