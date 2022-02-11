@@ -17,7 +17,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 14 insertions(+), 3 deletions(-)
 
 diff --git a/block/pbs.c b/block/pbs.c
-index 78dad0dcc4..ac54e816c0 100644
+index 0b05ea9080..c5eb4d5bad 100644
 --- a/block/pbs.c
 +++ b/block/pbs.c
 @@ -200,7 +200,16 @@ static coroutine_fn int pbs_co_preadv(BlockDriverState *bs,
@@ -36,9 +36,9 @@ index 78dad0dcc4..ac54e816c0 100644
 +        buf = g_malloc(bytes);
 +    }
  
-     ReadCallbackData rcb = {
-         .co = qemu_coroutine_self(),
-@@ -218,8 +227,10 @@ static coroutine_fn int pbs_co_preadv(BlockDriverState *bs,
+     if (offset < 0 || bytes < 0) {
+         fprintf(stderr, "unexpected negative 'offset' or 'bytes' value!\n");
+@@ -223,8 +232,10 @@ static coroutine_fn int pbs_co_preadv(BlockDriverState *bs,
          return -EIO;
      }
  

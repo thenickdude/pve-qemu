@@ -19,10 +19,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  4 files changed, 36 insertions(+), 1 deletion(-)
 
 diff --git a/hw/core/machine-qmp-cmds.c b/hw/core/machine-qmp-cmds.c
-index 8f8d5d5276..370e66d9cc 100644
+index 76fff60a6b..ec9201fb9a 100644
 --- a/hw/core/machine-qmp-cmds.c
 +++ b/hw/core/machine-qmp-cmds.c
-@@ -102,6 +102,12 @@ MachineInfoList *qmp_query_machines(Error **errp)
+@@ -103,6 +103,12 @@ MachineInfoList *qmp_query_machines(Error **errp)
          if (strcmp(mc->name, MACHINE_GET_CLASS(current_machine)->name) == 0) {
              info->has_is_current = true;
              info->is_current = true;
@@ -36,10 +36,10 @@ index 8f8d5d5276..370e66d9cc 100644
  
          if (mc->default_cpu_type) {
 diff --git a/include/hw/boards.h b/include/hw/boards.h
-index accd6eff35..1b16728389 100644
+index 9c1c190104..51e04bde62 100644
 --- a/include/hw/boards.h
 +++ b/include/hw/boards.h
-@@ -205,6 +205,8 @@ struct MachineClass {
+@@ -227,6 +227,8 @@ struct MachineClass {
      const char *desc;
      const char *deprecation_reason;
  
@@ -49,7 +49,7 @@ index accd6eff35..1b16728389 100644
      void (*reset)(MachineState *state);
      void (*wakeup)(MachineState *state);
 diff --git a/qapi/machine.json b/qapi/machine.json
-index cf120ac343..a6f483af4f 100644
+index 0905618e25..a05c46e253 100644
 --- a/qapi/machine.json
 +++ b/qapi/machine.json
 @@ -160,6 +160,8 @@
@@ -71,10 +71,10 @@ index cf120ac343..a6f483af4f 100644
  ##
  # @query-machines:
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index d87cf6e103..e9d40065bc 100644
+index eb05e5a000..f306d21d63 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -1621,6 +1621,7 @@ static const QEMUOption *lookup_opt(int argc, char **argv,
+@@ -1655,6 +1655,7 @@ static const QEMUOption *lookup_opt(int argc, char **argv,
  static MachineClass *select_machine(QDict *qdict, Error **errp)
  {
      const char *optarg = qdict_get_try_str(qdict, "type");
@@ -82,7 +82,7 @@ index d87cf6e103..e9d40065bc 100644
      GSList *machines = object_class_get_list(TYPE_MACHINE, false);
      MachineClass *machine_class;
      Error *local_err = NULL;
-@@ -1638,6 +1639,11 @@ static MachineClass *select_machine(QDict *qdict, Error **errp)
+@@ -1672,6 +1673,11 @@ static MachineClass *select_machine(QDict *qdict, Error **errp)
          }
      }
  
@@ -94,7 +94,7 @@ index d87cf6e103..e9d40065bc 100644
      g_slist_free(machines);
      if (local_err) {
          error_append_hint(&local_err, "Use -machine help to list supported machines\n");
-@@ -3312,12 +3318,31 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -3363,12 +3369,31 @@ void qemu_init(int argc, char **argv, char **envp)
              case QEMU_OPTION_machine:
                  {
                      bool help;

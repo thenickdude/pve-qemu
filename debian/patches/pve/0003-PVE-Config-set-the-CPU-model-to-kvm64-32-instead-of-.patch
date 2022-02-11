@@ -10,10 +10,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/target/i386/cpu.h b/target/i386/cpu.h
-index 21b33fbe2e..32514193a9 100644
+index 04f2b790c9..19fdbb981c 100644
 --- a/target/i386/cpu.h
 +++ b/target/i386/cpu.h
-@@ -2007,9 +2007,9 @@ uint64_t cpu_get_tsc(CPUX86State *env);
+@@ -2039,9 +2039,9 @@ uint64_t cpu_get_tsc(CPUX86State *env);
  #define CPU_RESOLVING_TYPE TYPE_X86_CPU
  
  #ifdef TARGET_X86_64
@@ -24,4 +24,4 @@ index 21b33fbe2e..32514193a9 100644
 +#define TARGET_DEFAULT_CPU_TYPE X86_CPU_TYPE_NAME("kvm32")
  #endif
  
- #define cpu_signal_handler cpu_x86_signal_handler
+ #define cpu_list x86_cpu_list

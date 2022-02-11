@@ -21,10 +21,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 30 insertions(+)
 
 diff --git a/block/iscsi.c b/block/iscsi.c
-index 4d2a416ce7..c345d30812 100644
+index 57aa07a40d..a8902b84d5 100644
 --- a/block/iscsi.c
 +++ b/block/iscsi.c
-@@ -1372,12 +1372,42 @@ static char *get_initiator_name(QemuOpts *opts)
+@@ -1386,12 +1386,42 @@ static char *get_initiator_name(QemuOpts *opts)
      const char *name;
      char *iscsi_name;
      UuidInfo *uuid_info;

@@ -12,7 +12,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 8 insertions(+)
 
 diff --git a/qapi/ui.json b/qapi/ui.json
-index cba8665b73..081115ea8a 100644
+index 4244c62c30..f946fbd8c1 100644
 --- a/qapi/ui.json
 +++ b/qapi/ui.json
 @@ -333,11 +333,14 @@
@@ -28,10 +28,10 @@ index cba8665b73..081115ea8a 100644
             '*tls-port': 'int', '*auth': 'str', '*compiled-version': 'str',
 +           '*ticket': 'str',
             'mouse-mode': 'SpiceQueryMouseMode', '*channels': ['SpiceChannel']},
-   'if': 'defined(CONFIG_SPICE)' }
+   'if': 'CONFIG_SPICE' }
  
 diff --git a/ui/spice-core.c b/ui/spice-core.c
-index 840cf56923..96be349635 100644
+index a3acdbd682..756776778d 100644
 --- a/ui/spice-core.c
 +++ b/ui/spice-core.c
 @@ -534,6 +534,11 @@ static SpiceInfo *qmp_query_spice_real(Error **errp)

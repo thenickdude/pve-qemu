@@ -13,10 +13,10 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
  2 files changed, 9 insertions(+), 1 deletion(-)
 
 diff --git a/hw/core/machine-qmp-cmds.c b/hw/core/machine-qmp-cmds.c
-index 216fdfaf3a..8f8d5d5276 100644
+index 4f4ab30f8c..76fff60a6b 100644
 --- a/hw/core/machine-qmp-cmds.c
 +++ b/hw/core/machine-qmp-cmds.c
-@@ -98,6 +98,12 @@ MachineInfoList *qmp_query_machines(Error **errp)
+@@ -99,6 +99,12 @@ MachineInfoList *qmp_query_machines(Error **errp)
          info->hotpluggable_cpus = mc->has_hotpluggable_cpus;
          info->numa_mem_supported = mc->numa_mem_supported;
          info->deprecated = !!mc->deprecation_reason;
@@ -30,7 +30,7 @@ index 216fdfaf3a..8f8d5d5276 100644
              info->default_cpu_type = g_strdup(mc->default_cpu_type);
              info->has_default_cpu_type = true;
 diff --git a/qapi/machine.json b/qapi/machine.json
-index 34035c25d1..cf120ac343 100644
+index 91f3be6f44..0905618e25 100644
 --- a/qapi/machine.json
 +++ b/qapi/machine.json
 @@ -141,6 +141,8 @@

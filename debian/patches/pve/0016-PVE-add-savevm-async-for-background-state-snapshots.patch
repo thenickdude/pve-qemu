@@ -39,10 +39,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  create mode 100644 migration/savevm-async.c
 
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index 27206ac049..e6dd3be07a 100644
+index 407a1da800..245f8acc55 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
-@@ -551,6 +551,19 @@ SRST
+@@ -536,6 +536,19 @@ SRST
      Show current migration parameters.
  ERST
  
@@ -63,11 +63,11 @@ index 27206ac049..e6dd3be07a 100644
          .name       = "balloon",
          .args_type  = "",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index d78e4cfc47..42203dbe92 100644
+index 5efb47fc32..1ad13b668b 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
-@@ -1744,3 +1744,36 @@ ERST
-         .help       = "start a round of guest dirty rate measurement",
+@@ -1746,3 +1746,36 @@ ERST
+                       "\n\t\t\t -b to specify dirty bitmap as method of calculation)",
          .cmd        = hmp_calc_dirty_rate,
      },
 +
@@ -115,10 +115,10 @@ index e72083b117..c846d37806 100644
 +
  #endif
 diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
-index 3baa1058e2..1247d7362a 100644
+index 96d014826a..3a39ba41b5 100644
 --- a/include/monitor/hmp.h
 +++ b/include/monitor/hmp.h
-@@ -25,6 +25,7 @@ void hmp_info_status(Monitor *mon, const QDict *qdict);
+@@ -26,6 +26,7 @@ void hmp_info_status(Monitor *mon, const QDict *qdict);
  void hmp_info_uuid(Monitor *mon, const QDict *qdict);
  void hmp_info_chardev(Monitor *mon, const QDict *qdict);
  void hmp_info_mice(Monitor *mon, const QDict *qdict);
@@ -126,7 +126,7 @@ index 3baa1058e2..1247d7362a 100644
  void hmp_info_migrate(Monitor *mon, const QDict *qdict);
  void hmp_info_migrate_capabilities(Monitor *mon, const QDict *qdict);
  void hmp_info_migrate_parameters(Monitor *mon, const QDict *qdict);
-@@ -79,6 +80,10 @@ void hmp_netdev_add(Monitor *mon, const QDict *qdict);
+@@ -80,6 +81,10 @@ void hmp_netdev_add(Monitor *mon, const QDict *qdict);
  void hmp_netdev_del(Monitor *mon, const QDict *qdict);
  void hmp_getfd(Monitor *mon, const QDict *qdict);
  void hmp_closefd(Monitor *mon, const QDict *qdict);
@@ -754,10 +754,10 @@ index 0000000000..79a0cda906
 +    return ret;
 +}
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index c8b97909e7..64a84cf4ee 100644
+index e9fa9af6bd..5000ce39d1 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
-@@ -1961,6 +1961,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
+@@ -1903,6 +1903,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
      hmp_handle_error(mon, err);
  }
  
@@ -822,7 +822,7 @@ index c8b97909e7..64a84cf4ee 100644
  {
      IOThreadInfoList *info_list = qmp_query_iothreads(NULL);
 diff --git a/qapi/migration.json b/qapi/migration.json
-index 1124a2dda8..3d72b3e3f3 100644
+index bbfd48cf0b..45686390a2 100644
 --- a/qapi/migration.json
 +++ b/qapi/migration.json
 @@ -247,6 +247,40 @@
@@ -867,10 +867,10 @@ index 1124a2dda8..3d72b3e3f3 100644
  # @query-migrate:
  #
 diff --git a/qapi/misc.json b/qapi/misc.json
-index 5c2ca3b556..9bc14e1032 100644
+index 358548abe1..25b3febc52 100644
 --- a/qapi/misc.json
 +++ b/qapi/misc.json
-@@ -431,6 +431,38 @@
+@@ -435,6 +435,38 @@
  ##
  { 'command': 'query-fdsets', 'returns': ['FdsetInfo'] }
  
@@ -910,10 +910,10 @@ index 5c2ca3b556..9bc14e1032 100644
  # @CommandLineParameterType:
  #
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 83aa59a920..002ba697e9 100644
+index ae2c6dbbfc..423144abeb 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -4131,6 +4131,18 @@ SRST
+@@ -4171,6 +4171,18 @@ SRST
      Start right away with a saved state (``loadvm`` in monitor)
  ERST
  
@@ -933,21 +933,21 @@ index 83aa59a920..002ba697e9 100644
  DEF("daemonize", 0, QEMU_OPTION_daemonize, \
      "-daemonize      daemonize QEMU after initializing\n", QEMU_ARCH_ALL)
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 5ca11e7469..220c67cd32 100644
+index 620a1f1367..fd82efb8b3 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -150,6 +150,7 @@ static const char *incoming;
+@@ -156,6 +156,7 @@ static const char *incoming;
  static const char *loadvm;
  static const char *accelerators;
  static QDict *machine_opts_dict;
 +static const char *loadstate;
  static QTAILQ_HEAD(, ObjectOption) object_opts = QTAILQ_HEAD_INITIALIZER(object_opts);
+ static QTAILQ_HEAD(, DeviceOption) device_opts = QTAILQ_HEAD_INITIALIZER(device_opts);
  static ram_addr_t maxram_size;
- static uint64_t ram_slots;
-@@ -2700,6 +2701,12 @@ void qmp_x_exit_preconfig(Error **errp)
-             autostart = 0;
-             exit(1);
-         }
+@@ -2743,6 +2744,12 @@ void qmp_x_exit_preconfig(Error **errp)
+ 
+     if (loadvm) {
+         load_snapshot(loadvm, NULL, false, NULL, &error_fatal);
 +    } else if (loadstate) {
 +        Error *local_err = NULL;
 +        if (load_snapshot_from_blockdev(loadstate, &local_err) < 0) {
@@ -957,7 +957,7 @@ index 5ca11e7469..220c67cd32 100644
      }
      if (replay_mode != REPLAY_MODE_NONE) {
          replay_vmstate_init();
-@@ -3238,6 +3245,9 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -3284,6 +3291,9 @@ void qemu_init(int argc, char **argv, char **envp)
              case QEMU_OPTION_loadvm:
                  loadvm = optarg;
                  break;

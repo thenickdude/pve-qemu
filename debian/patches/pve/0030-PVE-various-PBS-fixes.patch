@@ -19,7 +19,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  3 files changed, 55 insertions(+), 14 deletions(-)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index 3fca3ce3e9..69254396d5 100644
+index 3c06734e6d..4481b60a5c 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
 @@ -1042,7 +1042,9 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
@@ -34,7 +34,7 @@ index 3fca3ce3e9..69254396d5 100644
          false, NULL, false, NULL, !!devlist,
          devlist, qdict_haskey(qdict, "speed"), speed, &error);
 diff --git a/pve-backup.c b/pve-backup.c
-index 6cdbd40529..7527885251 100644
+index 1c49cd178d..c15abefdda 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -8,6 +8,7 @@
@@ -194,10 +194,10 @@ index 6cdbd40529..7527885251 100644
          .format = format,
          .has_config_file = has_config_file,
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index a138ad08d4..a75f1b4687 100644
+index 379a8dd147..88835ebcf6 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -777,6 +777,10 @@
+@@ -822,6 +822,10 @@
  #
  # @use-dirty-bitmap: use dirty bitmap to detect incremental changes since last job (optional for format 'pbs')
  #
@@ -208,7 +208,7 @@ index a138ad08d4..a75f1b4687 100644
  # Returns: the uuid of the backup job
  #
  ##
-@@ -788,6 +792,8 @@
+@@ -833,6 +837,8 @@
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',
                                      '*use-dirty-bitmap': 'bool',

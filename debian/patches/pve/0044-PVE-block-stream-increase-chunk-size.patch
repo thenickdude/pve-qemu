@@ -11,7 +11,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/block/stream.c b/block/stream.c
-index 97bee482dc..50093c9f57 100644
+index e45113aed6..c3c0c5febe 100644
 --- a/block/stream.c
 +++ b/block/stream.c
 @@ -28,7 +28,7 @@ enum {

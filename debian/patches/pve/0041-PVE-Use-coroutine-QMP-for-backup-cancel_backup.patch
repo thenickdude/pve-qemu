@@ -32,7 +32,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  5 files changed, 77 insertions(+), 196 deletions(-)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index 69254396d5..b838586fc0 100644
+index 4481b60a5c..c9849a5b29 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
 @@ -1016,7 +1016,7 @@ void hmp_info_snapshots(Monitor *mon, const QDict *qdict)
@@ -54,7 +54,7 @@ index 69254396d5..b838586fc0 100644
      Error *error = NULL;
  
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 7faba36b39..dca4e58858 100644
+index d4bb00216e..4e21911fa6 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
 @@ -109,6 +109,7 @@ ERST
@@ -116,7 +116,7 @@ index 4ce7bc0b5e..0923037dec 100644
  static void proxmox_backup_schedule_wake(void *data) {
      CoCtxData *waker = (CoCtxData *)data;
 diff --git a/pve-backup.c b/pve-backup.c
-index 59ccb38ceb..f858003a06 100644
+index 5fa3cc1352..323014744c 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -357,7 +357,7 @@ static void job_cancel_bh(void *opaque) {
@@ -575,10 +575,10 @@ index 59ccb38ceb..f858003a06 100644
  
  BackupStatus *qmp_query_backup(Error **errp)
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index e5de769dc1..afa67c28d2 100644
+index f6a5fb263a..f216035d3c 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -801,7 +801,7 @@
+@@ -846,7 +846,7 @@
                                      '*config-file': 'str',
                                      '*firewall-file': 'str',
                                      '*devlist': 'str', '*speed': 'int' },
@@ -587,7 +587,7 @@ index e5de769dc1..afa67c28d2 100644
  
  ##
  # @query-backup:
-@@ -823,7 +823,7 @@
+@@ -868,7 +868,7 @@
  # Notes: This command succeeds even if there is no backup process running.
  #
  ##

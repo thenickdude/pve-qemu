@@ -20,7 +20,7 @@ Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
  create mode 100644 vma.h
 
 diff --git a/block/meson.build b/block/meson.build
-index 7a0bc3df09..9ce9246194 100644
+index c9d1fdca7d..72081a9974 100644
 --- a/block/meson.build
 +++ b/block/meson.build
 @@ -44,6 +44,8 @@ block_ss.add(files(
@@ -33,21 +33,21 @@ index 7a0bc3df09..9ce9246194 100644
  
  block_ss.add(when: 'CONFIG_QCOW1', if_true: files('qcow.c'))
 diff --git a/meson.build b/meson.build
-index b3e7ec0e92..cc46eabb42 100644
+index 96de1a6ef9..54c23b9567 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -1064,6 +1064,8 @@ keyutils = dependency('libkeyutils', required: false,
+@@ -1202,6 +1202,8 @@ keyutils = dependency('libkeyutils', required: false,
  
  has_gettid = cc.has_function('gettid')
  
 +libuuid = cc.find_library('uuid', required: true)
 +
- # Malloc tests
- 
- malloc = []
-@@ -2743,6 +2745,9 @@ if have_tools
-   qemu_nbd = executable('qemu-nbd', files('qemu-nbd.c'),
-                dependencies: [blockdev, qemuutil, gnutls], install: true)
+ # libselinux
+ selinux = dependency('libselinux',
+                      required: get_option('selinux'),
+@@ -3070,6 +3072,9 @@ if have_tools
+                dependencies: [blockdev, qemuutil, gnutls, selinux],
+                install: true)
  
 +  vma = executable('vma', files('vma.c', 'vma-reader.c') + genh,
 +                   dependencies: [authz, block, crypto, io, qom], install: true)

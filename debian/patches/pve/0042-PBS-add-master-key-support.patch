@@ -19,7 +19,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  3 files changed, 11 insertions(+)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index b838586fc0..5b52b93232 100644
+index c9849a5b29..52ddbf95ad 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
 @@ -1039,6 +1039,7 @@ void coroutine_fn hmp_backup(Monitor *mon, const QDict *qdict)
@@ -31,7 +31,7 @@ index b838586fc0..5b52b93232 100644
          false, NULL, // PBS backup-id
          false, 0, // PBS backup-time
 diff --git a/pve-backup.c b/pve-backup.c
-index f858003a06..04ebfc1e33 100644
+index 323014744c..9f6c04a512 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -533,6 +533,7 @@ UuidInfo coroutine_fn *qmp_backup(
@@ -58,10 +58,10 @@ index f858003a06..04ebfc1e33 100644
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index afa67c28d2..84e4406d21 100644
+index f216035d3c..c5023710f5 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -772,6 +772,8 @@
+@@ -817,6 +817,8 @@
  #
  # @key-password: password for keyfile (optional for format 'pbs')
  #
@@ -70,7 +70,7 @@ index afa67c28d2..84e4406d21 100644
  # @fingerprint: server cert fingerprint (optional for format 'pbs')
  #
  # @backup-id: backup ID (required for format 'pbs')
-@@ -791,6 +793,7 @@
+@@ -836,6 +838,7 @@
                                      '*password': 'str',
                                      '*keyfile': 'str',
                                      '*key-password': 'str',
@@ -78,7 +78,7 @@ index afa67c28d2..84e4406d21 100644
                                      '*fingerprint': 'str',
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',
-@@ -843,6 +846,9 @@
+@@ -888,6 +891,9 @@
  #                              migration cap if this is false/unset may lead
  #                              to crashes on migration!
  #
@@ -88,7 +88,7 @@ index afa67c28d2..84e4406d21 100644
  # @pbs-library-version: Running version of libproxmox-backup-qemu0 library.
  #
  ##
-@@ -851,6 +857,7 @@
+@@ -896,6 +902,7 @@
              'query-bitmap-info': 'bool',
              'pbs-dirty-bitmap-savevm': 'bool',
              'pbs-dirty-bitmap-migration': 'bool',

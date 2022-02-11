@@ -49,13 +49,15 @@ before.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+[add new force parameter to job_cancel_sync calls]
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
 ---
  pve-backup.c         | 217 ++++++++++++++++++++++++++++---------------
  qapi/block-core.json |   5 +-
  2 files changed, 144 insertions(+), 78 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index 2e628d68e4..9c20ef3a5e 100644
+index 63c686463f..6f05796fad 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -33,7 +33,9 @@ const char *PBS_BITMAP_NAME = "pbs-incremental-dirty-bitmap";
@@ -229,7 +231,7 @@ index 2e628d68e4..9c20ef3a5e 100644
 +    Job *job = (Job*)data->data;
 +    AioContext *job_ctx = job->aio_context;
 +    aio_context_acquire(job_ctx);
-+    job_cancel_sync(job);
++    job_cancel_sync(job, true);
 +    aio_context_release(job_ctx);
 +    aio_co_enter(data->ctx, data->co);
 +}
@@ -268,7 +270,7 @@ index 2e628d68e4..9c20ef3a5e 100644
 -    if (cancel_job) {
 -        AioContext *aio_context = cancel_job->job.aio_context;
 -        aio_context_acquire(aio_context);
--        job_cancel_sync(&cancel_job->job);
+-        job_cancel_sync(&cancel_job->job, true);
 -        job_unref(&cancel_job->job);
 -        aio_context_release(aio_context);
 -    }
@@ -338,7 +340,7 @@ index 2e628d68e4..9c20ef3a5e 100644
              if (di->job) {
 +                AioContext *ctx = di->job->job.aio_context;
 +                aio_context_acquire(ctx);
-+                job_cancel_sync(&di->job->job);
++                job_cancel_sync(&di->job->job, true);
                  job_unref(&di->job->job);
 +                aio_context_release(ctx);
              }
@@ -479,10 +481,10 @@ index 2e628d68e4..9c20ef3a5e 100644
      qemu_mutex_unlock(&backup_state.stat.lock);
  
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 170c13984d..a0d1d278e9 100644
+index 7b171fe27c..66a0e9fd6c 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -729,12 +729,15 @@
+@@ -774,12 +774,15 @@
  #
  # @uuid: uuid for this backup job
  #

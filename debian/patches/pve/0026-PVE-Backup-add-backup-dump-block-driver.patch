@@ -11,11 +11,11 @@ Subject: [PATCH] PVE-Backup: add backup-dump block driver
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/backup-dump.c       | 168 ++++++++++++++++++++++++++++++++++++++
- block/backup.c            |  32 +++-----
+ block/backup.c            |  30 ++-----
  block/meson.build         |   1 +
  include/block/block_int.h |  35 ++++++++
  job.c                     |   3 +-
- 5 files changed, 216 insertions(+), 23 deletions(-)
+ 5 files changed, 214 insertions(+), 23 deletions(-)
  create mode 100644 block/backup-dump.c
 
 diff --git a/block/backup-dump.c b/block/backup-dump.c
@@ -193,16 +193,16 @@ index 0000000000..93d7f46950
 +    return bs;
 +}
 diff --git a/block/backup.c b/block/backup.c
-index bd3614ce70..8bae9b060e 100644
+index 21d5983779..7d9aed1a60 100644
 --- a/block/backup.c
 +++ b/block/backup.c
-@@ -31,28 +31,6 @@
+@@ -29,28 +29,6 @@
  
- #define BACKUP_CLUSTER_SIZE_DEFAULT (1 << 16)
+ #include "block/copy-before-write.h"
  
 -typedef struct BackupBlockJob {
 -    BlockJob common;
--    BlockDriverState *backup_top;
+-    BlockDriverState *cbw;
 -    BlockDriverState *source_bs;
 -    BlockDriverState *target_bs;
 -
@@ -225,11 +225,10 @@ index bd3614ce70..8bae9b060e 100644
  static const BlockJobDriver backup_job_driver;
  
  static void backup_cleanup_sync_bitmap(BackupBlockJob *job, int ret)
-@@ -504,6 +482,16 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
-         goto error;
+@@ -457,6 +435,14 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
      }
  
-+    cluster_size = backup_calculate_cluster_size(target, errp);
+     cluster_size = block_copy_cluster_size(bcs);
 +    if (cluster_size < 0) {
 +        goto error;
 +    }
@@ -238,12 +237,11 @@ index bd3614ce70..8bae9b060e 100644
 +    if (bdrv_get_info(bs, &bdi) == 0) {
 +        cluster_size = MAX(cluster_size, bdi.cluster_size);
 +    }
-+
-     /*
-      * If source is in backing chain of target assume that target is going to be
-      * used for "image fleecing", i.e. it should represent a kind of snapshot of
+ 
+     if (perf->max_chunk && perf->max_chunk < cluster_size) {
+         error_setg(errp, "Required max-chunk (%" PRIi64 ") is less than backup "
 diff --git a/block/meson.build b/block/meson.build
-index 9ce9246194..19bc2b7cbb 100644
+index 72081a9974..7883df047c 100644
 --- a/block/meson.build
 +++ b/block/meson.build
 @@ -4,6 +4,7 @@ block_ss.add(files(
@@ -251,11 +249,11 @@ index 9ce9246194..19bc2b7cbb 100644
    'amend.c',
    'backup.c',
 +  'backup-dump.c',
-   'backup-top.c',
+   'copy-before-write.c',
    'blkdebug.c',
    'blklogwrites.c',
 diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 11442893d0..8f6135e6a5 100644
+index ee0aeb1414..1574b5564b 100644
 --- a/include/block/block_int.h
 +++ b/include/block/block_int.h
 @@ -26,6 +26,7 @@
@@ -266,7 +264,7 @@ index 11442893d0..8f6135e6a5 100644
  #include "block/aio-wait.h"
  #include "qemu/queue.h"
  #include "qemu/coroutine.h"
-@@ -63,6 +64,40 @@
+@@ -64,6 +65,40 @@
  
  #define BLOCK_PROBE_BUF_SIZE        512
  
@@ -284,7 +282,7 @@ index 11442893d0..8f6135e6a5 100644
 +typedef struct BlockCopyState BlockCopyState;
 +typedef struct BackupBlockJob {
 +    BlockJob common;
-+    BlockDriverState *backup_top;
++    BlockDriverState *cbw;
 +    BlockDriverState *source_bs;
 +    BlockDriverState *target_bs;
 +
@@ -308,10 +306,10 @@ index 11442893d0..8f6135e6a5 100644
      BDRV_TRACKED_READ,
      BDRV_TRACKED_WRITE,
 diff --git a/job.c b/job.c
-index e7a5d28854..44eec9a441 100644
+index dbfa67bb0a..af25dd5b98 100644
 --- a/job.c
 +++ b/job.c
-@@ -269,7 +269,8 @@ static bool job_started(Job *job)
+@@ -276,7 +276,8 @@ static bool job_started(Job *job)
      return job->co;
  }
  

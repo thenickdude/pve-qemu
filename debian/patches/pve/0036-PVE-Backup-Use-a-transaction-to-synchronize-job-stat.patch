@@ -12,12 +12,14 @@ transaction, so drives will still be backed up one after the other.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+[add new force parameter to job_cancel_sync calls]
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
 ---
  pve-backup.c | 169 +++++++++++++++------------------------------------
  1 file changed, 50 insertions(+), 119 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index 22420db26a..2e628d68e4 100644
+index f90abaa50a..63c686463f 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -52,6 +52,7 @@ static struct PVEBackupState {
@@ -160,7 +162,7 @@ index 22420db26a..2e628d68e4 100644
 -        if (next_job) {
 -            AioContext *aio_context = next_job->job.aio_context;
 -            aio_context_acquire(aio_context);
--            job_cancel_sync(&next_job->job);
+-            job_cancel_sync(&next_job->job, true);
 -            aio_context_release(aio_context);
 -        } else {
 -            break;
@@ -168,7 +170,7 @@ index 22420db26a..2e628d68e4 100644
 +    if (cancel_job) {
 +        AioContext *aio_context = cancel_job->job.aio_context;
 +        aio_context_acquire(aio_context);
-+        job_cancel_sync(&cancel_job->job);
++        job_cancel_sync(&cancel_job->job, true);
 +        job_unref(&cancel_job->job);
 +        aio_context_release(aio_context);
      }
@@ -202,7 +204,7 @@ index 22420db26a..2e628d68e4 100644
 -            if (job_should_pause(&job->job)) {
 -                bool error_or_canceled = pvebackup_error_or_canceled();
 -                if (error_or_canceled) {
--                    job_cancel_sync(&job->job);
+-                    job_cancel_sync(&job->job, true);
 -                } else {
 -                    job_resume(&job->job);
 -                }

@@ -29,7 +29,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  6 files changed, 142 insertions(+), 23 deletions(-)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index 1e29681d30..3fca3ce3e9 100644
+index f6668ab01d..3c06734e6d 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
 @@ -1042,6 +1042,7 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
@@ -41,7 +41,7 @@ index 1e29681d30..3fca3ce3e9 100644
          false, NULL, false, NULL, !!devlist,
          devlist, qdict_haskey(qdict, "speed"), speed, &error);
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 7efcd2d641..b2b5f1298b 100644
+index b2687eae3a..cfd7a60f32 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -221,19 +221,42 @@ void hmp_info_backup(Monitor *mon, const QDict *qdict)
@@ -132,7 +132,7 @@ index 1dda8b7d8f..8cbf645b2c 100644
  
  
 diff --git a/pve-backup.c b/pve-backup.c
-index 66868dec14..6cdbd40529 100644
+index 88f5ee133f..1c49cd178d 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -28,6 +28,8 @@
@@ -405,10 +405,10 @@ index 66868dec14..6cdbd40529 100644
      qemu_mutex_unlock(&backup_state.stat.lock);
  
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index c5d604693f..a138ad08d4 100644
+index e4c3de0804..379a8dd147 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -712,8 +712,13 @@
+@@ -757,8 +757,13 @@
  #
  # @total: total amount of bytes involved in the backup process
  #
@@ -422,7 +422,7 @@ index c5d604693f..a138ad08d4 100644
  # @zero-bytes: amount of 'zero' bytes detected.
  #
  # @start-time: time (epoch) when backup job started.
-@@ -726,8 +731,8 @@
+@@ -771,8 +776,8 @@
  #
  ##
  { 'struct': 'BackupStatus',
@@ -433,7 +433,7 @@ index c5d604693f..a138ad08d4 100644
             '*start-time': 'int', '*end-time': 'int',
             '*backup-file': 'str', '*uuid': 'str' } }
  
-@@ -770,6 +775,8 @@
+@@ -815,6 +820,8 @@
  #
  # @backup-time: backup timestamp (Unix epoch, required for format 'pbs')
  #
@@ -442,7 +442,7 @@ index c5d604693f..a138ad08d4 100644
  # Returns: the uuid of the backup job
  #
  ##
-@@ -780,6 +787,7 @@
+@@ -825,6 +832,7 @@
                                      '*fingerprint': 'str',
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',

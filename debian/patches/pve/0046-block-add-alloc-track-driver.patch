@@ -24,18 +24,20 @@ once the backing image is removed. It will be replaced by 'file'.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+[adapt to changed function signatures]
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
 ---
- block/alloc-track.c | 345 ++++++++++++++++++++++++++++++++++++++++++++
+ block/alloc-track.c | 350 ++++++++++++++++++++++++++++++++++++++++++++
  block/meson.build   |   1 +
- 2 files changed, 346 insertions(+)
+ 2 files changed, 351 insertions(+)
  create mode 100644 block/alloc-track.c
 
 diff --git a/block/alloc-track.c b/block/alloc-track.c
 new file mode 100644
-index 0000000000..35f2737c89
+index 0000000000..6b50fbe537
 --- /dev/null
 +++ b/block/alloc-track.c
-@@ -0,0 +1,345 @@
+@@ -0,0 +1,350 @@
 +/*
 + * Node to allow backing images to be applied to any node. Assumes a blank
 + * image to begin with, only new writes are tracked as allocated, thus this
@@ -166,7 +168,7 @@ index 0000000000..35f2737c89
 +}
 +
 +static int coroutine_fn track_co_preadv(BlockDriverState *bs,
-+    uint64_t offset, uint64_t bytes, QEMUIOVector *qiov, int flags)
++    int64_t offset, int64_t bytes, QEMUIOVector *qiov, BdrvRequestFlags flags)
 +{
 +    BDRVAllocTrackState *s = bs->opaque;
 +    QEMUIOVector local_qiov;
@@ -176,6 +178,11 @@ index 0000000000..35f2737c89
 +    uint64_t cur_offset, local_offset;
 +    int64_t local_bytes;
 +    bool alloc;
++
++    if (offset < 0 || bytes < 0) {
++        fprintf(stderr, "unexpected negative 'offset' or 'bytes' value!\n");
++        return -EINVAL;
++    }
 +
 +    /* a read request can span multiple granularity-sized chunks, and can thus
 +     * contain blocks with different allocation status - we could just iterate
@@ -219,21 +226,21 @@ index 0000000000..35f2737c89
 +}
 +
 +static int coroutine_fn track_co_pwritev(BlockDriverState *bs,
-+    uint64_t offset, uint64_t bytes, QEMUIOVector *qiov, int flags)
++    int64_t offset, int64_t bytes, QEMUIOVector *qiov, BdrvRequestFlags flags)
 +{
 +    return bdrv_co_pwritev(bs->file, offset, bytes, qiov, flags);
 +}
 +
 +static int coroutine_fn track_co_pwrite_zeroes(BlockDriverState *bs,
-+    int64_t offset, int count, BdrvRequestFlags flags)
++    int64_t offset, int64_t bytes, BdrvRequestFlags flags)
 +{
-+    return bdrv_co_pwrite_zeroes(bs->file, offset, count, flags);
++    return bdrv_co_pwrite_zeroes(bs->file, offset, bytes, flags);
 +}
 +
 +static int coroutine_fn track_co_pdiscard(BlockDriverState *bs,
-+    int64_t offset, int count)
++    int64_t offset, int64_t bytes)
 +{
-+    return bdrv_co_pdiscard(bs->file, offset, count);
++    return bdrv_co_pdiscard(bs->file, offset, bytes);
 +}
 +
 +static coroutine_fn int track_co_flush(BlockDriverState *bs)
@@ -382,7 +389,7 @@ index 0000000000..35f2737c89
 +
 +block_init(bdrv_alloc_track_init);
 diff --git a/block/meson.build b/block/meson.build
-index e3ed5ac97c..d1ee260048 100644
+index 8c758c0218..45b72e10f1 100644
 --- a/block/meson.build
 +++ b/block/meson.build
 @@ -2,6 +2,7 @@ block_ss.add(genh)

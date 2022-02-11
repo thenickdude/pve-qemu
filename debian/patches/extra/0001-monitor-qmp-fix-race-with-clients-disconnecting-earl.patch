@@ -48,7 +48,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  6 files changed, 59 insertions(+), 5 deletions(-)
 
 diff --git a/include/monitor/monitor.h b/include/monitor/monitor.h
-index 1a8a369b50..2c8a558c67 100644
+index 12d395d62d..b182943324 100644
 --- a/include/monitor/monitor.h
 +++ b/include/monitor/monitor.h
 @@ -16,6 +16,7 @@ extern QemuOptsList qemu_mon_opts;
@@ -60,10 +60,10 @@ index 1a8a369b50..2c8a558c67 100644
  void monitor_init_globals(void);
  void monitor_init_globals_core(void);
 diff --git a/monitor/monitor-internal.h b/monitor/monitor-internal.h
-index 9c3a09cb01..a92be8c3f7 100644
+index 3da3f86c6a..9953e0cd2d 100644
 --- a/monitor/monitor-internal.h
 +++ b/monitor/monitor-internal.h
-@@ -144,6 +144,13 @@ typedef struct {
+@@ -151,6 +151,13 @@ typedef struct {
      QemuMutex qmp_queue_lock;
      /* Input queue that holds all the parsed QMP requests */
      GQueue *qmp_requests;
@@ -78,7 +78,7 @@ index 9c3a09cb01..a92be8c3f7 100644
  
  /**
 diff --git a/monitor/monitor.c b/monitor/monitor.c
-index 46a171bca6..5ccdd2424b 100644
+index 21c7a68758..ad9813567a 100644
 --- a/monitor/monitor.c
 +++ b/monitor/monitor.c
 @@ -135,6 +135,21 @@ bool monitor_cur_is_qmp(void)
@@ -144,10 +144,10 @@ index 092c527b6f..6b8cfcf6d8 100644
          monitor_qmp_caps_reset(mon);
          data = qmp_greeting(mon);
 diff --git a/qapi/qmp-dispatch.c b/qapi/qmp-dispatch.c
-index 59600210ce..95602446eb 100644
+index d378bccac7..fb8936e7cd 100644
 --- a/qapi/qmp-dispatch.c
 +++ b/qapi/qmp-dispatch.c
-@@ -120,16 +120,28 @@ typedef struct QmpDispatchBH {
+@@ -118,16 +118,28 @@ typedef struct QmpDispatchBH {
      QObject **ret;
      Error **errp;
      Coroutine *co;
@@ -180,7 +180,7 @@ index 59600210ce..95602446eb 100644
      aio_co_wake(data->co);
  }
  
-@@ -243,6 +255,7 @@ QDict *qmp_dispatch(const QmpCommandList *cmds, QObject *request,
+@@ -232,6 +244,7 @@ QDict *qmp_dispatch(const QmpCommandList *cmds, QObject *request,
              .ret        = &ret,
              .errp       = &err,
              .co         = qemu_coroutine_self(),

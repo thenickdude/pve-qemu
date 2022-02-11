@@ -4,6 +4,8 @@ Date: Mon, 6 Apr 2020 12:16:47 +0200
 Subject: [PATCH] PVE: block: add the zeroinit block driver filter
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+[adapt to changed function signatures]
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
 ---
  block/meson.build |   1 +
  block/zeroinit.c  | 196 ++++++++++++++++++++++++++++++++++++++++++++++
@@ -11,7 +13,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  create mode 100644 block/zeroinit.c
 
 diff --git a/block/meson.build b/block/meson.build
-index 0450914c7a..7a0bc3df09 100644
+index deb73ca389..c9d1fdca7d 100644
 --- a/block/meson.build
 +++ b/block/meson.build
 @@ -41,6 +41,7 @@ block_ss.add(files(
@@ -24,7 +26,7 @@ index 0450914c7a..7a0bc3df09 100644
  softmmu_ss.add(when: 'CONFIG_TCG', if_true: files('blkreplay.c'))
 diff --git a/block/zeroinit.c b/block/zeroinit.c
 new file mode 100644
-index 0000000000..5529627f7e
+index 0000000000..20ee611f22
 --- /dev/null
 +++ b/block/zeroinit.c
 @@ -0,0 +1,196 @@
@@ -138,22 +140,22 @@ index 0000000000..5529627f7e
 +}
 +
 +static int coroutine_fn zeroinit_co_preadv(BlockDriverState *bs,
-+    uint64_t offset, uint64_t bytes, QEMUIOVector *qiov, int flags)
++    int64_t offset, int64_t bytes, QEMUIOVector *qiov, BdrvRequestFlags flags)
 +{
 +    return bdrv_co_preadv(bs->file, offset, bytes, qiov, flags);
 +}
 +
 +static int coroutine_fn zeroinit_co_pwrite_zeroes(BlockDriverState *bs, int64_t offset,
-+                                                 int count, BdrvRequestFlags flags)
++                                                 int64_t bytes, BdrvRequestFlags flags)
 +{
 +    BDRVZeroinitState *s = bs->opaque;
 +    if (offset >= s->extents)
 +        return 0;
-+    return bdrv_pwrite_zeroes(bs->file, offset, count, flags);
++    return bdrv_pwrite_zeroes(bs->file, offset, bytes, flags);
 +}
 +
 +static int coroutine_fn zeroinit_co_pwritev(BlockDriverState *bs,
-+    uint64_t offset, uint64_t bytes, QEMUIOVector *qiov, int flags)
++    int64_t offset, int64_t bytes, QEMUIOVector *qiov, BdrvRequestFlags flags)
 +{
 +    BDRVZeroinitState *s = bs->opaque;
 +    int64_t extents = offset + bytes;
@@ -174,9 +176,9 @@ index 0000000000..5529627f7e
 +}
 +
 +static int coroutine_fn zeroinit_co_pdiscard(BlockDriverState *bs,
-+                                             int64_t offset, int count)
++                                             int64_t offset, int64_t bytes)
 +{
-+    return bdrv_co_pdiscard(bs->file, offset, count);
++    return bdrv_co_pdiscard(bs->file, offset, bytes);
 +}
 +
 +static int zeroinit_co_truncate(BlockDriverState *bs, int64_t offset,

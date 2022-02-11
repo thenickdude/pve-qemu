@@ -7,17 +7,19 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 [error cleanups, file_open implementation]
 Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+[adapt to changed function signatures]
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
 ---
  block/meson.build    |   3 +
- block/pbs.c          | 271 +++++++++++++++++++++++++++++++++++++++++++
+ block/pbs.c          | 276 +++++++++++++++++++++++++++++++++++++++++++
  configure            |   9 ++
  meson.build          |   1 +
- qapi/block-core.json |  13 +++
- 5 files changed, 297 insertions(+)
+ qapi/block-core.json |  13 ++
+ 5 files changed, 302 insertions(+)
  create mode 100644 block/pbs.c
 
 diff --git a/block/meson.build b/block/meson.build
-index 9e433daf2e..e3ed5ac97c 100644
+index 9d3dd5b7c3..8c758c0218 100644
 --- a/block/meson.build
 +++ b/block/meson.build
 @@ -51,6 +51,9 @@ block_ss.add(files(
@@ -32,10 +34,10 @@ index 9e433daf2e..e3ed5ac97c 100644
  
 diff --git a/block/pbs.c b/block/pbs.c
 new file mode 100644
-index 0000000000..78dad0dcc4
+index 0000000000..0b05ea9080
 --- /dev/null
 +++ b/block/pbs.c
-@@ -0,0 +1,271 @@
+@@ -0,0 +1,276 @@
 +/*
 + * Proxmox Backup Server read-only block driver
 + */
@@ -232,20 +234,25 @@ index 0000000000..78dad0dcc4
 +}
 +
 +static coroutine_fn int pbs_co_preadv(BlockDriverState *bs,
-+                                      uint64_t offset, uint64_t bytes,
-+                                      QEMUIOVector *qiov, int flags)
++                                      int64_t offset, int64_t bytes,
++                                      QEMUIOVector *qiov, BdrvRequestFlags flags)
 +{
 +    BDRVPBSState *s = bs->opaque;
 +    int ret;
 +    char *pbs_error = NULL;
 +    uint8_t *buf = malloc(bytes);
 +
++    if (offset < 0 || bytes < 0) {
++        fprintf(stderr, "unexpected negative 'offset' or 'bytes' value!\n");
++        return -EINVAL;
++    }
++
 +    ReadCallbackData rcb = {
 +        .co = qemu_coroutine_self(),
 +        .ctx = bdrv_get_aio_context(bs),
 +    };
 +
-+    proxmox_restore_read_image_at_async(s->conn, s->aid, buf, offset, bytes,
++    proxmox_restore_read_image_at_async(s->conn, s->aid, buf, (uint64_t)offset, (uint64_t)bytes,
 +                                        read_callback, (void *) &rcb, &ret, &pbs_error);
 +
 +    qemu_coroutine_yield();
@@ -263,8 +270,8 @@ index 0000000000..78dad0dcc4
 +}
 +
 +static coroutine_fn int pbs_co_pwritev(BlockDriverState *bs,
-+                                       uint64_t offset, uint64_t bytes,
-+                                       QEMUIOVector *qiov, int flags)
++                                       int64_t offset, int64_t bytes,
++                                       QEMUIOVector *qiov, BdrvRequestFlags flags)
 +{
 +    fprintf(stderr, "pbs-bdrv: cannot write to backup file, make sure "
 +           "any attached disk devices are set to read-only!\n");
@@ -308,18 +315,18 @@ index 0000000000..78dad0dcc4
 +
 +block_init(bdrv_pbs_init);
 diff --git a/configure b/configure
-index 6e308ed77f..869e97c72f 100755
+index 48c21775f3..eda4e9225a 100755
 --- a/configure
 +++ b/configure
-@@ -428,6 +428,7 @@ vdi=${default_feature:-yes}
+@@ -356,6 +356,7 @@ vdi=${default_feature:-yes}
  vvfat=${default_feature:-yes}
  qed=${default_feature:-yes}
  parallels=${default_feature:-yes}
 +pbs_bdrv="yes"
- libxml2="auto"
  debug_mutex="no"
- libpmem="auto"
-@@ -1486,6 +1487,10 @@ for opt do
+ plugins="$default_feature"
+ rng_none="no"
+@@ -1126,6 +1127,10 @@ for opt do
    ;;
    --enable-parallels) parallels="yes"
    ;;
@@ -330,17 +337,17 @@ index 6e308ed77f..869e97c72f 100755
    --disable-vhost-user) vhost_user="no"
    ;;
    --enable-vhost-user) vhost_user="yes"
-@@ -1956,6 +1961,7 @@ disabled with --disable-FEATURE, default is enabled if available
+@@ -1465,6 +1470,7 @@ cat << EOF
    vvfat           vvfat image format support
    qed             qed image format support
    parallels       parallels image format support
 +  pbs-bdrv        Proxmox backup server read-only block driver support
    crypto-afalg    Linux AF_ALG crypto backend driver
-   capstone        capstone disassembler support
    debug-mutex     mutex debugging support
-@@ -4624,6 +4630,9 @@ fi
- if test "$linux_aio" = "yes" ; then
-   echo "CONFIG_LINUX_AIO=y" >> $config_host_mak
+   rng-none        dummy RNG, avoid using /dev/(u)random and getrandom()
+@@ -3534,6 +3540,9 @@ if test "$xen" = "enabled" ; then
+   echo "XEN_CFLAGS=$xen_cflags" >> $config_host_mak
+   echo "XEN_LIBS=$xen_libs" >> $config_host_mak
  fi
 +if test "$pbs_bdrv" = "yes" ; then
 +  echo "CONFIG_PBS_BDRV=y" >> $config_host_mak
@@ -349,30 +356,30 @@ index 6e308ed77f..869e97c72f 100755
    echo "CONFIG_VHOST_SCSI=y" >> $config_host_mak
  fi
 diff --git a/meson.build b/meson.build
-index dd1c5bdb4e..45c1f2de73 100644
+index 1a4dfab4e2..85b3c63199 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -3111,6 +3111,7 @@ summary_info += {'lzfse support':     liblzfse.found()}
- summary_info += {'zstd support':      zstd.found()}
+@@ -3448,6 +3448,7 @@ summary_info += {'lzfse support':     liblzfse}
+ summary_info += {'zstd support':      zstd}
  summary_info += {'NUMA host support': config_host.has_key('CONFIG_NUMA')}
- summary_info += {'libxml2':           libxml2.found()}
+ summary_info += {'libxml2':           libxml2}
 +summary_info += {'PBS bdrv support':  config_host.has_key('CONFIG_PBS_BDRV')}
- summary_info += {'capstone':          capstone_opt == 'disabled' ? false : capstone_opt}
- summary_info += {'libpmem support':   libpmem.found()}
- summary_info += {'libdaxctl support': libdaxctl.found()}
+ summary_info += {'capstone':          capstone_opt == 'internal' ? capstone_opt : capstone}
+ summary_info += {'libpmem support':   libpmem}
+ summary_info += {'libdaxctl support': libdaxctl}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index a75f1b4687..e4d0c923a4 100644
+index 88835ebcf6..fd1ba7ccac 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -2982,6 +2982,7 @@
+@@ -3074,6 +3074,7 @@
              'luks', 'nbd', 'nfs', 'null-aio', 'null-co', 'nvme', 'parallels',
              'preallocate', 'qcow', 'qcow2', 'qed', 'quorum', 'raw', 'rbd',
-             { 'name': 'replication', 'if': 'defined(CONFIG_REPLICATION)' },
+             { 'name': 'replication', 'if': 'CONFIG_REPLICATION' },
 +            'pbs',
              'ssh', 'throttle', 'vdi', 'vhdx', 'vmdk', 'vpc', 'vvfat' ] }
  
  ##
-@@ -3045,6 +3046,17 @@
+@@ -3146,6 +3147,17 @@
  { 'struct': 'BlockdevOptionsNull',
    'data': { '*size': 'int', '*latency-ns': 'uint64', '*read-zeroes': 'bool' } }
  
@@ -390,7 +397,7 @@ index a75f1b4687..e4d0c923a4 100644
  ##
  # @BlockdevOptionsNVMe:
  #
-@@ -4263,6 +4275,7 @@
+@@ -4388,6 +4400,7 @@
        'nfs':        'BlockdevOptionsNfs',
        'null-aio':   'BlockdevOptionsNull',
        'null-co':    'BlockdevOptionsNull',

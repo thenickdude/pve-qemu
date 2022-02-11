@@ -15,10 +15,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 25 insertions(+), 3 deletions(-)
 
 diff --git a/qemu-img.c b/qemu-img.c
-index f773182bd0..98a6562364 100644
+index 1f457d9e80..d9e8a8c4d4 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
-@@ -4794,11 +4794,13 @@ static int img_bitmap(int argc, char **argv)
+@@ -4806,11 +4806,13 @@ static int img_bitmap(int argc, char **argv)
  #define C_OF      010
  #define C_SKIP    020
  #define C_OSIZE   040
@@ -32,7 +32,7 @@ index f773182bd0..98a6562364 100644
  };
  
  struct DdIo {
-@@ -4887,6 +4889,19 @@ static int img_dd_osize(const char *arg,
+@@ -4899,6 +4901,19 @@ static int img_dd_osize(const char *arg,
      return 0;
  }
  
@@ -52,7 +52,7 @@ index f773182bd0..98a6562364 100644
  static int img_dd(int argc, char **argv)
  {
      int ret = 0;
-@@ -4901,12 +4916,14 @@ static int img_dd(int argc, char **argv)
+@@ -4913,12 +4928,14 @@ static int img_dd(int argc, char **argv)
      int c, i;
      const char *out_fmt = "raw";
      const char *fmt = NULL;
@@ -68,7 +68,7 @@ index f773182bd0..98a6562364 100644
      };
      struct DdIo in = {
          .bsz = 512, /* Block size is by default 512 bytes */
-@@ -4928,6 +4945,7 @@ static int img_dd(int argc, char **argv)
+@@ -4940,6 +4957,7 @@ static int img_dd(int argc, char **argv)
          { "of", img_dd_of, C_OF },
          { "skip", img_dd_skip, C_SKIP },
          { "osize", img_dd_osize, C_OSIZE },
@@ -76,7 +76,7 @@ index f773182bd0..98a6562364 100644
          { NULL, NULL, 0 }
      };
      const struct option long_options[] = {
-@@ -5124,14 +5142,18 @@ static int img_dd(int argc, char **argv)
+@@ -5136,14 +5154,18 @@ static int img_dd(int argc, char **argv)
  
      in.buf = g_new(uint8_t, in.bsz);
  

@@ -15,7 +15,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  3 files changed, 159 insertions(+), 42 deletions(-)
 
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index b2b5f1298b..7a449edafa 100644
+index cfd7a60f32..b613190a3c 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -198,6 +198,7 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
@@ -69,7 +69,7 @@ index b2b5f1298b..7a449edafa 100644
                             info->zero_bytes, zero_per);
  
 diff --git a/pve-backup.c b/pve-backup.c
-index 8cba8e97d3..22420db26a 100644
+index 4684789813..f90abaa50a 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
 @@ -46,6 +46,7 @@ static struct PVEBackupState {
@@ -359,10 +359,10 @@ index 8cba8e97d3..22420db26a 100644
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 3eebe7ff71..170c13984d 100644
+index fc498b779d..7b171fe27c 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -830,6 +830,8 @@
+@@ -875,6 +875,8 @@
  # @pbs-dirty-bitmap: True if dirty-bitmap-incremental backups to PBS are
  #                    supported.
  #
@@ -371,7 +371,7 @@ index 3eebe7ff71..170c13984d 100644
  # @pbs-dirty-bitmap-savevm: True if 'dirty-bitmaps' migration capability can
  #                           safely be set for savevm-async.
  #
-@@ -838,6 +840,7 @@
+@@ -883,6 +885,7 @@
  ##
  { 'struct': 'ProxmoxSupportStatus',
    'data': { 'pbs-dirty-bitmap': 'bool',
@@ -379,7 +379,7 @@ index 3eebe7ff71..170c13984d 100644
              'pbs-dirty-bitmap-savevm': 'bool',
              'pbs-library-version': 'str' } }
  
-@@ -851,6 +854,59 @@
+@@ -896,6 +899,59 @@
  ##
  { 'command': 'query-proxmox-support', 'returns': 'ProxmoxSupportStatus' }
  

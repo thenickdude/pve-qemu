@@ -14,10 +14,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  3 files changed, 81 insertions(+), 4 deletions(-)
 
 diff --git a/hw/virtio/virtio-balloon.c b/hw/virtio/virtio-balloon.c
-index ae7867a8db..956e3f4e46 100644
+index 9a4f491b54..1faa16234e 100644
 --- a/hw/virtio/virtio-balloon.c
 +++ b/hw/virtio/virtio-balloon.c
-@@ -820,8 +820,37 @@ static uint64_t virtio_balloon_get_features(VirtIODevice *vdev, uint64_t f,
+@@ -812,8 +812,37 @@ static uint64_t virtio_balloon_get_features(VirtIODevice *vdev, uint64_t f,
  static void virtio_balloon_stat(void *opaque, BalloonInfo *info)
  {
      VirtIOBalloon *dev = opaque;
@@ -58,10 +58,10 @@ index ae7867a8db..956e3f4e46 100644
  
  static void virtio_balloon_to_target(void *opaque, ram_addr_t target)
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index f4ef58d257..c8b97909e7 100644
+index 2e91ccb738..e9fa9af6bd 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
-@@ -698,7 +698,35 @@ void hmp_info_balloon(Monitor *mon, const QDict *qdict)
+@@ -696,7 +696,35 @@ void hmp_info_balloon(Monitor *mon, const QDict *qdict)
          return;
      }
  
@@ -99,7 +99,7 @@ index f4ef58d257..c8b97909e7 100644
      qapi_free_BalloonInfo(info);
  }
 diff --git a/qapi/machine.json b/qapi/machine.json
-index 157712f006..34035c25d1 100644
+index 067e3f5378..91f3be6f44 100644
 --- a/qapi/machine.json
 +++ b/qapi/machine.json
 @@ -1018,10 +1018,30 @@
