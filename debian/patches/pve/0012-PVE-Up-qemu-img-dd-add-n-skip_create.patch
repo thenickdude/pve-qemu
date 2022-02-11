@@ -4,12 +4,68 @@ Date: Mon, 6 Apr 2020 12:16:42 +0200
 Subject: [PATCH] PVE: [Up] qemu-img dd: add -n skip_create
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+[FE: fix getopt-string + add documentation]
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
 ---
- qemu-img.c | 23 ++++++++++++++---------
- 1 file changed, 14 insertions(+), 9 deletions(-)
+ docs/tools/qemu-img.rst | 11 ++++++++++-
+ qemu-img-cmds.hx        |  4 ++--
+ qemu-img.c              | 23 ++++++++++++++---------
+ 3 files changed, 26 insertions(+), 12 deletions(-)
 
+diff --git a/docs/tools/qemu-img.rst b/docs/tools/qemu-img.rst
+index d663dd92bd..a49badb158 100644
+--- a/docs/tools/qemu-img.rst
++++ b/docs/tools/qemu-img.rst
+@@ -208,6 +208,10 @@ Parameters to convert subcommand:
+ 
+ Parameters to dd subcommand:
+ 
++.. option:: -n
++
++  Skip the creation of the target volume
++
+ .. program:: qemu-img-dd
+ 
+ .. option:: bs=BLOCK_SIZE
+@@ -488,7 +492,7 @@ Command description:
+   it doesn't need to be specified separately in this case.
+ 
+ 
+-.. option:: dd [--image-opts] [-U] [-f FMT] [-O OUTPUT_FMT] [bs=BLOCK_SIZE] [count=BLOCKS] [skip=BLOCKS] if=INPUT of=OUTPUT
++.. option:: dd [--image-opts] [-U] [-f FMT] [-O OUTPUT_FMT] [-n] [bs=BLOCK_SIZE] [count=BLOCKS] [skip=BLOCKS] if=INPUT of=OUTPUT
+ 
+   dd copies from *INPUT* file to *OUTPUT* file converting it from
+   *FMT* format to *OUTPUT_FMT* format.
+@@ -499,6 +503,11 @@ Command description:
+ 
+   The size syntax is similar to :manpage:`dd(1)`'s size syntax.
+ 
++  If the ``-n`` option is specified, the target volume creation will be
++  skipped. This is useful for formats such as ``rbd`` if the target
++  volume has already been created with site specific options that cannot
++  be supplied through ``qemu-img``.
++
+ .. option:: info [--object OBJECTDEF] [--image-opts] [-f FMT] [--output=OFMT] [--backing-chain] [-U] FILENAME
+ 
+   Give information about the disk image *FILENAME*. Use it in
+diff --git a/qemu-img-cmds.hx b/qemu-img-cmds.hx
+index 0b2999f3ab..f3b2b1b4de 100644
+--- a/qemu-img-cmds.hx
++++ b/qemu-img-cmds.hx
+@@ -58,9 +58,9 @@ SRST
+ ERST
+ 
+ DEF("dd", img_dd,
+-    "dd [--image-opts] [-U] [-f fmt] [-O output_fmt] [bs=block_size] [count=blocks] [skip=blocks] [osize=output_size] if=input of=output")
++    "dd [--image-opts] [-U] [-f fmt] [-O output_fmt] [-n] [bs=block_size] [count=blocks] [skip=blocks] [osize=output_size] if=input of=output")
+ SRST
+-.. option:: dd [--image-opts] [-U] [-f FMT] [-O OUTPUT_FMT] [bs=BLOCK_SIZE] [count=BLOCKS] [skip=BLOCKS] [osize=OUTPUT_SIZE] if=INPUT of=OUTPUT
++.. option:: dd [--image-opts] [-U] [-f FMT] [-O OUTPUT_FMT] [-n] [bs=BLOCK_SIZE] [count=BLOCKS] [skip=BLOCKS] [osize=OUTPUT_SIZE] if=INPUT of=OUTPUT
+ ERST
+ 
+ DEF("info", img_info,
 diff --git a/qemu-img.c b/qemu-img.c
-index d9e8a8c4d4..6e1fbd5820 100644
+index d9e8a8c4d4..015d6d2ce4 100644
 --- a/qemu-img.c
 +++ b/qemu-img.c
 @@ -4930,7 +4930,7 @@ static int img_dd(int argc, char **argv)
@@ -26,7 +82,7 @@ index d9e8a8c4d4..6e1fbd5820 100644
      };
  
 -    while ((c = getopt_long(argc, argv, ":hf:O:U", long_options, NULL))) {
-+    while ((c = getopt_long(argc, argv, ":hf:O:U:n", long_options, NULL))) {
++    while ((c = getopt_long(argc, argv, ":hf:O:Un", long_options, NULL))) {
          if (c == EOF) {
              break;
          }
