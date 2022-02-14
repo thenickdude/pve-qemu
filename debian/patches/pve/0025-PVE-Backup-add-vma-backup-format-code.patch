@@ -4,14 +4,16 @@ Date: Mon, 6 Apr 2020 12:16:57 +0200
 Subject: [PATCH] PVE-Backup: add vma backup format code
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+[FE: create: register all streams before entering coroutines]
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
 ---
  block/meson.build |   2 +
  meson.build       |   5 +
  vma-reader.c      | 857 ++++++++++++++++++++++++++++++++++++++++++++++
  vma-writer.c      | 790 ++++++++++++++++++++++++++++++++++++++++++
- vma.c             | 839 +++++++++++++++++++++++++++++++++++++++++++++
+ vma.c             | 851 +++++++++++++++++++++++++++++++++++++++++++++
  vma.h             | 150 ++++++++
- 6 files changed, 2643 insertions(+)
+ 6 files changed, 2655 insertions(+)
  create mode 100644 vma-reader.c
  create mode 100644 vma-writer.c
  create mode 100644 vma.c
@@ -1714,10 +1716,10 @@ index 0000000000..11d8321ffd
 +}
 diff --git a/vma.c b/vma.c
 new file mode 100644
-index 0000000000..2eea2fc281
+index 0000000000..df542b7732
 --- /dev/null
 +++ b/vma.c
-@@ -0,0 +1,839 @@
+@@ -0,0 +1,851 @@
 +/*
 + * VMA: Virtual Machine Archive
 + *
@@ -2293,6 +2295,7 @@ index 0000000000..2eea2fc281
 +    int i, c;
 +    int verbose = 0;
 +    const char *archivename;
++    GList *backup_coroutines = NULL;
 +    GList *config_files = NULL;
 +
 +    for (;;) {
@@ -2381,7 +2384,9 @@ index 0000000000..2eea2fc281
 +        job->dev_id = dev_id;
 +
 +        Coroutine *co = qemu_coroutine_create(backup_run, job);
-+        qemu_coroutine_enter(co);
++        // Don't enter coroutine yet, because it might write the header before
++        // all streams can be registered.
++        backup_coroutines = g_list_append(backup_coroutines, co);
 +    }
 +
 +    VmaStatus vmastat;
@@ -2389,6 +2394,13 @@ index 0000000000..2eea2fc281
 +    int last_percent = -1;
 +
 +    if (devcount) {
++        GList *entry = backup_coroutines;
++        while (entry && entry->data) {
++            Coroutine *co = entry->data;
++            qemu_coroutine_enter(co);
++            entry = g_list_next(entry);
++        }
++
 +        while (1) {
 +            main_loop_wait(false);
 +            vma_writer_get_status(vmaw, &vmastat);
@@ -2453,6 +2465,8 @@ index 0000000000..2eea2fc281
 +        g_error("creating vma archive failed");
 +    }
 +
++    g_list_free(backup_coroutines);
++    g_list_free(config_files);
 +    vma_writer_destroy(vmaw);
 +    return 0;
 +}
