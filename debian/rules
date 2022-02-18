@@ -57,6 +57,7 @@ ${BUILDDIR}/config.status: configure
 	--disable-guest-agent \
 	--disable-guest-agent-msi \
 	--disable-libnfs \
+	--disable-libssh \
 	--disable-libxml2 \
 	--disable-sdl \
 	--disable-smartcard \
