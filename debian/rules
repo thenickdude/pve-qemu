@@ -72,10 +72,12 @@ ${BUILDDIR}/config.status: configure
 	--enable-linux-aio \
 	--enable-linux-io-uring \
 	--enable-numa \
+	--enable-opengl \
 	--enable-rbd \
 	--enable-seccomp \
 	--enable-spice \
 	--enable-usb-redir \
+	--enable-virglrenderer \
 	--enable-virtfs \
 	--enable-virtiofsd \
 	--enable-xfsctl
