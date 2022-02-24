@@ -80,7 +80,8 @@ ${BUILDDIR}/config.status: configure
 	--enable-virglrenderer \
 	--enable-virtfs \
 	--enable-virtiofsd \
-	--enable-xfsctl
+	--enable-xfsctl \
+	--enable-zstd
 
 build: build-stamp
 
