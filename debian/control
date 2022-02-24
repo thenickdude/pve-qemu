@@ -48,7 +48,6 @@ Package: pve-qemu-kvm
 Architecture: any
 Depends: ceph-common (>= 0.48),
          iproute2,
-         libaio1,
          libgfapi0 | glusterfs-common (>= 5.6),
          libgfchangelog0 | glusterfs-common (>= 5.6),
          libgfdb0 | glusterfs-common (>= 5.6),
