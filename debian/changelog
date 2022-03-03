@@ -1,3 +1,18 @@
+pve-qemu-kvm (6.2.0-2) bullseye; urgency=medium
+
+  * compile in virgl support
+
+  * enable zstd support
+
+  * drop sdl dependency (it was disabled at compile time already)
+
+  * recommend 'numactl'
+
+  * fix an issue with multi-disk backups where chunks would be written
+    multiple times
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 03 Mar 2022 12:03:44 +0100
+
 pve-qemu-kvm (6.2.0-1) bullseye; urgency=medium
 
   * update to QEMU stable release 6.2.0
