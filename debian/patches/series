@@ -7,6 +7,7 @@ extra/0006-block-io-Update-BSC-only-if-want_zero-is-true.patch
 extra/0007-block-nbd-Delete-reconnect-delay-timer-when-done.patch
 extra/0008-block-nbd-Assert-there-are-no-timers-when-closed.patch
 extra/0009-block-nbd-Move-s-ioc-on-AioContext-change.patch
+extra/0010-acpi-fix-QEMU-crash-when-started-with-SLIC-table.patch
 bitmap-mirror/0001-drive-mirror-add-support-for-sync-bitmap-mode-never.patch
 bitmap-mirror/0002-drive-mirror-add-support-for-conditional-and-always-.patch
 bitmap-mirror/0003-mirror-add-check-for-bitmap-mode-without-bitmap.patch
