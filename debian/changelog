@@ -1,3 +1,10 @@
+pve-qemu-kvm (6.2.0-3) bullseye; urgency=medium
+
+  *  cherry-pick fix for some manually added ACPI table SLIC entries via the
+     custom args flag.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 15 Apr 2022 09:09:37 +0200
+
 pve-qemu-kvm (6.2.0-2) bullseye; urgency=medium
 
   * compile in virgl support
