@@ -8,6 +8,13 @@ extra/0007-block-nbd-Delete-reconnect-delay-timer-when-done.patch
 extra/0008-block-nbd-Assert-there-are-no-timers-when-closed.patch
 extra/0009-block-nbd-Move-s-ioc-on-AioContext-change.patch
 extra/0010-acpi-fix-QEMU-crash-when-started-with-SLIC-table.patch
+extra/0011-virtio-net-fix-map-leaking-on-error-during-receive.patch
+extra/0012-memory-Fix-incorrect-calls-of-log_global_start-stop.patch
+extra/0013-acpi-fix-OEM-ID-OEM-Table-ID-padding.patch
+extra/0014-vhost-vsock-detach-the-virqueue-element-in-case-of-e.patch
+extra/0015-vhost-user-remove-VirtQ-notifier-restore.patch
+extra/0016-vhost-user-fix-VirtQ-notifier-cleanup.patch
+extra/0017-virtio-fix-the-condition-for-iommu_platform-not-supp.patch
 bitmap-mirror/0001-drive-mirror-add-support-for-sync-bitmap-mode-never.patch
 bitmap-mirror/0002-drive-mirror-add-support-for-conditional-and-always-.patch
 bitmap-mirror/0003-mirror-add-check-for-bitmap-mode-without-bitmap.patch
