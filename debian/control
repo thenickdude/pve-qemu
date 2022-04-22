@@ -66,6 +66,7 @@ Depends: ceph-common (>= 0.48),
          ${misc:Depends},
          ${shlibs:Depends},
 Recommends: numactl
+Suggests: libgl1
 Conflicts: kvm,
            pve-kvm,
            pve-qemu-kvm-2.6.18,
