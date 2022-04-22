@@ -1,3 +1,20 @@
+pve-qemu-kvm (6.2.0-4) bullseye; urgency=medium
+
+  * d/control: add libgbm to build dependencies
+
+  * d/control: add suggest dependency-hint for libgl1
+
+  * various stable backports:
+    + virtio-net: fix map leaking on error during receive
+    + memory: Fix incorrect calls of log_global_start/stop
+    + acpi: fix OEM ID/OEM Table ID padding
+    + vhost-vsock: detach the virqueue element in case of error
+    + vhost-user: remove VirtQ notifier restore
+    + vhost-user: fix VirtQ notifier cleanup
+    + virtio: fix the condition for iommu_platform not supported
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 22 Apr 2022 11:52:30 +0200
+
 pve-qemu-kvm (6.2.0-3) bullseye; urgency=medium
 
   *  cherry-pick fix for some manually added ACPI table SLIC entries via the
