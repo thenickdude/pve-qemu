@@ -575,7 +575,7 @@ index 5fa3cc1352..323014744c 100644
  
  BackupStatus *qmp_query_backup(Error **errp)
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index f6a5fb263a..f216035d3c 100644
+index c99ddf8628..829dc7b8e9 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -846,7 +846,7 @@

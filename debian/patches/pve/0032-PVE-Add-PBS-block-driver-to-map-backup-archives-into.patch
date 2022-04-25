@@ -368,10 +368,10 @@ index 1a4dfab4e2..85b3c63199 100644
  summary_info += {'libpmem support':   libpmem}
  summary_info += {'libdaxctl support': libdaxctl}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 88835ebcf6..fd1ba7ccac 100644
+index 5d8e2eb303..777863e33b 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -3074,6 +3074,7 @@
+@@ -3053,6 +3053,7 @@
              'luks', 'nbd', 'nfs', 'null-aio', 'null-co', 'nvme', 'parallels',
              'preallocate', 'qcow', 'qcow2', 'qed', 'quorum', 'raw', 'rbd',
              { 'name': 'replication', 'if': 'CONFIG_REPLICATION' },
@@ -379,7 +379,7 @@ index 88835ebcf6..fd1ba7ccac 100644
              'ssh', 'throttle', 'vdi', 'vhdx', 'vmdk', 'vpc', 'vvfat' ] }
  
  ##
-@@ -3146,6 +3147,17 @@
+@@ -3125,6 +3126,17 @@
  { 'struct': 'BlockdevOptionsNull',
    'data': { '*size': 'int', '*latency-ns': 'uint64', '*read-zeroes': 'bool' } }
  
@@ -397,7 +397,7 @@ index 88835ebcf6..fd1ba7ccac 100644
  ##
  # @BlockdevOptionsNVMe:
  #
-@@ -4388,6 +4400,7 @@
+@@ -4367,6 +4379,7 @@
        'nfs':        'BlockdevOptionsNfs',
        'null-aio':   'BlockdevOptionsNull',
        'null-co':    'BlockdevOptionsNull',

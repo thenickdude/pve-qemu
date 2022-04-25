@@ -19,6 +19,7 @@ upon job creation for the remaining case too, by moving the
 backup_init_bcs_bitmap call to backup_job_create.
 
 Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/backup.c | 8 ++++----
  1 file changed, 4 insertions(+), 4 deletions(-)

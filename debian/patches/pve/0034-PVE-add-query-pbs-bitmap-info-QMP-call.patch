@@ -359,7 +359,7 @@ index 4684789813..f90abaa50a 100644
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index fc498b779d..7b171fe27c 100644
+index cfd980b70f..8833060385 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -875,6 +875,8 @@

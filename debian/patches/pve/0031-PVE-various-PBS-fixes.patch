@@ -194,7 +194,7 @@ index 1c49cd178d..c15abefdda 100644
          .format = format,
          .has_config_file = has_config_file,
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 379a8dd147..88835ebcf6 100644
+index b9d6f52f0c..5d8e2eb303 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -822,6 +822,10 @@
