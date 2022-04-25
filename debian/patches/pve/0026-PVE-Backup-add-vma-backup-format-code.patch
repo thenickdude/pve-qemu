@@ -9,11 +9,11 @@ Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
 ---
  block/meson.build |   2 +
  meson.build       |   5 +
- vma-reader.c      | 857 ++++++++++++++++++++++++++++++++++++++++++++++
+ vma-reader.c      | 860 ++++++++++++++++++++++++++++++++++++++++++++++
  vma-writer.c      | 790 ++++++++++++++++++++++++++++++++++++++++++
- vma.c             | 851 +++++++++++++++++++++++++++++++++++++++++++++
+ vma.c             | 849 +++++++++++++++++++++++++++++++++++++++++++++
  vma.h             | 150 ++++++++
- 6 files changed, 2655 insertions(+)
+ 6 files changed, 2656 insertions(+)
  create mode 100644 vma-reader.c
  create mode 100644 vma-writer.c
  create mode 100644 vma.c
@@ -57,10 +57,10 @@ index 96de1a6ef9..54c23b9567 100644
    subdir('contrib/elf2dmp')
 diff --git a/vma-reader.c b/vma-reader.c
 new file mode 100644
-index 0000000000..2b1d1cdab3
+index 0000000000..4f4ee2b47b
 --- /dev/null
 +++ b/vma-reader.c
-@@ -0,0 +1,857 @@
+@@ -0,0 +1,860 @@
 +/*
 + * VMA: Virtual Machine Archive
 + *
@@ -254,6 +254,9 @@ index 0000000000..2b1d1cdab3
 +    for (i = 1; i < 256; i++) {
 +        if (vmar->rstate[i].bitmap) {
 +            g_free(vmar->rstate[i].bitmap);
++        }
++        if (vmar->rstate[i].target) {
++            blk_unref(vmar->rstate[i].target);
 +        }
 +    }
 +
@@ -1716,10 +1719,10 @@ index 0000000000..11d8321ffd
 +}
 diff --git a/vma.c b/vma.c
 new file mode 100644
-index 0000000000..df542b7732
+index 0000000000..89440733b1
 --- /dev/null
 +++ b/vma.c
-@@ -0,0 +1,851 @@
+@@ -0,0 +1,849 @@
 +/*
 + * VMA: Virtual Machine Archive
 + *
@@ -2031,8 +2034,6 @@ index 0000000000..df542b7732
 +    int vmstate_fd = -1;
 +    guint8 vmstate_stream = 0;
 +
-+    BlockBackend *blk = NULL;
-+
 +    for (i = 1; i < 255; i++) {
 +        VmaDeviceInfo *di = vma_reader_get_device_info(vmar, i);
 +        if (di && (strcmp(di->devname, "vmstate") == 0)) {
@@ -2052,6 +2053,8 @@ index 0000000000..df542b7732
 +            const char *cache = NULL;
 +            int flags = BDRV_O_RDWR;
 +            bool write_zero = true;
++
++            BlockBackend *blk = NULL;
 +
 +            if (readmap) {
 +                RestoreMap *map;
@@ -2164,8 +2167,6 @@ index 0000000000..df542b7732
 +    }
 +
 +    vma_reader_destroy(vmar);
-+
-+    blk_unref(blk);
 +
 +    bdrv_close_all();
 +
