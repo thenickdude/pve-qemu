@@ -1,3 +1,9 @@
+pve-qemu-kvm (6.2.0-5) bullseye; urgency=medium
+
+  * vma: allow partial restore by skipping some disk
+
+ -- Proxmox Support Team <support@proxmox.com>  Mon, 25 Apr 2022 10:13:46 +0200
+
 pve-qemu-kvm (6.2.0-4) bullseye; urgency=medium
 
   * d/control: add libgbm to build dependencies
