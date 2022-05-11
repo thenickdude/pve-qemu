@@ -1,3 +1,15 @@
+pve-qemu-kvm (6.2.0-6) bullseye; urgency=medium
+
+  * block/gluster: correctly set max_pdiscard which is int64_t to avoid
+    triggering assertion
+
+  * ui/vnc.c: Fixed a deadlock bug
+
+  * display/qxl-render: fix race condition in qxl_cursor (CVE-2021-4207) and
+    integer overflow in cursor_alloc (CVE-2021-4206)
+
+ -- Proxmox Support Team <support@proxmox.com>  Wed, 11 May 2022 10:42:53 +0200
+
 pve-qemu-kvm (6.2.0-5) bullseye; urgency=medium
 
   * vma: allow partial restore by skipping some disk
