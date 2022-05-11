@@ -15,6 +15,10 @@ extra/0014-vhost-vsock-detach-the-virqueue-element-in-case-of-e.patch
 extra/0015-vhost-user-remove-VirtQ-notifier-restore.patch
 extra/0016-vhost-user-fix-VirtQ-notifier-cleanup.patch
 extra/0017-virtio-fix-the-condition-for-iommu_platform-not-supp.patch
+extra/0018-block-gluster-correctly-set-max_pdiscard-which-is-in.patch
+extra/0019-ui-vnc.c-Fixed-a-deadlock-bug.patch
+extra/0020-display-qxl-render-fix-race-condition-in-qxl_cursor-.patch
+extra/0021-ui-cursor-fix-integer-overflow-in-cursor_alloc-CVE-2.patch
 bitmap-mirror/0001-drive-mirror-add-support-for-sync-bitmap-mode-never.patch
 bitmap-mirror/0002-drive-mirror-add-support-for-conditional-and-always-.patch
 bitmap-mirror/0003-mirror-add-check-for-bitmap-mode-without-bitmap.patch

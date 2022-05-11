@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fabian Ebner <f.ebner@proxmox.com>
+Date: Fri, 6 May 2022 14:38:35 +0200
+Subject: [PATCH] block/gluster: correctly set max_pdiscard which is int64_t
+
+Previously, max_pdiscard would be zero in the following assertion:
+qemu-system-x86_64: ../block/io.c:3166: bdrv_co_pdiscard: Assertion
+`max_pdiscard >= bs->bl.request_alignment' failed.
+
+Fixes: 0c8022876f ("block: use int64_t instead of int in driver discard handlers")
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ block/gluster.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/block/gluster.c b/block/gluster.c
+index 398976bc66..592e71b22a 100644
+--- a/block/gluster.c
++++ b/block/gluster.c
+@@ -891,7 +891,7 @@ out:
+ static void qemu_gluster_refresh_limits(BlockDriverState *bs, Error **errp)
+ {
+     bs->bl.max_transfer = GLUSTER_MAX_TRANSFER;
+-    bs->bl.max_pdiscard = SIZE_MAX;
++    bs->bl.max_pdiscard = INT64_MAX;
+ }
+ 
+ static int qemu_gluster_reopen_prepare(BDRVReopenState *state,
+@@ -1304,7 +1304,7 @@ static coroutine_fn int qemu_gluster_co_pdiscard(BlockDriverState *bs,
+     GlusterAIOCB acb;
+     BDRVGlusterState *s = bs->opaque;
+ 
+-    assert(bytes <= SIZE_MAX); /* rely on max_pdiscard */
++    assert(bytes <= INT64_MAX); /* rely on max_pdiscard */
+ 
+     acb.size = 0;
+     acb.ret = 0;
