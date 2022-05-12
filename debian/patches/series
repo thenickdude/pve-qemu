@@ -76,3 +76,4 @@ pve/0048-PVE-whitelist-invalid-QAPI-names-for-backwards-compa.patch
 pve/0049-PVE-savevm-async-register-yank-before-migration_inco.patch
 pve/0050-qemu-img-dd-add-l-option-for-loading-a-snapshot.patch
 pve/0051-vma-allow-partial-restore.patch
+pve/0052-pbs-namespace-support.patch
