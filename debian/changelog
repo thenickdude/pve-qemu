@@ -1,3 +1,9 @@
+pve-qemu-kvm (6.2.0-7) bullseye; urgency=medium
+
+  * Proxmox Backup Server namespace support
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 12 May 2022 16:05:56 +0200
+
 pve-qemu-kvm (6.2.0-6) bullseye; urgency=medium
 
   * block/gluster: correctly set max_pdiscard which is int64_t to avoid
