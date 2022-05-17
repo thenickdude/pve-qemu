@@ -1,8 +1,6 @@
 extra/0001-monitor-qmp-fix-race-with-clients-disconnecting-earl.patch
 extra/0002-monitor-hmp-add-support-for-flag-argument-with-value.patch
 extra/0003-monitor-refactor-set-expire_password-and-allow-VNC-d.patch
-extra/0004-block-rbd-fix-handling-of-holes-in-.bdrv_co_block_st.patch
-extra/0005-block-rbd-workaround-for-ceph-issue-53784.patch
 extra/0006-block-io-Update-BSC-only-if-want_zero-is-true.patch
 extra/0007-block-nbd-Delete-reconnect-delay-timer-when-done.patch
 extra/0008-block-nbd-Assert-there-are-no-timers-when-closed.patch
@@ -77,3 +75,4 @@ pve/0049-PVE-savevm-async-register-yank-before-migration_inco.patch
 pve/0050-qemu-img-dd-add-l-option-for-loading-a-snapshot.patch
 pve/0051-vma-allow-partial-restore.patch
 pve/0052-pbs-namespace-support.patch
+pve/0053-Revert-block-rbd-implement-bdrv_co_block_status.patch
