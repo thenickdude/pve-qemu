@@ -1,3 +1,10 @@
+pve-qemu-kvm (6.2.0-8) bullseye; urgency=medium
+
+  * revert "block/rbd: implement bdrv_co_block_status" to work around
+    performance regression when backing up large RBD disk
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 19 May 2022 09:24:45 +0200
+
 pve-qemu-kvm (6.2.0-7) bullseye; urgency=medium
 
   * Proxmox Backup Server namespace support
