@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fabian Ebner <f.ebner@proxmox.com>
+Date: Wed, 25 May 2022 13:59:38 +0200
+Subject: [PATCH] PVE-Backup: ensure jobs in di_list are referenced
+
+Ensures that qmp_backup_cancel doesn't pick a job that's already been
+freed. With unlucky timings it seems possible that:
+1. job_exit -> job_completed -> job_finalize_single starts
+2. pvebackup_co_complete_stream gets spawned in completion callback
+3. job finalize_single finishes -> job's refcount hits zero -> job is
+   freed
+4. qmp_backup_cancel comes in and locks backup_state.backup_mutex
+   before pvebackup_co_complete_stream can remove the job from the
+   di_list
+5. qmp_backup_cancel will pick a job that's already been freed
+
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+---
+ pve-backup.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/pve-backup.c b/pve-backup.c
+index 5bed6f4014..cd45e66a61 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -316,6 +316,11 @@ static void coroutine_fn pvebackup_co_complete_stream(void *opaque)
+         }
+     }
+ 
++    if (di->job) {
++        job_unref(&di->job->job);
++        di->job = NULL;
++    }
++
+     // remove self from job list
+     backup_state.di_list = g_list_remove(backup_state.di_list, di);
+ 
+@@ -494,6 +499,9 @@ static void create_backup_jobs_bh(void *opaque) {
+         aio_context_release(aio_context);
+ 
+         di->job = job;
++        if (job) {
++            job_ref(&job->job);
++        }
+ 
+         if (!job || local_err) {
+             error_setg(errp, "backup_job_create failed: %s",
+@@ -528,6 +536,11 @@ static void create_backup_jobs_bh(void *opaque) {
+                 aio_context_release(ctx);
+                 canceled = true;
+             }
++
++            if (di->job) {
++                job_unref(&di->job->job);
++                di->job = NULL;
++            }
+         }
+     }
+ 

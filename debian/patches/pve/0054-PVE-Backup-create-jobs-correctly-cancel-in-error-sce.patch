@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fabian Ebner <f.ebner@proxmox.com>
+Date: Wed, 25 May 2022 13:59:37 +0200
+Subject: [PATCH] PVE-Backup: create jobs: correctly cancel in error scenario
+
+The first call to job_cancel_sync() will cancel and free all jobs in
+the transaction, so ensure that it's called only once and get rid of
+the job_unref() that would operate on freed memory.
+
+It's also necessary to NULL backup_state.pbs in the error scenario,
+because a subsequent backup_cancel QMP call (as happens in PVE when
+the backup QMP command fails) would try to call proxmox_backup_abort()
+and run into a segfault.
+
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+---
+ pve-backup.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/pve-backup.c b/pve-backup.c
+index f6a5f8c785..5bed6f4014 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -506,6 +506,11 @@ static void create_backup_jobs_bh(void *opaque) {
+     }
+ 
+     if (*errp) {
++        /*
++         * It's enough to cancel one job in the transaction, the rest will
++         * follow automatically.
++         */
++        bool canceled = false;
+         l = backup_state.di_list;
+         while (l) {
+             PVEBackupDevInfo *di = (PVEBackupDevInfo *)l->data;
+@@ -516,12 +521,12 @@ static void create_backup_jobs_bh(void *opaque) {
+                 di->target = NULL;
+             }
+ 
+-            if (di->job) {
++            if (!canceled && di->job) {
+                 AioContext *ctx = di->job->job.aio_context;
+                 aio_context_acquire(ctx);
+                 job_cancel_sync(&di->job->job, true);
+-                job_unref(&di->job->job);
+                 aio_context_release(ctx);
++                canceled = true;
+             }
+         }
+     }
+@@ -947,6 +952,7 @@ err:
+ 
+     if (pbs) {
+         proxmox_backup_disconnect(pbs);
++        backup_state.pbs = NULL;
+     }
+ 
+     if (backup_dir) {

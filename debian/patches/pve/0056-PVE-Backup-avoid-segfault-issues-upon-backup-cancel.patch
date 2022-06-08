@@ -1,0 +1,120 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fabian Ebner <f.ebner@proxmox.com>
+Date: Wed, 25 May 2022 13:59:39 +0200
+Subject: [PATCH] PVE-Backup: avoid segfault issues upon backup-cancel
+
+When canceling a backup in PVE via a signal it's easy to run into a
+situation where the job is already failing when the backup_cancel QMP
+command comes in. With a bit of unlucky timing on top, it can happen
+that job_exit() runs between schedulung of job_cancel_bh() and
+execution of job_cancel_bh(). But job_cancel_sync() does not expect
+that the job is already finalized (in fact, the job might've been
+freed already, but even if it isn't, job_cancel_sync() would try to
+deref job->txn which would be NULL at that point).
+
+It is not possible to simply use the job_cancel() (which is advertised
+as being async but isn't in all cases) in qmp_backup_cancel() for the
+same reason job_cancel_sync() cannot be used. Namely, because it can
+invoke job_finish_sync() (which uses AIO_WAIT_WHILE and thus hangs if
+called from a coroutine). This happens when there's multiple jobs in
+the transaction and job->deferred_to_main_loop is true (is set before
+scheduling job_exit()) or if the job was not started yet.
+
+Fix the issue by selecting the job to cancel in job_cancel_bh() itself
+using the first job that's not completed yet. This is not necessarily
+the first job in the list, because pvebackup_co_complete_stream()
+might not yet have removed a completed job when job_cancel_bh() runs.
+
+An alternative would be to continue using only the first job and
+checking against JOB_STATUS_CONCLUDED or JOB_STATUS_NULL to decide if
+it's still necessary and possible to cancel, but the approach with
+using the first non-completed job seemed more robust.
+
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+---
+ pve-backup.c | 61 +++++++++++++++++++++++++++++++++-------------------
+ 1 file changed, 39 insertions(+), 22 deletions(-)
+
+diff --git a/pve-backup.c b/pve-backup.c
+index cd45e66a61..be21027dad 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -352,15 +352,42 @@ static void pvebackup_complete_cb(void *opaque, int ret)
+ 
+ /*
+  * job_cancel(_sync) does not like to be called from coroutines, so defer to
+- * main loop processing via a bottom half.
++ * main loop processing via a bottom half. Assumes that caller holds
++ * backup_mutex.
+  */
+ static void job_cancel_bh(void *opaque) {
+     CoCtxData *data = (CoCtxData*)opaque;
+-    Job *job = (Job*)data->data;
+-    AioContext *job_ctx = job->aio_context;
+-    aio_context_acquire(job_ctx);
+-    job_cancel_sync(job, true);
+-    aio_context_release(job_ctx);
++
++    /*
++     * Be careful to pick a valid job to cancel:
++     * 1. job_cancel_sync() does not expect the job to be finalized already.
++     * 2. job_exit() might run between scheduling and running job_cancel_bh()
++     *    and pvebackup_co_complete_stream() might not have removed the job from
++     *    the list yet (in fact, cannot, because it waits for the backup_mutex).
++     * Requiring !job_is_completed() ensures that no finalized job is picked.
++     */
++    GList *bdi = g_list_first(backup_state.di_list);
++    while (bdi) {
++        if (bdi->data) {
++            BlockJob *bj = ((PVEBackupDevInfo *)bdi->data)->job;
++            if (bj) {
++                Job *job = &bj->job;
++                if (!job_is_completed(job)) {
++                    AioContext *job_ctx = job->aio_context;
++                    aio_context_acquire(job_ctx);
++                    job_cancel_sync(job, true);
++                    aio_context_release(job_ctx);
++                    /*
++                     * It's enough to cancel one job in the transaction, the
++                     * rest will follow automatically.
++                     */
++                    break;
++                }
++            }
++        }
++        bdi = g_list_next(bdi);
++    }
++
+     aio_co_enter(data->ctx, data->co);
+ }
+ 
+@@ -381,22 +408,12 @@ void coroutine_fn qmp_backup_cancel(Error **errp)
+         proxmox_backup_abort(backup_state.pbs, "backup canceled");
+     }
+ 
+-    /* it's enough to cancel one job in the transaction, the rest will follow
+-     * automatically */
+-    GList *bdi = g_list_first(backup_state.di_list);
+-    BlockJob *cancel_job = bdi && bdi->data ?
+-        ((PVEBackupDevInfo *)bdi->data)->job :
+-        NULL;
+-
+-    if (cancel_job) {
+-        CoCtxData data = {
+-            .ctx = qemu_get_current_aio_context(),
+-            .co = qemu_coroutine_self(),
+-            .data = &cancel_job->job,
+-        };
+-        aio_bh_schedule_oneshot(data.ctx, job_cancel_bh, &data);
+-        qemu_coroutine_yield();
+-    }
++    CoCtxData data = {
++        .ctx = qemu_get_current_aio_context(),
++        .co = qemu_coroutine_self(),
++    };
++    aio_bh_schedule_oneshot(data.ctx, job_cancel_bh, &data);
++    qemu_coroutine_yield();
+ 
+     qemu_co_mutex_unlock(&backup_state.backup_mutex);
+ }
