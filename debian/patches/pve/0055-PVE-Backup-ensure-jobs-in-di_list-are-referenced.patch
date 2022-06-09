@@ -20,41 +20,57 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  pve-backup.c | 13 +++++++++++++
  1 file changed, 13 insertions(+)
 
-diff --git a/pve-backup.c b/pve-backup.c
-index 5bed6f4014..cd45e66a61 100644
---- a/pve-backup.c
-+++ b/pve-backup.c
-@@ -316,6 +316,11 @@ static void coroutine_fn pvebackup_co_complete_stream(void *opaque)
+Index: pve-qemu-kvm-6.2.0/pve-backup.c
+===================================================================
+--- pve-qemu-kvm-6.2.0.orig/pve-backup.c
++++ pve-qemu-kvm-6.2.0/pve-backup.c
+@@ -316,6 +316,14 @@ static void coroutine_fn pvebackup_co_co
          }
      }
  
 +    if (di->job) {
++        AioContext *ctx = di->job->job.aio_context;
++        aio_context_acquire(ctx);
 +        job_unref(&di->job->job);
 +        di->job = NULL;
++        aio_context_release(ctx);
 +    }
 +
      // remove self from job list
      backup_state.di_list = g_list_remove(backup_state.di_list, di);
  
-@@ -494,6 +499,9 @@ static void create_backup_jobs_bh(void *opaque) {
-         aio_context_release(aio_context);
+@@ -491,9 +499,12 @@ static void create_backup_jobs_bh(void *
+             bitmap_mode, false, NULL, &perf, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
+             JOB_DEFAULT, pvebackup_complete_cb, di, backup_state.txn, &local_err);
  
+-        aio_context_release(aio_context);
+-
          di->job = job;
 +        if (job) {
 +            job_ref(&job->job);
 +        }
++
++        aio_context_release(aio_context);
  
          if (!job || local_err) {
              error_setg(errp, "backup_job_create failed: %s",
-@@ -528,6 +536,11 @@ static void create_backup_jobs_bh(void *opaque) {
-                 aio_context_release(ctx);
-                 canceled = true;
+@@ -521,12 +532,16 @@ static void create_backup_jobs_bh(void *
+                 di->target = NULL;
              }
-+
+ 
+-            if (!canceled && di->job) {
 +            if (di->job) {
+                 AioContext *ctx = di->job->job.aio_context;
+                 aio_context_acquire(ctx);
+-                job_cancel_sync(&di->job->job, true);
++                if (!canceled) {
++                    job_cancel_sync(&di->job->job, true);
++                    canceled = true;
++                }
 +                job_unref(&di->job->job);
 +                di->job = NULL;
-+            }
+                 aio_context_release(ctx);
+-                canceled = true;
+             }
          }
      }
- 
