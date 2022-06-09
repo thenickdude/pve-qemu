@@ -1,0 +1,3 @@
+debian/OVMF_CODE-pure-efi.fd
+debian/OVMF_VARS-pure-efi.fd
+debian/Logo.bmp
