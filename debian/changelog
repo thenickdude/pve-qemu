@@ -1,3 +1,9 @@
+pve-qemu-kvm (6.2.0-10) bullseye; urgency=medium
+
+  * fix #4101: fix backup cancellation bug with iothreads
+
+ -- Proxmox Support Team <support@proxmox.com>  Thu, 9 Jun 2022 16:35:51 +0200
+
 pve-qemu-kvm (6.2.0-9) bullseye; urgency=medium
 
   * fix possible race conditions during cancellation of a PBS backup
