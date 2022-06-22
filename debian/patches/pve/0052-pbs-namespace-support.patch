@@ -9,8 +9,8 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  block/pbs.c                    | 25 +++++++++++++++++++++----
  pbs-restore.c                  | 19 ++++++++++++++++---
  pve-backup.c                   |  6 +++++-
- qapi/block-core.json           |  3 +++
- 5 files changed, 46 insertions(+), 8 deletions(-)
+ qapi/block-core.json           |  5 ++++-
+ 5 files changed, 47 insertions(+), 9 deletions(-)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
 index 52ddbf95ad..69c868887a 100644
@@ -222,3 +222,15 @@ index c5023710f5..619e13b9b1 100644
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',
                                      '*use-dirty-bitmap': 'bool',
+@@ -3236,7 +3239,7 @@
+ { 'struct': 'BlockdevOptionsPbs',
+   'data': { 'repository': 'str', 'snapshot': 'str', 'archive': 'str',
+             '*keyfile': 'str', '*password': 'str', '*fingerprint': 'str',
+-            '*key_password': 'str' } }
++            '*key_password': 'str', '*namespace': 'str' } }
+ 
+ ##
+ # @BlockdevOptionsNVMe:
+-- 
+2.30.2
+
