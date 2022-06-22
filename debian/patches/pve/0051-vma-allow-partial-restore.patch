@@ -18,10 +18,10 @@ Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
 Acked-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- vma-reader.c |  60 ++++++++++---------
- vma.c        | 159 +++++++++++++++++++++++++++++----------------------
+ vma-reader.c |  64 ++++++++++++---------
+ vma.c        | 157 +++++++++++++++++++++++++++++----------------------
  vma.h        |   2 +-
- 3 files changed, 125 insertions(+), 96 deletions(-)
+ 3 files changed, 126 insertions(+), 97 deletions(-)
 
 diff --git a/vma-reader.c b/vma-reader.c
 index 4f4ee2b47b..844d95a5ba 100644
@@ -63,14 +63,10 @@ index 4f4ee2b47b..844d95a5ba 100644
 +    assert(target != NULL || skip);
      assert(dev_id);
 -    assert(vmar->rstate[dev_id].target == NULL);
-+    assert(vmar->rstate[dev_id].target == NULL && !vmar->rstate[dev_id].skip);
- 
+-
 -    int64_t size = blk_getlength(target);
 -    int64_t size_diff = size - vmar->devinfo[dev_id].size;
-+    if (target != NULL) {
-+        int64_t size = blk_getlength(target);
-+        int64_t size_diff = size - vmar->devinfo[dev_id].size;
- 
+-
 -    /* storage types can have different size restrictions, so it
 -     * is not always possible to create an image with exact size.
 -     * So we tolerate a size difference up to 4MB.
@@ -80,6 +76,12 @@ index 4f4ee2b47b..844d95a5ba 100644
 -                   "unexpected size %zd != %zd", vmar->devinfo[dev_id].devname,
 -                   size, vmar->devinfo[dev_id].size);
 -        return -1;
++    assert(vmar->rstate[dev_id].target == NULL && !vmar->rstate[dev_id].skip);
++
++    if (target != NULL) {
++        int64_t size = blk_getlength(target);
++        int64_t size_diff = size - vmar->devinfo[dev_id].size;
++
 +        /* storage types can have different size restrictions, so it
 +         * is not always possible to create an image with exact size.
 +         * So we tolerate a size difference up to 4MB.
@@ -212,25 +214,8 @@ index 89440733b1..21e765a469 100644
 +                } else {
 +                    devname = line + 5;
 +                    skip = true;
-                 }
--            }
--
--            uint64_t bps_value = 0;
--            if (bps) {
--                bps_value = verify_u64(bps);
--                g_free(bps);
--            }
--
--            const char *path;
--            bool write_zero;
--            if (line[0] == '0' && line[1] == ':') {
--                path = line + 2;
--                write_zero = false;
--            } else if (line[0] == '1' && line[1] == ':') {
--                path = line + 2;
--                write_zero = true;
-             } else {
--                g_error("read map failed - parse error ('%s')", inbuf);
++                }
++            } else {
 +                while (1) {
 +                    if (!try_parse_option(&line, "format", &format, inbuf) &&
 +                        !try_parse_option(&line, "throttling.bps", &bps, inbuf) &&
@@ -239,13 +224,29 @@ index 89440733b1..21e765a469 100644
 +                    {
 +                        break;
 +                    }
-+                }
-+
+                 }
+-            }
+ 
+-            uint64_t bps_value = 0;
+-            if (bps) {
+-                bps_value = verify_u64(bps);
+-                g_free(bps);
+-            }
 +                if (bps) {
 +                    bps_value = verify_u64(bps);
 +                    g_free(bps);
 +                }
-+
+ 
+-            const char *path;
+-            bool write_zero;
+-            if (line[0] == '0' && line[1] == ':') {
+-                path = line + 2;
+-                write_zero = false;
+-            } else if (line[0] == '1' && line[1] == ':') {
+-                path = line + 2;
+-                write_zero = true;
+-            } else {
+-                g_error("read map failed - parse error ('%s')", inbuf);
 +                if (line[0] == '0' && line[1] == ':') {
 +                    path = line + 2;
 +                    write_zero = false;

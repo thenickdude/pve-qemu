@@ -202,7 +202,7 @@ index 9f6c04a512..f6a5f8c785 100644
              backup_time,
              dump_cb_block_size,
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index c5023710f5..619e13b9b1 100644
+index d089328a1f..705f0c97ba 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -821,6 +821,8 @@
@@ -231,6 +231,3 @@ index c5023710f5..619e13b9b1 100644
  
  ##
  # @BlockdevOptionsNVMe:
--- 
-2.30.2
-

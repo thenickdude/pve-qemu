@@ -17,14 +17,14 @@ freed. With unlucky timings it seems possible that:
 Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
 Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
 ---
- pve-backup.c | 13 +++++++++++++
- 1 file changed, 13 insertions(+)
+ pve-backup.c | 25 ++++++++++++++++++++-----
+ 1 file changed, 20 insertions(+), 5 deletions(-)
 
-Index: pve-qemu-kvm-6.2.0/pve-backup.c
-===================================================================
---- pve-qemu-kvm-6.2.0.orig/pve-backup.c
-+++ pve-qemu-kvm-6.2.0/pve-backup.c
-@@ -316,6 +316,14 @@ static void coroutine_fn pvebackup_co_co
+diff --git a/pve-backup.c b/pve-backup.c
+index 5bed6f4014..0c34428713 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -316,6 +316,14 @@ static void coroutine_fn pvebackup_co_complete_stream(void *opaque)
          }
      }
  
@@ -39,7 +39,7 @@ Index: pve-qemu-kvm-6.2.0/pve-backup.c
      // remove self from job list
      backup_state.di_list = g_list_remove(backup_state.di_list, di);
  
-@@ -491,9 +499,12 @@ static void create_backup_jobs_bh(void *
+@@ -491,9 +499,12 @@ static void create_backup_jobs_bh(void *opaque) {
              bitmap_mode, false, NULL, &perf, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
              JOB_DEFAULT, pvebackup_complete_cb, di, backup_state.txn, &local_err);
  
@@ -54,7 +54,7 @@ Index: pve-qemu-kvm-6.2.0/pve-backup.c
  
          if (!job || local_err) {
              error_setg(errp, "backup_job_create failed: %s",
-@@ -521,12 +532,16 @@ static void create_backup_jobs_bh(void *
+@@ -521,12 +532,16 @@ static void create_backup_jobs_bh(void *opaque) {
                  di->target = NULL;
              }
  

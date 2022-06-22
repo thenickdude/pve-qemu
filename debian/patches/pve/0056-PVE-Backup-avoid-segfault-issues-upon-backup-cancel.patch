@@ -37,10 +37,10 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  1 file changed, 39 insertions(+), 22 deletions(-)
 
 diff --git a/pve-backup.c b/pve-backup.c
-index cd45e66a61..be21027dad 100644
+index 0c34428713..2e22030eec 100644
 --- a/pve-backup.c
 +++ b/pve-backup.c
-@@ -352,15 +352,42 @@ static void pvebackup_complete_cb(void *opaque, int ret)
+@@ -355,15 +355,42 @@ static void pvebackup_complete_cb(void *opaque, int ret)
  
  /*
   * job_cancel(_sync) does not like to be called from coroutines, so defer to
@@ -89,7 +89,7 @@ index cd45e66a61..be21027dad 100644
      aio_co_enter(data->ctx, data->co);
  }
  
-@@ -381,22 +408,12 @@ void coroutine_fn qmp_backup_cancel(Error **errp)
+@@ -384,22 +411,12 @@ void coroutine_fn qmp_backup_cancel(Error **errp)
          proxmox_backup_abort(backup_state.pbs, "backup canceled");
      }
  

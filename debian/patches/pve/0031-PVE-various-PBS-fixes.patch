@@ -14,9 +14,9 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
  block/monitor/block-hmp-cmds.c |  4 ++-
- pve-backup.c                   | 59 ++++++++++++++++++++++++++--------
+ pve-backup.c                   | 57 +++++++++++++++++++++++++++-------
  qapi/block-core.json           |  6 ++++
- 3 files changed, 55 insertions(+), 14 deletions(-)
+ 3 files changed, 54 insertions(+), 13 deletions(-)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
 index 3c06734e6d..4481b60a5c 100644
@@ -67,17 +67,24 @@ index 1c49cd178d..c15abefdda 100644
      qemu_co_mutex_lock(&backup_state.dump_callback_mutex);
  
      // avoid deadlock if job is cancelled
-@@ -147,16 +152,28 @@ pvebackup_co_dump_pbs_cb(
+@@ -147,17 +152,29 @@ pvebackup_co_dump_pbs_cb(
          return -1;
      }
  
 -    pbs_res = proxmox_backup_co_write_data(backup_state.pbs, di->dev_id, buf, start, size, &local_err);
+-    qemu_co_mutex_unlock(&backup_state.dump_callback_mutex);
 +    uint64_t transferred = 0;
 +    uint64_t reused = 0;
 +    while (transferred < size) {
 +        uint64_t left = size - transferred;
 +        uint64_t to_transfer = left < di->block_size ? left : di->block_size;
-+
+ 
+-    if (pbs_res < 0) {
+-        pvebackup_propagate_error(local_err);
+-        return pbs_res;
+-    } else {
+-        size_t reused = (pbs_res == 0) ? size : 0;
+-        pvebackup_add_transfered_bytes(size, !buf ? size : 0, reused);
 +        pbs_res = proxmox_backup_co_write_data(backup_state.pbs, di->dev_id,
 +            is_zero_block ? NULL : buf + transferred, start + transferred,
 +            to_transfer, &local_err);
@@ -90,21 +97,14 @@ index 1c49cd178d..c15abefdda 100644
 +        }
 +
 +        reused += pbs_res == 0 ? to_transfer : 0;
-+    }
-+
-     qemu_co_mutex_unlock(&backup_state.dump_callback_mutex);
--
--    if (pbs_res < 0) {
--        pvebackup_propagate_error(local_err);
--        return pbs_res;
--    } else {
--        size_t reused = (pbs_res == 0) ? size : 0;
--        pvebackup_add_transfered_bytes(size, !buf ? size : 0, reused);
--    }
-+    pvebackup_add_transfered_bytes(size, is_zero_block ? size : 0, reused);
+     }
  
++    qemu_co_mutex_unlock(&backup_state.dump_callback_mutex);
++    pvebackup_add_transfered_bytes(size, is_zero_block ? size : 0, reused);
++
      return size;
  }
+ 
 @@ -178,6 +195,7 @@ pvebackup_co_dump_vma_cb(
      int ret = -1;
  
