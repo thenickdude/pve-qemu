@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fabian Ebner <f.ebner@proxmox.com>
+Date: Wed, 22 Jun 2022 10:45:13 +0200
+Subject: [PATCH] block: alloc-track: avoid premature break
+
+While the bdrv_co_preadv() calls are expected to return 0 on success,
+qemu_iovec_memset() will return the number of bytes set (will be
+local_bytes, because the slice with that size was just initialized).
+
+Don't break out of the loop after the branch with qemu_iovec_memset(),
+because there might still be work to do. Additionally, ret is an int,
+which on 64-bit platforms is too small to hold the size_t returned by
+qemu_iovec_memset().
+
+The branch seems to be difficult to reach in practice, because the
+whole point of alloc-track is to be used with a backing device.
+
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+---
+ block/alloc-track.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/block/alloc-track.c b/block/alloc-track.c
+index 6b50fbe537..c1160af04b 100644
+--- a/block/alloc-track.c
++++ b/block/alloc-track.c
+@@ -174,7 +174,8 @@ static int coroutine_fn track_co_preadv(BlockDriverState *bs,
+             ret = bdrv_co_preadv(bs->backing, local_offset, local_bytes,
+                                  &local_qiov, flags);
+         } else {
+-            ret = qemu_iovec_memset(&local_qiov, cur_offset, 0, local_bytes);
++            qemu_iovec_memset(&local_qiov, cur_offset, 0, local_bytes);
++            ret = 0;
+         }
+ 
+         if (ret != 0) {

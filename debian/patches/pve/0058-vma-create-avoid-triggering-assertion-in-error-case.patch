@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fabian Ebner <f.ebner@proxmox.com>
+Date: Wed, 22 Jun 2022 10:45:12 +0200
+Subject: [PATCH] vma: create: avoid triggering assertion in error case
+
+error_setg expects its argument to not be initialized yet.
+
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+---
+ vma-writer.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/vma-writer.c b/vma-writer.c
+index 11d8321ffd..29567cba68 100644
+--- a/vma-writer.c
++++ b/vma-writer.c
+@@ -310,6 +310,8 @@ VmaWriter *vma_writer_create(const char *filename, uuid_t uuid, Error **errp)
+         }
+ 
+         if (vmaw->fd < 0) {
++            error_free(*errp);
++            *errp = NULL;
+             error_setg(errp, "can't open file %s - %s\n", filename,
+                        g_strerror(errno));
+             goto err;
