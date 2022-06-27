@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Eugenio=20P=C3=A9rez?= <eperezma@redhat.com>
+Date: Thu, 12 May 2022 19:57:44 +0200
+Subject: [PATCH] vdpa: Fix bad index calculus at vhost_vdpa_get_vring_base
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Fixes: 6d0b222666 ("vdpa: Adapt vhost_vdpa_get_vring_base to SVQ")
+
+Acked-by: Jason Wang <jasowang@redhat.com>
+Signed-off-by: Eugenio Pérez <eperezma@redhat.com>
+Message-Id: <20220512175747.142058-4-eperezma@redhat.com>
+Reviewed-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+(cherry-picked from commit 639036477ef890958415967e753ca2cbb348c16c)
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+---
+ hw/virtio/vhost-vdpa.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/hw/virtio/vhost-vdpa.c b/hw/virtio/vhost-vdpa.c
+index 8adf7c0b92..8555a84f87 100644
+--- a/hw/virtio/vhost-vdpa.c
++++ b/hw/virtio/vhost-vdpa.c
+@@ -1170,11 +1170,11 @@ static int vhost_vdpa_get_vring_base(struct vhost_dev *dev,
+                                        struct vhost_vring_state *ring)
+ {
+     struct vhost_vdpa *v = dev->opaque;
++    int vdpa_idx = ring->index - dev->vq_index;
+     int ret;
+ 
+     if (v->shadow_vqs_enabled) {
+-        VhostShadowVirtqueue *svq = g_ptr_array_index(v->shadow_vqs,
+-                                                      ring->index);
++        VhostShadowVirtqueue *svq = g_ptr_array_index(v->shadow_vqs, vdpa_idx);
+ 
+         /*
+          * Setting base as last used idx, so destination will see as available

@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Eugenio=20P=C3=A9rez?= <eperezma@redhat.com>
+Date: Thu, 12 May 2022 19:57:43 +0200
+Subject: [PATCH] vhost: Fix device's used descriptor dequeue
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Only the first one of them were properly enqueued back.
+
+Fixes: 100890f7ca ("vhost: Shadow virtqueue buffers forwarding")
+
+Signed-off-by: Eugenio Pérez <eperezma@redhat.com>
+Message-Id: <20220512175747.142058-3-eperezma@redhat.com>
+Reviewed-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+(cherry-picked from commit 81abfa5724c9a6502d7a1d3a67c55f2a303a1170)
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+---
+ hw/virtio/vhost-shadow-virtqueue.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/hw/virtio/vhost-shadow-virtqueue.c b/hw/virtio/vhost-shadow-virtqueue.c
+index 3155801f50..31fc50907d 100644
+--- a/hw/virtio/vhost-shadow-virtqueue.c
++++ b/hw/virtio/vhost-shadow-virtqueue.c
+@@ -334,12 +334,22 @@ static void vhost_svq_disable_notification(VhostShadowVirtqueue *svq)
+     svq->vring.avail->flags |= cpu_to_le16(VRING_AVAIL_F_NO_INTERRUPT);
+ }
+ 
++static uint16_t vhost_svq_last_desc_of_chain(const VhostShadowVirtqueue *svq,
++                                             uint16_t num, uint16_t i)
++{
++    for (uint16_t j = 0; j < (num - 1); ++j) {
++        i = le16_to_cpu(svq->desc_next[i]);
++    }
++
++    return i;
++}
++
+ static VirtQueueElement *vhost_svq_get_buf(VhostShadowVirtqueue *svq,
+                                            uint32_t *len)
+ {
+     const vring_used_t *used = svq->vring.used;
+     vring_used_elem_t used_elem;
+-    uint16_t last_used;
++    uint16_t last_used, last_used_chain, num;
+ 
+     if (!vhost_svq_more_used(svq)) {
+         return NULL;
+@@ -365,7 +375,10 @@ static VirtQueueElement *vhost_svq_get_buf(VhostShadowVirtqueue *svq,
+         return NULL;
+     }
+ 
+-    svq->desc_next[used_elem.id] = svq->free_head;
++    num = svq->ring_id_maps[used_elem.id]->in_num +
++          svq->ring_id_maps[used_elem.id]->out_num;
++    last_used_chain = vhost_svq_last_desc_of_chain(svq, num, used_elem.id);
++    svq->desc_next[last_used_chain] = svq->free_head;
+     svq->free_head = used_elem.id;
+ 
+     *len = used_elem.len;

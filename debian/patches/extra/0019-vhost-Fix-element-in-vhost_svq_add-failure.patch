@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Eugenio=20P=C3=A9rez?= <eperezma@redhat.com>
+Date: Thu, 12 May 2022 19:57:47 +0200
+Subject: [PATCH] vhost: Fix element in vhost_svq_add failure
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Coverity rightly reports that is not free in that case.
+
+Fixes: Coverity CID 1487559
+Fixes: 100890f7ca ("vhost: Shadow virtqueue buffers forwarding")
+
+Signed-off-by: Eugenio Pérez <eperezma@redhat.com>
+Message-Id: <20220512175747.142058-7-eperezma@redhat.com>
+Reviewed-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+(cherry-picked from commit 5181db132b587754dda3a520eec923b87a65bbb7)
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+---
+ hw/virtio/vhost-shadow-virtqueue.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/hw/virtio/vhost-shadow-virtqueue.c b/hw/virtio/vhost-shadow-virtqueue.c
+index 31fc50907d..06d0bb39d9 100644
+--- a/hw/virtio/vhost-shadow-virtqueue.c
++++ b/hw/virtio/vhost-shadow-virtqueue.c
+@@ -199,11 +199,19 @@ static bool vhost_svq_add_split(VhostShadowVirtqueue *svq,
+     return true;
+ }
+ 
++/**
++ * Add an element to a SVQ.
++ *
++ * The caller must check that there is enough slots for the new element. It
++ * takes ownership of the element: In case of failure, it is free and the SVQ
++ * is considered broken.
++ */
+ static bool vhost_svq_add(VhostShadowVirtqueue *svq, VirtQueueElement *elem)
+ {
+     unsigned qemu_head;
+     bool ok = vhost_svq_add_split(svq, elem, &qemu_head);
+     if (unlikely(!ok)) {
++        g_free(elem);
+         return false;
+     }
+ 
