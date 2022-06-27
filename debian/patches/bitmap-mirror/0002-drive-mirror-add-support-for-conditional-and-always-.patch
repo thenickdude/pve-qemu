@@ -24,10 +24,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 18 insertions(+), 6 deletions(-)
 
 diff --git a/block/mirror.c b/block/mirror.c
-index f7804638f9..4f5f74e2cf 100644
+index d95a7d7940..2c79ee41af 100644
 --- a/block/mirror.c
 +++ b/block/mirror.c
-@@ -672,8 +672,6 @@ static int mirror_exit_common(Job *job)
+@@ -673,8 +673,6 @@ static int mirror_exit_common(Job *job)
          bdrv_unfreeze_backing_chain(mirror_top_bs, target_bs);
      }
  
@@ -36,9 +36,9 @@ index f7804638f9..4f5f74e2cf 100644
      /* Make sure that the source BDS doesn't go away during bdrv_replace_node,
       * before we can call bdrv_drained_end */
      bdrv_ref(src);
-@@ -781,6 +779,18 @@ static int mirror_exit_common(Job *job)
-     blk_set_perm(bjob->blk, 0, BLK_PERM_ALL, &error_abort);
-     blk_insert_bs(bjob->blk, mirror_top_bs, &error_abort);
+@@ -775,6 +773,18 @@ static int mirror_exit_common(Job *job)
+     block_job_remove_all_bdrv(bjob);
+     bdrv_replace_node(mirror_top_bs, mirror_top_bs->backing->bs, &error_abort);
  
 +    if (s->sync_bitmap) {
 +        if (s->bitmap_mode == BITMAP_SYNC_MODE_ALWAYS ||
@@ -55,7 +55,7 @@ index f7804638f9..4f5f74e2cf 100644
      bs_opaque->job = NULL;
  
      bdrv_drained_end(src);
-@@ -1643,10 +1653,6 @@ static BlockJob *mirror_start_job(
+@@ -1634,10 +1644,6 @@ static BlockJob *mirror_start_job(
                         " sync mode",
                         MirrorSyncMode_str(sync_mode));
              return NULL;
@@ -66,7 +66,7 @@ index f7804638f9..4f5f74e2cf 100644
          }
      } else if (bitmap) {
          error_setg(errp,
-@@ -1663,6 +1669,12 @@ static BlockJob *mirror_start_job(
+@@ -1654,6 +1660,12 @@ static BlockJob *mirror_start_job(
              return NULL;
          }
          granularity = bdrv_dirty_bitmap_granularity(bitmap);

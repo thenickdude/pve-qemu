@@ -11,10 +11,10 @@ Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
  1 file changed, 2 insertions(+)
 
 diff --git a/vma-writer.c b/vma-writer.c
-index 11d8321ffd..29567cba68 100644
+index df4b20793d..ac7da237d0 100644
 --- a/vma-writer.c
 +++ b/vma-writer.c
-@@ -310,6 +310,8 @@ VmaWriter *vma_writer_create(const char *filename, uuid_t uuid, Error **errp)
+@@ -311,6 +311,8 @@ VmaWriter *vma_writer_create(const char *filename, uuid_t uuid, Error **errp)
          }
  
          if (vmaw->fd < 0) {

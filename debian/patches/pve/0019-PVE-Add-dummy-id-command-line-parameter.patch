@@ -14,10 +14,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 11 insertions(+)
 
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 423144abeb..4879471aeb 100644
+index aeade4ef80..a26f0b0400 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -1019,6 +1019,9 @@ DEFHEADING()
+@@ -1075,6 +1075,9 @@ DEFHEADING()
  
  DEFHEADING(Block device options:)
  
@@ -28,10 +28,10 @@ index 423144abeb..4879471aeb 100644
      "-fda/-fdb file  use 'file' as floppy disk 0/1 image\n", QEMU_ARCH_ALL)
  DEF("fdb", HAS_ARG, QEMU_OPTION_fdb, "", QEMU_ARCH_ALL)
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index fd82efb8b3..eb05e5a000 100644
+index a3f2a3818c..4208142685 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -2779,6 +2779,7 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -2785,6 +2785,7 @@ void qemu_init(int argc, char **argv, char **envp)
      MachineClass *machine_class;
      bool userconfig = true;
      FILE *vmstate_dump_file = NULL;
@@ -39,7 +39,7 @@ index fd82efb8b3..eb05e5a000 100644
  
      qemu_add_opts(&qemu_drive_opts);
      qemu_add_drive_opts(&qemu_legacy_drive_opts);
-@@ -3421,6 +3422,13 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -3420,6 +3421,13 @@ void qemu_init(int argc, char **argv, char **envp)
                  machine_parse_property_opt(qemu_find_opts("smp-opts"),
                                             "smp", optarg);
                  break;

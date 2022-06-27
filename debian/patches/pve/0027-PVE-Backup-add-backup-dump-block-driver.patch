@@ -10,11 +10,11 @@ Subject: [PATCH] PVE-Backup: add backup-dump block driver
 
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
 ---
- block/backup-dump.c       | 168 ++++++++++++++++++++++++++++++++++++++
- block/backup.c            |  30 ++-----
- block/meson.build         |   1 +
- include/block/block_int.h |  35 ++++++++
- job.c                     |   3 +-
+ block/backup-dump.c              | 168 +++++++++++++++++++++++++++++++
+ block/backup.c                   |  30 ++----
+ block/meson.build                |   1 +
+ include/block/block_int-common.h |  35 +++++++
+ job.c                            |   3 +-
  5 files changed, 214 insertions(+), 23 deletions(-)
  create mode 100644 block/backup-dump.c
 
@@ -193,7 +193,7 @@ index 0000000000..93d7f46950
 +    return bs;
 +}
 diff --git a/block/backup.c b/block/backup.c
-index 47e218857d..4d8fad70c4 100644
+index 07b899035c..7b5d02f580 100644
 --- a/block/backup.c
 +++ b/block/backup.c
 @@ -29,28 +29,6 @@
@@ -225,7 +225,7 @@ index 47e218857d..4d8fad70c4 100644
  static const BlockJobDriver backup_job_driver;
  
  static void backup_cleanup_sync_bitmap(BackupBlockJob *job, int ret)
-@@ -455,6 +433,14 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
+@@ -456,6 +434,14 @@ BlockJob *backup_job_create(const char *job_id, BlockDriverState *bs,
      }
  
      cluster_size = block_copy_cluster_size(bcs);
@@ -241,7 +241,7 @@ index 47e218857d..4d8fad70c4 100644
      if (perf->max_chunk && perf->max_chunk < cluster_size) {
          error_setg(errp, "Required max-chunk (%" PRIi64 ") is less than backup "
 diff --git a/block/meson.build b/block/meson.build
-index 72081a9974..7883df047c 100644
+index 819eb80951..067708b7c0 100644
 --- a/block/meson.build
 +++ b/block/meson.build
 @@ -4,6 +4,7 @@ block_ss.add(files(
@@ -252,10 +252,10 @@ index 72081a9974..7883df047c 100644
    'copy-before-write.c',
    'blkdebug.c',
    'blklogwrites.c',
-diff --git a/include/block/block_int.h b/include/block/block_int.h
-index f4c75e8ba9..169dc43d59 100644
---- a/include/block/block_int.h
-+++ b/include/block/block_int.h
+diff --git a/include/block/block_int-common.h b/include/block/block_int-common.h
+index 8947abab76..f272d0d8dc 100644
+--- a/include/block/block_int-common.h
++++ b/include/block/block_int-common.h
 @@ -26,6 +26,7 @@
  
  #include "block/accounting.h"
@@ -270,7 +270,7 @@ index f4c75e8ba9..169dc43d59 100644
  
 +typedef int BackupDumpFunc(void *opaque, uint64_t offset, uint64_t bytes, const void *buf);
 +
-+BlockDriverState *bdrv_backuo_dump_create(
++BlockDriverState *bdrv_backup_dump_create(
 +    int dump_cb_block_size,
 +    uint64_t byte_size,
 +    BackupDumpFunc *dump_cb,
@@ -306,7 +306,7 @@ index f4c75e8ba9..169dc43d59 100644
      BDRV_TRACKED_READ,
      BDRV_TRACKED_WRITE,
 diff --git a/job.c b/job.c
-index dbfa67bb0a..af25dd5b98 100644
+index 075c6f3a20..e5699ad200 100644
 --- a/job.c
 +++ b/job.c
 @@ -276,7 +276,8 @@ static bool job_started(Job *job)

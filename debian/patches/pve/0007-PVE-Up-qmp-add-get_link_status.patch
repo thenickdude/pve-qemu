@@ -49,7 +49,7 @@ index f0d14dbfc1..6d476c47ef 100644
  {
      NetClientState *nc;
 diff --git a/qapi/net.json b/qapi/net.json
-index 7fab2e7cd8..74c9a6109e 100644
+index b92f3f5fb4..52c7e1f82b 100644
 --- a/qapi/net.json
 +++ b/qapi/net.json
 @@ -35,6 +35,21 @@
@@ -75,10 +75,10 @@ index 7fab2e7cd8..74c9a6109e 100644
  # @netdev_add:
  #
 diff --git a/qapi/pragma.json b/qapi/pragma.json
-index 3bc0335d1f..7c91ea3685 100644
+index e6a021c19c..41139d8645 100644
 --- a/qapi/pragma.json
 +++ b/qapi/pragma.json
-@@ -22,6 +22,7 @@
+@@ -25,6 +25,7 @@
          'system_reset',
          'system_wakeup' ],
      'command-returns-exceptions': [

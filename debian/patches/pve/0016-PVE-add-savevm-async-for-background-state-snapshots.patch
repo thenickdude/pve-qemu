@@ -39,10 +39,10 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
  create mode 100644 migration/savevm-async.c
 
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index 407a1da800..245f8acc55 100644
+index adfa085a9b..925e680e5a 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
-@@ -536,6 +536,19 @@ SRST
+@@ -538,6 +538,19 @@ SRST
      Show current migration parameters.
  ERST
  
@@ -63,7 +63,7 @@ index 407a1da800..245f8acc55 100644
          .name       = "balloon",
          .args_type  = "",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 5efb47fc32..1ad13b668b 100644
+index 8476277aa9..7f0ac498c4 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
 @@ -1746,3 +1746,36 @@ ERST
@@ -138,7 +138,7 @@ index 96d014826a..3a39ba41b5 100644
  void hmp_screendump(Monitor *mon, const QDict *qdict);
  void hmp_chardev_add(Monitor *mon, const QDict *qdict);
 diff --git a/migration/meson.build b/migration/meson.build
-index f8714dcb15..ea9aedeefc 100644
+index 8b5ca5c047..1e2aec8486 100644
 --- a/migration/meson.build
 +++ b/migration/meson.build
 @@ -23,6 +23,7 @@ softmmu_ss.add(files(
@@ -754,10 +754,10 @@ index 0000000000..79a0cda906
 +    return ret;
 +}
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index e9fa9af6bd..5000ce39d1 100644
+index 5482dd0569..c64b959738 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
-@@ -1903,6 +1903,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
+@@ -1906,6 +1906,63 @@ void hmp_info_memory_devices(Monitor *mon, const QDict *qdict)
      hmp_handle_error(mon, err);
  }
  
@@ -822,10 +822,10 @@ index e9fa9af6bd..5000ce39d1 100644
  {
      IOThreadInfoList *info_list = qmp_query_iothreads(NULL);
 diff --git a/qapi/migration.json b/qapi/migration.json
-index bbfd48cf0b..45686390a2 100644
+index 27d7b28158..31d6cc902e 100644
 --- a/qapi/migration.json
 +++ b/qapi/migration.json
-@@ -247,6 +247,40 @@
+@@ -258,6 +258,40 @@
             '*compression': 'CompressionStats',
             '*socket-address': ['SocketAddress'] } }
  
@@ -867,7 +867,7 @@ index bbfd48cf0b..45686390a2 100644
  # @query-migrate:
  #
 diff --git a/qapi/misc.json b/qapi/misc.json
-index 358548abe1..25b3febc52 100644
+index b83cc39029..1e5dd7db29 100644
 --- a/qapi/misc.json
 +++ b/qapi/misc.json
 @@ -435,6 +435,38 @@
@@ -910,10 +910,10 @@ index 358548abe1..25b3febc52 100644
  # @CommandLineParameterType:
  #
 diff --git a/qemu-options.hx b/qemu-options.hx
-index ae2c6dbbfc..423144abeb 100644
+index 34e9b32a5c..aeade4ef80 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -4171,6 +4171,18 @@ SRST
+@@ -4254,6 +4254,18 @@ SRST
      Start right away with a saved state (``loadvm`` in monitor)
  ERST
  
@@ -933,10 +933,10 @@ index ae2c6dbbfc..423144abeb 100644
  DEF("daemonize", 0, QEMU_OPTION_daemonize, \
      "-daemonize      daemonize QEMU after initializing\n", QEMU_ARCH_ALL)
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 620a1f1367..fd82efb8b3 100644
+index 6f646531a0..a3f2a3818c 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -156,6 +156,7 @@ static const char *incoming;
+@@ -157,6 +157,7 @@ static const char *incoming;
  static const char *loadvm;
  static const char *accelerators;
  static QDict *machine_opts_dict;
@@ -944,7 +944,7 @@ index 620a1f1367..fd82efb8b3 100644
  static QTAILQ_HEAD(, ObjectOption) object_opts = QTAILQ_HEAD_INITIALIZER(object_opts);
  static QTAILQ_HEAD(, DeviceOption) device_opts = QTAILQ_HEAD_INITIALIZER(device_opts);
  static ram_addr_t maxram_size;
-@@ -2743,6 +2744,12 @@ void qmp_x_exit_preconfig(Error **errp)
+@@ -2749,6 +2750,12 @@ void qmp_x_exit_preconfig(Error **errp)
  
      if (loadvm) {
          load_snapshot(loadvm, NULL, false, NULL, &error_fatal);
@@ -957,7 +957,7 @@ index 620a1f1367..fd82efb8b3 100644
      }
      if (replay_mode != REPLAY_MODE_NONE) {
          replay_vmstate_init();
-@@ -3284,6 +3291,9 @@ void qemu_init(int argc, char **argv, char **envp)
+@@ -3289,6 +3296,9 @@ void qemu_init(int argc, char **argv, char **envp)
              case QEMU_OPTION_loadvm:
                  loadvm = optarg;
                  break;

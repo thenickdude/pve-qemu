@@ -13,7 +13,7 @@ Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
  5 files changed, 47 insertions(+), 9 deletions(-)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index 52ddbf95ad..69c868887a 100644
+index 4c799f00d9..0502f42be6 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
 @@ -1041,6 +1041,7 @@ void coroutine_fn hmp_backup(Monitor *mon, const QDict *qdict)
@@ -202,7 +202,7 @@ index 9f6c04a512..f6a5f8c785 100644
              backup_time,
              dump_cb_block_size,
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index d089328a1f..705f0c97ba 100644
+index 13e03ca154..89875f309c 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -821,6 +821,8 @@
@@ -222,7 +222,7 @@ index d089328a1f..705f0c97ba 100644
                                      '*backup-id': 'str',
                                      '*backup-time': 'int',
                                      '*use-dirty-bitmap': 'bool',
-@@ -3236,7 +3239,7 @@
+@@ -3256,7 +3259,7 @@
  { 'struct': 'BlockdevOptionsPbs',
    'data': { 'repository': 'str', 'snapshot': 'str', 'archive': 'str',
              '*keyfile': 'str', '*password': 'str', '*fingerprint': 'str',

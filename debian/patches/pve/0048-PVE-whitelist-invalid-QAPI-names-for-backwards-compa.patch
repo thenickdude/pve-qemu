@@ -10,10 +10,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/qapi/pragma.json b/qapi/pragma.json
-index 7c91ea3685..c3888d654c 100644
+index 41139d8645..a581acf7d4 100644
 --- a/qapi/pragma.json
 +++ b/qapi/pragma.json
-@@ -12,6 +12,7 @@
+@@ -15,6 +15,7 @@
          'device_add',
          'device_del',
          'expire_password',
@@ -21,7 +21,7 @@ index 7c91ea3685..c3888d654c 100644
          'migrate_cancel',
          'netdev_add',
          'netdev_del',
-@@ -60,6 +61,8 @@
+@@ -63,6 +64,8 @@
          'SysEmuTarget',             # query-cpu-fast, query-target
          'UuidInfo',                 # query-uuid
          'VncClientInfo',            # query-vnc, query-vnc-servers, ...

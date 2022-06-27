@@ -166,10 +166,10 @@ index 4f4ee2b47b..844d95a5ba 100644
      }
  
 diff --git a/vma.c b/vma.c
-index 89440733b1..21e765a469 100644
+index 91612d50a2..e1a750ff50 100644
 --- a/vma.c
 +++ b/vma.c
-@@ -138,6 +138,7 @@ typedef struct RestoreMap {
+@@ -139,6 +139,7 @@ typedef struct RestoreMap {
      char *throttling_group;
      char *cache;
      bool write_zero;
@@ -177,7 +177,7 @@ index 89440733b1..21e765a469 100644
  } RestoreMap;
  
  static bool try_parse_option(char **line, const char *optname, char **out, const char *inbuf) {
-@@ -245,47 +246,61 @@ static int extract_content(int argc, char **argv)
+@@ -246,47 +247,61 @@ static int extract_content(int argc, char **argv)
              char *bps = NULL;
              char *group = NULL;
              char *cache = NULL;
@@ -265,7 +265,7 @@ index 89440733b1..21e765a469 100644
              if (!devname) {
                  g_error("read map failed - no dev name specified ('%s')",
                          inbuf);
-@@ -299,6 +314,7 @@ static int extract_content(int argc, char **argv)
+@@ -300,6 +315,7 @@ static int extract_content(int argc, char **argv)
              map->throttling_group = group;
              map->cache = cache;
              map->write_zero = write_zero;
@@ -273,7 +273,7 @@ index 89440733b1..21e765a469 100644
  
              g_hash_table_insert(devmap, map->devname, map);
  
-@@ -328,6 +344,7 @@ static int extract_content(int argc, char **argv)
+@@ -329,6 +345,7 @@ static int extract_content(int argc, char **argv)
              const char *cache = NULL;
              int flags = BDRV_O_RDWR;
              bool write_zero = true;
@@ -281,7 +281,7 @@ index 89440733b1..21e765a469 100644
  
              BlockBackend *blk = NULL;
  
-@@ -343,6 +360,7 @@ static int extract_content(int argc, char **argv)
+@@ -344,6 +361,7 @@ static int extract_content(int argc, char **argv)
                  throttling_group = map->throttling_group;
                  cache = map->cache;
                  write_zero = map->write_zero;
@@ -289,7 +289,7 @@ index 89440733b1..21e765a469 100644
              } else {
                  devfn = g_strdup_printf("%s/tmp-disk-%s.raw",
                                          dirname, di->devname);
-@@ -361,57 +379,60 @@ static int extract_content(int argc, char **argv)
+@@ -362,57 +380,60 @@ static int extract_content(int argc, char **argv)
                  write_zero = false;
              }
  

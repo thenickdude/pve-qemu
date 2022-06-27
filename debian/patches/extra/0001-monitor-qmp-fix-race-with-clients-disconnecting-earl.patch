@@ -48,7 +48,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  6 files changed, 59 insertions(+), 5 deletions(-)
 
 diff --git a/include/monitor/monitor.h b/include/monitor/monitor.h
-index 12d395d62d..b182943324 100644
+index cc4cc6c6ad..82f649d9ab 100644
 --- a/include/monitor/monitor.h
 +++ b/include/monitor/monitor.h
 @@ -16,6 +16,7 @@ extern QemuOptsList qemu_mon_opts;
@@ -60,10 +60,10 @@ index 12d395d62d..b182943324 100644
  void monitor_init_globals(void);
  void monitor_init_globals_core(void);
 diff --git a/monitor/monitor-internal.h b/monitor/monitor-internal.h
-index 3da3f86c6a..9953e0cd2d 100644
+index caa2e90ef2..e1596f79ab 100644
 --- a/monitor/monitor-internal.h
 +++ b/monitor/monitor-internal.h
-@@ -151,6 +151,13 @@ typedef struct {
+@@ -152,6 +152,13 @@ typedef struct {
      QemuMutex qmp_queue_lock;
      /* Input queue that holds all the parsed QMP requests */
      GQueue *qmp_requests;
@@ -144,10 +144,10 @@ index 092c527b6f..6b8cfcf6d8 100644
          monitor_qmp_caps_reset(mon);
          data = qmp_greeting(mon);
 diff --git a/qapi/qmp-dispatch.c b/qapi/qmp-dispatch.c
-index d378bccac7..fb8936e7cd 100644
+index 0990873ec8..e605003771 100644
 --- a/qapi/qmp-dispatch.c
 +++ b/qapi/qmp-dispatch.c
-@@ -118,16 +118,28 @@ typedef struct QmpDispatchBH {
+@@ -117,16 +117,28 @@ typedef struct QmpDispatchBH {
      QObject **ret;
      Error **errp;
      Coroutine *co;
@@ -180,7 +180,7 @@ index d378bccac7..fb8936e7cd 100644
      aio_co_wake(data->co);
  }
  
-@@ -232,6 +244,7 @@ QDict *qmp_dispatch(const QmpCommandList *cmds, QObject *request,
+@@ -231,6 +243,7 @@ QDict *qmp_dispatch(const QmpCommandList *cmds, QObject *request,
              .ret        = &ret,
              .errp       = &err,
              .co         = qemu_coroutine_self(),

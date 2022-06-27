@@ -15,7 +15,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  3 files changed, 159 insertions(+), 42 deletions(-)
 
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index cfd7a60f32..b613190a3c 100644
+index c5c74ac1dc..df273f41fb 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -198,6 +198,7 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
@@ -359,7 +359,7 @@ index 4684789813..f90abaa50a 100644
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index cfd980b70f..8833060385 100644
+index 7d25aa4fa1..69571d86eb 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -875,6 +875,8 @@

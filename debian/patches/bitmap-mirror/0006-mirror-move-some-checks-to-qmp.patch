@@ -19,10 +19,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  3 files changed, 70 insertions(+), 59 deletions(-)
 
 diff --git a/block/mirror.c b/block/mirror.c
-index 7024f3bbf0..6211ff22fc 100644
+index e04a3ea6f4..4feec2a002 100644
 --- a/block/mirror.c
 +++ b/block/mirror.c
-@@ -1643,31 +1643,13 @@ static BlockJob *mirror_start_job(
+@@ -1634,31 +1634,13 @@ static BlockJob *mirror_start_job(
      uint64_t target_perms, target_shared_perms;
      int ret;
  
@@ -60,10 +60,10 @@ index 7024f3bbf0..6211ff22fc 100644
  
          if (bitmap_mode != BITMAP_SYNC_MODE_NEVER) {
 diff --git a/blockdev.c b/blockdev.c
-index b113e57d68..4be0863050 100644
+index 93fd0a61a4..1af5a1fcb2 100644
 --- a/blockdev.c
 +++ b/blockdev.c
-@@ -3034,7 +3034,36 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
+@@ -3029,7 +3029,36 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
          sync = MIRROR_SYNC_MODE_FULL;
      }
  

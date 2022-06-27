@@ -29,7 +29,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  6 files changed, 142 insertions(+), 23 deletions(-)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index f6668ab01d..3c06734e6d 100644
+index 89ca64444d..45da74d7a0 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
 @@ -1042,6 +1042,7 @@ void hmp_backup(Monitor *mon, const QDict *qdict)
@@ -41,7 +41,7 @@ index f6668ab01d..3c06734e6d 100644
          false, NULL, false, NULL, !!devlist,
          devlist, qdict_haskey(qdict, "speed"), speed, &error);
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index b2687eae3a..cfd7a60f32 100644
+index ef654221c4..c5c74ac1dc 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -221,19 +221,42 @@ void hmp_info_backup(Monitor *mon, const QDict *qdict)
@@ -405,7 +405,7 @@ index 88f5ee133f..1c49cd178d 100644
      qemu_mutex_unlock(&backup_state.stat.lock);
  
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 551ee28275..b9d6f52f0c 100644
+index ffcc25367b..b332d8a8da 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -757,8 +757,13 @@

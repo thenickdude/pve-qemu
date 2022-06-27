@@ -10,20 +10,20 @@ Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
  block/meson.build |   2 +
  meson.build       |   5 +
  vma-reader.c      | 860 ++++++++++++++++++++++++++++++++++++++++++++++
- vma-writer.c      | 790 ++++++++++++++++++++++++++++++++++++++++++
- vma.c             | 849 +++++++++++++++++++++++++++++++++++++++++++++
+ vma-writer.c      | 791 ++++++++++++++++++++++++++++++++++++++++++
+ vma.c             | 850 +++++++++++++++++++++++++++++++++++++++++++++
  vma.h             | 150 ++++++++
- 6 files changed, 2656 insertions(+)
+ 6 files changed, 2658 insertions(+)
  create mode 100644 vma-reader.c
  create mode 100644 vma-writer.c
  create mode 100644 vma.c
  create mode 100644 vma.h
 
 diff --git a/block/meson.build b/block/meson.build
-index c9d1fdca7d..72081a9974 100644
+index 9451fc3ccd..819eb80951 100644
 --- a/block/meson.build
 +++ b/block/meson.build
-@@ -44,6 +44,8 @@ block_ss.add(files(
+@@ -46,6 +46,8 @@ block_ss.add(files(
    'zeroinit.c',
  ), zstd, zlib, gnutls)
  
@@ -31,12 +31,12 @@ index c9d1fdca7d..72081a9974 100644
 +
  softmmu_ss.add(when: 'CONFIG_TCG', if_true: files('blkreplay.c'))
  
- block_ss.add(when: 'CONFIG_QCOW1', if_true: files('qcow.c'))
+ if get_option('qcow1').allowed()
 diff --git a/meson.build b/meson.build
-index 96de1a6ef9..54c23b9567 100644
+index 861de93c4f..96a91b95e4 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -1202,6 +1202,8 @@ keyutils = dependency('libkeyutils', required: false,
+@@ -1267,6 +1267,8 @@ keyutils = dependency('libkeyutils', required: false,
  
  has_gettid = cc.has_function('gettid')
  
@@ -45,7 +45,7 @@ index 96de1a6ef9..54c23b9567 100644
  # libselinux
  selinux = dependency('libselinux',
                       required: get_option('selinux'),
-@@ -3070,6 +3072,9 @@ if have_tools
+@@ -3359,6 +3361,9 @@ if have_tools
                 dependencies: [blockdev, qemuutil, gnutls, selinux],
                 install: true)
  
@@ -923,10 +923,10 @@ index 0000000000..4f4ee2b47b
 +
 diff --git a/vma-writer.c b/vma-writer.c
 new file mode 100644
-index 0000000000..11d8321ffd
+index 0000000000..df4b20793d
 --- /dev/null
 +++ b/vma-writer.c
-@@ -0,0 +1,790 @@
+@@ -0,0 +1,791 @@
 +/*
 + * VMA: Virtual Machine Archive
 + *
@@ -950,6 +950,7 @@ index 0000000000..11d8321ffd
 +#include "qemu/main-loop.h"
 +#include "qemu/coroutine.h"
 +#include "qemu/cutils.h"
++#include "qemu/memalign.h"
 +
 +#define DEBUG_VMA 0
 +
@@ -1133,9 +1134,9 @@ index 0000000000..11d8321ffd
 +    assert(qemu_in_coroutine());
 +    AioContext *ctx = qemu_get_current_aio_context();
 +    aio_set_fd_handler(ctx, fd, false, NULL, (IOHandler *)qemu_coroutine_enter,
-+                       NULL, qemu_coroutine_self());
++                       NULL, NULL, qemu_coroutine_self());
 +    qemu_coroutine_yield();
-+    aio_set_fd_handler(ctx, fd, false, NULL, NULL, NULL, NULL);
++    aio_set_fd_handler(ctx, fd, false, NULL, NULL, NULL, NULL, NULL);
 +}
 +
 +static ssize_t coroutine_fn
@@ -1719,10 +1720,10 @@ index 0000000000..11d8321ffd
 +}
 diff --git a/vma.c b/vma.c
 new file mode 100644
-index 0000000000..89440733b1
+index 0000000000..91612d50a2
 --- /dev/null
 +++ b/vma.c
-@@ -0,0 +1,849 @@
+@@ -0,0 +1,850 @@
 +/*
 + * VMA: Virtual Machine Archive
 + *
@@ -1745,6 +1746,7 @@ index 0000000000..89440733b1
 +#include "qemu/error-report.h"
 +#include "qemu/main-loop.h"
 +#include "qemu/cutils.h"
++#include "qemu/memalign.h"
 +#include "qapi/qmp/qdict.h"
 +#include "sysemu/block-backend.h"
 +

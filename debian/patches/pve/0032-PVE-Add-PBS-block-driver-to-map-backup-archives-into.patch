@@ -19,10 +19,10 @@ Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
  create mode 100644 block/pbs.c
 
 diff --git a/block/meson.build b/block/meson.build
-index 9d3dd5b7c3..8c758c0218 100644
+index 42aac96dbb..f94cc0cd25 100644
 --- a/block/meson.build
 +++ b/block/meson.build
-@@ -51,6 +51,9 @@ block_ss.add(files(
+@@ -53,6 +53,9 @@ block_ss.add(files(
    '../pve-backup.c',
  ), libproxmox_backup_qemu)
  
@@ -315,20 +315,20 @@ index 0000000000..0b05ea9080
 +
 +block_init(bdrv_pbs_init);
 diff --git a/configure b/configure
-index 48c21775f3..eda4e9225a 100755
+index 7c08c18358..08d164b4f5 100755
 --- a/configure
 +++ b/configure
-@@ -356,6 +356,7 @@ vdi=${default_feature:-yes}
- vvfat=${default_feature:-yes}
- qed=${default_feature:-yes}
- parallels=${default_feature:-yes}
+@@ -325,6 +325,7 @@ trace_file="trace"
+ opengl="$default_feature"
+ coroutine=""
+ tls_priority="NORMAL"
 +pbs_bdrv="yes"
- debug_mutex="no"
  plugins="$default_feature"
- rng_none="no"
-@@ -1126,6 +1127,10 @@ for opt do
+ secret_keyring="$default_feature"
+ meson=""
+@@ -991,6 +992,10 @@ for opt do
    ;;
-   --enable-parallels) parallels="yes"
+   --disable-pvrdma) pvrdma="no"
    ;;
 +  --disable-pbs-bdrv) pbs_bdrv="no"
 +  ;;
@@ -337,15 +337,15 @@ index 48c21775f3..eda4e9225a 100755
    --disable-vhost-user) vhost_user="no"
    ;;
    --enable-vhost-user) vhost_user="yes"
-@@ -1465,6 +1470,7 @@ cat << EOF
-   vvfat           vvfat image format support
-   qed             qed image format support
-   parallels       parallels image format support
+@@ -1265,6 +1270,7 @@ cat << EOF
+   vhost-user      vhost-user backend support
+   vhost-vdpa      vhost-vdpa kernel backend support
+   opengl          opengl support
 +  pbs-bdrv        Proxmox backup server read-only block driver support
-   crypto-afalg    Linux AF_ALG crypto backend driver
-   debug-mutex     mutex debugging support
-   rng-none        dummy RNG, avoid using /dev/(u)random and getrandom()
-@@ -3534,6 +3540,9 @@ if test "$xen" = "enabled" ; then
+   gio             libgio support
+ 
+ NOTE: The object files are built at the place where configure is launched
+@@ -2848,6 +2854,9 @@ if test "$xen" = "enabled" ; then
    echo "XEN_CFLAGS=$xen_cflags" >> $config_host_mak
    echo "XEN_LIBS=$xen_libs" >> $config_host_mak
  fi
@@ -356,22 +356,22 @@ index 48c21775f3..eda4e9225a 100755
    echo "CONFIG_VHOST_SCSI=y" >> $config_host_mak
  fi
 diff --git a/meson.build b/meson.build
-index 1a4dfab4e2..85b3c63199 100644
+index 9476ccbe07..d3783a83e4 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -3448,6 +3448,7 @@ summary_info += {'lzfse support':     liblzfse}
+@@ -3743,6 +3743,7 @@ summary_info += {'bzip2 support':     libbzip2}
+ summary_info += {'lzfse support':     liblzfse}
  summary_info += {'zstd support':      zstd}
- summary_info += {'NUMA host support': config_host.has_key('CONFIG_NUMA')}
- summary_info += {'libxml2':           libxml2}
+ summary_info += {'NUMA host support': numa}
 +summary_info += {'PBS bdrv support':  config_host.has_key('CONFIG_PBS_BDRV')}
  summary_info += {'capstone':          capstone_opt == 'internal' ? capstone_opt : capstone}
  summary_info += {'libpmem support':   libpmem}
  summary_info += {'libdaxctl support': libdaxctl}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 5d8e2eb303..777863e33b 100644
+index abef91062a..68591cb343 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -3053,6 +3053,7 @@
+@@ -3073,6 +3073,7 @@
              'luks', 'nbd', 'nfs', 'null-aio', 'null-co', 'nvme', 'parallels',
              'preallocate', 'qcow', 'qcow2', 'qed', 'quorum', 'raw', 'rbd',
              { 'name': 'replication', 'if': 'CONFIG_REPLICATION' },
@@ -379,7 +379,7 @@ index 5d8e2eb303..777863e33b 100644
              'ssh', 'throttle', 'vdi', 'vhdx', 'vmdk', 'vpc', 'vvfat' ] }
  
  ##
-@@ -3125,6 +3126,17 @@
+@@ -3145,6 +3146,17 @@
  { 'struct': 'BlockdevOptionsNull',
    'data': { '*size': 'int', '*latency-ns': 'uint64', '*read-zeroes': 'bool' } }
  
@@ -397,7 +397,7 @@ index 5d8e2eb303..777863e33b 100644
  ##
  # @BlockdevOptionsNVMe:
  #
-@@ -4367,6 +4379,7 @@
+@@ -4405,6 +4417,7 @@
        'nfs':        'BlockdevOptionsNfs',
        'null-aio':   'BlockdevOptionsNull',
        'null-co':    'BlockdevOptionsNull',

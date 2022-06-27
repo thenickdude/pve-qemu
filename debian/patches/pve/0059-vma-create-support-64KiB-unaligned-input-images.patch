@@ -25,10 +25,10 @@ Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
  1 file changed, 10 insertions(+), 2 deletions(-)
 
 diff --git a/vma.c b/vma.c
-index 21e765a469..6d02b29047 100644
+index e1a750ff50..b1137e27a7 100644
 --- a/vma.c
 +++ b/vma.c
-@@ -548,7 +548,7 @@ static void coroutine_fn backup_run(void *opaque)
+@@ -549,7 +549,7 @@ static void coroutine_fn backup_run(void *opaque)
      struct iovec iov;
      QEMUIOVector qiov;
  
@@ -37,7 +37,7 @@ index 21e765a469..6d02b29047 100644
      int ret = 0;
  
      unsigned char *buf = blk_blockalign(job->target, VMA_CLUSTER_SIZE);
-@@ -562,8 +562,16 @@ static void coroutine_fn backup_run(void *opaque)
+@@ -563,8 +563,16 @@ static void coroutine_fn backup_run(void *opaque)
          iov.iov_len = VMA_CLUSTER_SIZE;
          qemu_iovec_init_external(&qiov, &iov, 1);
  

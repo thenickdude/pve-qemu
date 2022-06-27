@@ -481,7 +481,7 @@ index 63c686463f..6f05796fad 100644
      qemu_mutex_unlock(&backup_state.stat.lock);
  
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 8833060385..6a67adf923 100644
+index 69571d86eb..e6c3687bea 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -774,12 +774,15 @@

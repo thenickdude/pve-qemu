@@ -15,7 +15,6 @@ Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
  blockdev.c                     |   1 +
  hmp-commands-info.hx           |  14 +
  hmp-commands.hx                |  29 +
- include/block/block_int.h      |   2 +-
  include/monitor/hmp.h          |   3 +
  meson.build                    |   1 +
  monitor/hmp-cmds.c             |  44 ++
@@ -25,16 +24,16 @@ Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
  qapi/block-core.json           | 109 ++++
  qapi/common.json               |  13 +
  qapi/machine.json              |  15 +-
- 15 files changed, 1449 insertions(+), 14 deletions(-)
+ 14 files changed, 1448 insertions(+), 13 deletions(-)
  create mode 100644 proxmox-backup-client.c
  create mode 100644 proxmox-backup-client.h
  create mode 100644 pve-backup.c
 
 diff --git a/block/meson.build b/block/meson.build
-index 7883df047c..9d3dd5b7c3 100644
+index 067708b7c0..42aac96dbb 100644
 --- a/block/meson.build
 +++ b/block/meson.build
-@@ -46,6 +46,11 @@ block_ss.add(files(
+@@ -48,6 +48,11 @@ block_ss.add(files(
  ), zstd, zlib, gnutls)
  
  block_ss.add(files('../vma-writer.c'), libuuid)
@@ -47,7 +46,7 @@ index 7883df047c..9d3dd5b7c3 100644
  softmmu_ss.add(when: 'CONFIG_TCG', if_true: files('blkreplay.c'))
  
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index 2ac4aedfff..f6668ab01d 100644
+index bfb3c043a0..89ca64444d 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
 @@ -1015,3 +1015,36 @@ void hmp_info_snapshots(Monitor *mon, const QDict *qdict)
@@ -88,7 +87,7 @@ index 2ac4aedfff..f6668ab01d 100644
 +    hmp_handle_error(mon, error);
 +}
 diff --git a/blockdev.c b/blockdev.c
-index b35072644e..c0bc3db33e 100644
+index 1af5a1fcb2..9916a72334 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -36,6 +36,7 @@
@@ -100,10 +99,10 @@ index b35072644e..c0bc3db33e 100644
  #include "monitor/monitor.h"
  #include "qemu/error-report.h"
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
-index 245f8acc55..3e7f2421eb 100644
+index 925e680e5a..d9b787d2c6 100644
 --- a/hmp-commands-info.hx
 +++ b/hmp-commands-info.hx
-@@ -482,6 +482,20 @@ SRST
+@@ -484,6 +484,20 @@ SRST
      Show the current VM UUID.
  ERST
  
@@ -125,7 +124,7 @@ index 245f8acc55..3e7f2421eb 100644
      {
          .name       = "usernet",
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 1ad13b668b..d4bb00216e 100644
+index 7f0ac498c4..994445f301 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
 @@ -99,6 +99,35 @@ ERST
@@ -164,19 +163,6 @@ index 1ad13b668b..d4bb00216e 100644
  ERST
  
      {
-diff --git a/include/block/block_int.h b/include/block/block_int.h
-index 169dc43d59..92f90c43eb 100644
---- a/include/block/block_int.h
-+++ b/include/block/block_int.h
-@@ -67,7 +67,7 @@
- 
- typedef int BackupDumpFunc(void *opaque, uint64_t offset, uint64_t bytes, const void *buf);
- 
--BlockDriverState *bdrv_backuo_dump_create(
-+BlockDriverState *bdrv_backup_dump_create(
-     int dump_cb_block_size,
-     uint64_t byte_size,
-     BackupDumpFunc *dump_cb,
 diff --git a/include/monitor/hmp.h b/include/monitor/hmp.h
 index 3a39ba41b5..d269b4c99c 100644
 --- a/include/monitor/hmp.h
@@ -199,10 +185,10 @@ index 3a39ba41b5..d269b4c99c 100644
  void hmp_device_add(Monitor *mon, const QDict *qdict);
  void hmp_device_del(Monitor *mon, const QDict *qdict);
 diff --git a/meson.build b/meson.build
-index 54c23b9567..37dab249cc 100644
+index 96a91b95e4..76fcb23299 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -1203,6 +1203,7 @@ keyutils = dependency('libkeyutils', required: false,
+@@ -1268,6 +1268,7 @@ keyutils = dependency('libkeyutils', required: false,
  has_gettid = cc.has_function('gettid')
  
  libuuid = cc.find_library('uuid', required: true)
@@ -211,7 +197,7 @@ index 54c23b9567..37dab249cc 100644
  # libselinux
  selinux = dependency('libselinux',
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index 5000ce39d1..b2687eae3a 100644
+index c64b959738..ef654221c4 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
 @@ -195,6 +195,50 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
@@ -1478,7 +1464,7 @@ index 0000000000..88f5ee133f
 +    return info;
 +}
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 3f81d6a5c0..551ee28275 100644
+index 564b6b43f7..ffcc25367b 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -744,6 +744,115 @@
@@ -1619,7 +1605,7 @@ index 412cc4f5ae..3e7a77ea66 100644
 +##
 +{ 'struct': 'UuidInfo', 'data': {'UUID': 'str'} }
 diff --git a/qapi/machine.json b/qapi/machine.json
-index a05c46e253..e2cec7922f 100644
+index 39ba204b52..091aafeff7 100644
 --- a/qapi/machine.json
 +++ b/qapi/machine.json
 @@ -4,6 +4,8 @@
@@ -1631,7 +1617,7 @@ index a05c46e253..e2cec7922f 100644
  ##
  # = Machines
  ##
-@@ -229,19 +231,6 @@
+@@ -227,19 +229,6 @@
  ##
  { 'command': 'query-target', 'returns': 'TargetInfo' }
  

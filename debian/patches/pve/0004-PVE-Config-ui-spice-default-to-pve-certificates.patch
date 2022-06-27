@@ -9,7 +9,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 9 insertions(+), 6 deletions(-)
 
 diff --git a/ui/spice-core.c b/ui/spice-core.c
-index 31974b8d6c..a3acdbd682 100644
+index c3ac20ad43..37774f1c0a 100644
 --- a/ui/spice-core.c
 +++ b/ui/spice-core.c
 @@ -689,32 +689,35 @@ static void qemu_spice_init(void)

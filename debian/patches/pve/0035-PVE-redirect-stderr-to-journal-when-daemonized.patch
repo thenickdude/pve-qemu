@@ -14,10 +14,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  2 files changed, 7 insertions(+), 2 deletions(-)
 
 diff --git a/meson.build b/meson.build
-index 85b3c63199..31ba7d70d6 100644
+index d3783a83e4..715245ba20 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -1203,6 +1203,7 @@ keyutils = dependency('libkeyutils', required: false,
+@@ -1268,6 +1268,7 @@ keyutils = dependency('libkeyutils', required: false,
  has_gettid = cc.has_function('gettid')
  
  libuuid = cc.find_library('uuid', required: true)
@@ -25,7 +25,7 @@ index 85b3c63199..31ba7d70d6 100644
  libproxmox_backup_qemu = cc.find_library('proxmox_backup_qemu', required: true)
  
  # libselinux
-@@ -2571,6 +2572,7 @@ if have_block
+@@ -2861,6 +2862,7 @@ if have_block
    # os-posix.c contains POSIX-specific functions used by qemu-storage-daemon,
    # os-win32.c does not
    blockdev_ss.add(when: 'CONFIG_POSIX', if_true: files('os-posix.c'))
@@ -34,7 +34,7 @@ index 85b3c63199..31ba7d70d6 100644
  endif
  
 diff --git a/os-posix.c b/os-posix.c
-index ae6c9f2a5e..36807806bf 100644
+index 24692c8593..d1bc5ac12d 100644
 --- a/os-posix.c
 +++ b/os-posix.c
 @@ -28,6 +28,8 @@

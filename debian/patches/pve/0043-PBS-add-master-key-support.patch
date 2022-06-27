@@ -19,7 +19,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  3 files changed, 11 insertions(+)
 
 diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
-index c9849a5b29..52ddbf95ad 100644
+index ef45552e3b..4c799f00d9 100644
 --- a/block/monitor/block-hmp-cmds.c
 +++ b/block/monitor/block-hmp-cmds.c
 @@ -1039,6 +1039,7 @@ void coroutine_fn hmp_backup(Monitor *mon, const QDict *qdict)
@@ -58,7 +58,7 @@ index 323014744c..9f6c04a512 100644
      return ret;
  }
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index 829dc7b8e9..d089328a1f 100644
+index f0399bf249..13e03ca154 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
 @@ -817,6 +817,8 @@

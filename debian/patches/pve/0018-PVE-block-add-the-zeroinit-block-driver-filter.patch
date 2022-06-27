@@ -13,10 +13,10 @@ Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
  create mode 100644 block/zeroinit.c
 
 diff --git a/block/meson.build b/block/meson.build
-index deb73ca389..c9d1fdca7d 100644
+index 0b2a60c99b..9451fc3ccd 100644
 --- a/block/meson.build
 +++ b/block/meson.build
-@@ -41,6 +41,7 @@ block_ss.add(files(
+@@ -43,6 +43,7 @@ block_ss.add(files(
    'vmdk.c',
    'vpc.c',
    'write-threshold.c',
