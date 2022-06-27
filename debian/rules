@@ -58,7 +58,6 @@ ${BUILDDIR}/config.status: configure
 	--disable-guest-agent-msi \
 	--disable-libnfs \
 	--disable-libssh \
-	--disable-libxml2 \
 	--disable-sdl \
 	--disable-smartcard \
 	--disable-strip \
@@ -80,7 +79,6 @@ ${BUILDDIR}/config.status: configure
 	--enable-virglrenderer \
 	--enable-virtfs \
 	--enable-virtiofsd \
-	--enable-xfsctl \
 	--enable-zstd
 
 build: build-stamp
