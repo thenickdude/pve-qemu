@@ -132,8 +132,8 @@ install: build
 	# remove Alpha files
 	rm $(destdir)/usr/share/kvm/palcode-clipper
 	# remove RISC-V files
-	rm $(destdir)/usr/share/kvm/opensbi-riscv32-generic-fw_dynamic.elf
-	rm $(destdir)/usr/share/kvm/opensbi-riscv64-generic-fw_dynamic.elf
+	rm $(destdir)/usr/share/kvm/opensbi-riscv32-generic-fw_dynamic.bin
+	rm $(destdir)/usr/share/kvm/opensbi-riscv64-generic-fw_dynamic.bin
 
 	# Remove things we don't package at all, would be a "kvm-dev" package
 	rm -Rf $(destdir)/usr/include/linux/
