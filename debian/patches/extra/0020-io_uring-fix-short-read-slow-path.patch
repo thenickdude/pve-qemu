@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Dominique Martinet <dominique.martinet@atmark-techno.com>
+Date: Thu, 30 Jun 2022 10:01:37 +0900
+Subject: [PATCH] io_uring: fix short read slow path
+
+sqeq.off here is the offset to read within the disk image, so obviously
+not 'nread' (the amount we just read), but as the author meant to write
+its current value incremented by the amount we just read.
+
+Normally recent versions of linux will not issue short reads,
+but it can happen so we should fix this.
+
+This lead to weird image corruptions when short read happened
+
+Fixes: 6663a0a33764 ("block/io_uring: implements interfaces for io_uring")
+Link: https://lkml.kernel.org/r/YrrFGO4A1jS0GI0G@atmark-techno.com
+Signed-off-by: Dominique Martinet <dominique.martinet@atmark-techno.com>
+Message-Id: <20220630010137.2518851-1-dominique.martinet@atmark-techno.com>
+Reviewed-by: Hanna Reitz <hreitz@redhat.com>
+Reviewed-by: Stefano Garzarella <sgarzare@redhat.com>
+Signed-off-by: Stefan Hajnoczi <stefanha@redhat.com>
+(cherry-picked from commit c06fc7ce147e57ab493bad9263f1601b8298484b)
+Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+---
+ block/io_uring.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/block/io_uring.c b/block/io_uring.c
+index 782afdb433..e451e55de0 100644
+--- a/block/io_uring.c
++++ b/block/io_uring.c
+@@ -89,7 +89,7 @@ static void luring_resubmit_short_read(LuringState *s, LuringAIOCB *luringcb,
+     trace_luring_resubmit_short_read(s, luringcb, nread);
+ 
+     /* Update read position */
+-    luringcb->total_read = nread;
++    luringcb->total_read += nread;
+     remaining = luringcb->qiov->size - luringcb->total_read;
+ 
+     /* Shorten qiov */
+@@ -103,7 +103,7 @@ static void luring_resubmit_short_read(LuringState *s, LuringAIOCB *luringcb,
+                       remaining);
+ 
+     /* Update sqe */
+-    luringcb->sqeq.off = nread;
++    luringcb->sqeq.off += nread;
+     luringcb->sqeq.addr = (__u64)(uintptr_t)luringcb->resubmit_qiov.iov;
+     luringcb->sqeq.len = luringcb->resubmit_qiov.niov;
+ 

@@ -17,6 +17,8 @@ extra/0016-vdpa-Fix-bad-index-calculus-at-vhost_vdpa_get_vring_.patch
 extra/0017-vdpa-Fix-index-calculus-at-vhost_vdpa_svqs_start.patch
 extra/0018-hw-virtio-Replace-g_memdup-by-g_memdup2.patch
 extra/0019-vhost-Fix-element-in-vhost_svq_add-failure.patch
+extra/0020-io_uring-fix-short-read-slow-path.patch
+extra/0021-e1000-set-RX-descriptor-status-in-a-separate-operati.patch
 bitmap-mirror/0001-drive-mirror-add-support-for-sync-bitmap-mode-never.patch
 bitmap-mirror/0002-drive-mirror-add-support-for-conditional-and-always-.patch
 bitmap-mirror/0003-mirror-add-check-for-bitmap-mode-without-bitmap.patch
