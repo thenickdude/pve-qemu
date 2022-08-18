@@ -23,19 +23,21 @@ Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
 Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
 [improve aborting]
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+[FE: further improve aborting]
+Signed-off-by: Fiona Ebner <f.ebner@proxmox.com>
 ---
  hmp-commands-info.hx         |  13 +
  hmp-commands.hx              |  33 ++
  include/migration/snapshot.h |   2 +
  include/monitor/hmp.h        |   5 +
  migration/meson.build        |   1 +
- migration/savevm-async.c     | 598 +++++++++++++++++++++++++++++++++++
+ migration/savevm-async.c     | 596 +++++++++++++++++++++++++++++++++++
  monitor/hmp-cmds.c           |  57 ++++
  qapi/migration.json          |  34 ++
  qapi/misc.json               |  32 ++
  qemu-options.hx              |  12 +
  softmmu/vl.c                 |  10 +
- 11 files changed, 797 insertions(+)
+ 11 files changed, 795 insertions(+)
  create mode 100644 migration/savevm-async.c
 
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
@@ -151,10 +153,10 @@ index 8b5ca5c047..1e2aec8486 100644
  ), gnutls)
 diff --git a/migration/savevm-async.c b/migration/savevm-async.c
 new file mode 100644
-index 0000000000..79a0cda906
+index 0000000000..88215cdb70
 --- /dev/null
 +++ b/migration/savevm-async.c
-@@ -0,0 +1,598 @@
+@@ -0,0 +1,596 @@
 +#include "qemu/osdep.h"
 +#include "migration/migration.h"
 +#include "migration/savevm.h"
@@ -210,7 +212,7 @@ index 0000000000..79a0cda906
 +    int64_t total_time;
 +    QEMUBH *finalize_bh;
 +    Coroutine *co;
-+    QemuCoSleep *target_close_wait;
++    QemuCoSleep target_close_wait;
 +} snap_state;
 +
 +static bool savevm_aborted(void)
@@ -285,9 +287,7 @@ index 0000000000..79a0cda906
 +        blk_unref(snap_state.target);
 +        snap_state.target = NULL;
 +
-+        if (snap_state.target_close_wait) {
-+            qemu_co_sleep_wake(snap_state.target_close_wait);
-+        }
++        qemu_co_sleep_wake(&snap_state.target_close_wait);
 +    }
 +
 +    return ret;
@@ -549,6 +549,7 @@ index 0000000000..79a0cda906
 +    snap_state.bs_pos = 0;
 +    snap_state.total_time = qemu_clock_get_ms(QEMU_CLOCK_REALTIME);
 +    snap_state.blocker = NULL;
++    snap_state.target_close_wait.to_wake = NULL;
 +
 +    if (snap_state.error) {
 +        error_free(snap_state.error);
@@ -653,9 +654,8 @@ index 0000000000..79a0cda906
 +     * call exits the statefile will be closed and can be removed immediately */
 +    DPRINTF("savevm-end: waiting for cleanup\n");
 +    timeout = 30L * 1000 * 1000 * 1000;
-+    qemu_co_sleep_ns_wakeable(snap_state.target_close_wait,
++    qemu_co_sleep_ns_wakeable(&snap_state.target_close_wait,
 +                              QEMU_CLOCK_REALTIME, timeout);
-+    snap_state.target_close_wait = NULL;
 +    if (snap_state.target) {
 +        save_snapshot_error("timeout waiting for target file close in "
 +                            "qmp_savevm_end");

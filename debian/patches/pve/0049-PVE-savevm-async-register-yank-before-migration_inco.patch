@@ -11,7 +11,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 5 insertions(+)
 
 diff --git a/migration/savevm-async.c b/migration/savevm-async.c
-index 970ee3b3fc..b3ccc069f1 100644
+index 615a4484c8..161b4b9985 100644
 --- a/migration/savevm-async.c
 +++ b/migration/savevm-async.c
 @@ -19,6 +19,7 @@
@@ -22,7 +22,7 @@ index 970ee3b3fc..b3ccc069f1 100644
  
  /* #define DEBUG_SAVEVM_STATE */
  
-@@ -580,6 +581,10 @@ int load_snapshot_from_blockdev(const char *filename, Error **errp)
+@@ -578,6 +579,10 @@ int load_snapshot_from_blockdev(const char *filename, Error **errp)
      dirty_bitmap_mig_before_vm_start();
  
      qemu_fclose(f);
