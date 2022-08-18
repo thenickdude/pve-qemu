@@ -31,13 +31,13 @@ Signed-off-by: Fiona Ebner <f.ebner@proxmox.com>
  include/migration/snapshot.h |   2 +
  include/monitor/hmp.h        |   5 +
  migration/meson.build        |   1 +
- migration/savevm-async.c     | 596 +++++++++++++++++++++++++++++++++++
+ migration/savevm-async.c     | 604 +++++++++++++++++++++++++++++++++++
  monitor/hmp-cmds.c           |  57 ++++
  qapi/migration.json          |  34 ++
  qapi/misc.json               |  32 ++
  qemu-options.hx              |  12 +
  softmmu/vl.c                 |  10 +
- 11 files changed, 795 insertions(+)
+ 11 files changed, 803 insertions(+)
  create mode 100644 migration/savevm-async.c
 
 diff --git a/hmp-commands-info.hx b/hmp-commands-info.hx
@@ -153,10 +153,10 @@ index 8b5ca5c047..1e2aec8486 100644
  ), gnutls)
 diff --git a/migration/savevm-async.c b/migration/savevm-async.c
 new file mode 100644
-index 0000000000..88215cdb70
+index 0000000000..b9a43c56bc
 --- /dev/null
 +++ b/migration/savevm-async.c
-@@ -0,0 +1,596 @@
+@@ -0,0 +1,604 @@
 +#include "qemu/osdep.h"
 +#include "migration/migration.h"
 +#include "migration/savevm.h"
@@ -422,8 +422,11 @@ index 0000000000..88215cdb70
 +    } else if (snap_state.state == SAVE_STATE_ACTIVE) {
 +        snap_state.state = SAVE_STATE_COMPLETED;
 +    } else if (aborted) {
-+        save_snapshot_error("process_savevm_cleanup: found aborted state: %d",
-+                            snap_state.state);
++        /*
++         * If there was an error, there's no need to set a new one here.
++         * If the snapshot was canceled, leave setting the state to
++         * qmp_savevm_end(), which is waked by save_snapshot_cleanup().
++         */
 +    } else {
 +        save_snapshot_error("process_savevm_cleanup: invalid state: %d",
 +                            snap_state.state);
@@ -662,6 +665,11 @@ index 0000000000..88215cdb70
 +        /* we cannot assume the snapshot finished in this case, so leave the
 +         * state alone - caller has to figure something out */
 +        return;
++    }
++
++    // File closed and no other error, so ensure next snapshot can be started.
++    if (snap_state.state != SAVE_STATE_ERROR) {
++        snap_state.state = SAVE_STATE_DONE;
 +    }
 +
 +    DPRINTF("savevm-end: cleanup done\n");
