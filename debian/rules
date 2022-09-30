@@ -48,7 +48,7 @@ ${BUILDDIR}/config.status: configure
 	--sysconfdir=/etc \
 	--target-list=$(ARCH)-softmmu,aarch64-softmmu \
 	--with-suffix="kvm" \
-	--with-pkgversion="${DEB_SOURCE}_${DEB_VERSION_UPSTREAM}" \
+	--with-pkgversion="${DEB_SOURCE}_${DEB_VERSION_UPSTREAM_REVISION}" \
 	--audio-drv-list="alsa" \
 	--datadir=/usr/share \
 	--libexecdir=/usr/lib/kvm \
