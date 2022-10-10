@@ -1,0 +1,144 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fiona Ebner <f.ebner@proxmox.com>
+Date: Mon, 3 Oct 2022 15:52:04 +0200
+Subject: [PATCH] PVE Backup: allow passing max-workers performance setting
+
+For query-proxmox-support, add an indication that it's possible to use
+the setting.
+
+For now, the other two BackupPerf settings are not exposed:
+
+* use-copy-range: would need to be implemented by the backup-dump
+block driver first, and in fact, the default for backup was changed,
+because it wasn't as fast for backup in QEMU, see commit
+6a30f663d4c0b3c45a544d541e0c4e214b2473a1.
+
+* max-chunk: enforced to be at least the backup cluster size, which is
+4 MiB for PBS and otherwise maximum of source and target cluster size.
+And block-copy has a maximum buffer size of 1 MiB, so setting a larger
+max-chunk doesn't even have an effect. To make the setting sensibly
+usable the check would need to be removed and optionally the
+block-copy max buffer size would need to be bumped. I tried doing just
+that, and tested different source/target combinations with different
+max-chunk settings, but there were no noticable improvements over the
+default "unlimited" (resulting in 1 MiB for block-copy).
+
+Signed-off-by: Fiona Ebner <f.ebner@proxmox.com>
+---
+ block/monitor/block-hmp-cmds.c |  4 +++-
+ pve-backup.c                   | 18 +++++++++++++-----
+ qapi/block-core.json           |  9 +++++++--
+ 3 files changed, 23 insertions(+), 8 deletions(-)
+
+diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
+index 0502f42be6..cc231ec3f2 100644
+--- a/block/monitor/block-hmp-cmds.c
++++ b/block/monitor/block-hmp-cmds.c
+@@ -1049,7 +1049,9 @@ void coroutine_fn hmp_backup(Monitor *mon, const QDict *qdict)
+         false, false, // PBS encrypt
+         true, dir ? BACKUP_FORMAT_DIR : BACKUP_FORMAT_VMA,
+         false, NULL, false, NULL, !!devlist,
+-        devlist, qdict_haskey(qdict, "speed"), speed, &error);
++        devlist, qdict_haskey(qdict, "speed"), speed,
++        false, 0, // BackupPerf max-workers
++        &error);
+ 
+     hmp_handle_error(mon, error);
+ }
+diff --git a/pve-backup.c b/pve-backup.c
+index 2e22030eec..e9aa7e0f49 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -55,6 +55,7 @@ static struct PVEBackupState {
+         bool starting;
+     } stat;
+     int64_t speed;
++    BackupPerf perf;
+     VmaWriter *vmaw;
+     ProxmoxBackupHandle *pbs;
+     GList *di_list;
+@@ -492,8 +493,6 @@ static void create_backup_jobs_bh(void *opaque) {
+     }
+     backup_state.txn = job_txn_new_seq();
+ 
+-    BackupPerf perf = { .max_workers = 16 };
+-
+     /* create and start all jobs (paused state) */
+     GList *l =  backup_state.di_list;
+     while (l) {
+@@ -513,8 +512,9 @@ static void create_backup_jobs_bh(void *opaque) {
+ 
+         BlockJob *job = backup_job_create(
+             NULL, di->bs, di->target, backup_state.speed, sync_mode, di->bitmap,
+-            bitmap_mode, false, NULL, &perf, BLOCKDEV_ON_ERROR_REPORT, BLOCKDEV_ON_ERROR_REPORT,
+-            JOB_DEFAULT, pvebackup_complete_cb, di, backup_state.txn, &local_err);
++            bitmap_mode, false, NULL, &backup_state.perf, BLOCKDEV_ON_ERROR_REPORT,
++            BLOCKDEV_ON_ERROR_REPORT, JOB_DEFAULT, pvebackup_complete_cb, di, backup_state.txn,
++            &local_err);
+ 
+         di->job = job;
+         if (job) {
+@@ -584,7 +584,9 @@ UuidInfo coroutine_fn *qmp_backup(
+     bool has_config_file, const char *config_file,
+     bool has_firewall_file, const char *firewall_file,
+     bool has_devlist, const char *devlist,
+-    bool has_speed, int64_t speed, Error **errp)
++    bool has_speed, int64_t speed,
++    bool has_max_workers, int64_t max_workers,
++    Error **errp)
+ {
+     assert(qemu_in_coroutine());
+ 
+@@ -914,6 +916,11 @@ UuidInfo coroutine_fn *qmp_backup(
+ 
+     backup_state.speed = (has_speed && speed > 0) ? speed : 0;
+ 
++    backup_state.perf = (BackupPerf){ .max_workers = 16 };
++    if (has_max_workers) {
++        backup_state.perf.max_workers = max_workers;
++    }
++
+     backup_state.vmaw = vmaw;
+     backup_state.pbs = pbs;
+ 
+@@ -1089,5 +1096,6 @@ ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
+     ret->pbs_dirty_bitmap_migration = true;
+     ret->query_bitmap_info = true;
+     ret->pbs_masterkey = true;
++    ret->backup_max_workers = true;
+     return ret;
+ }
+diff --git a/qapi/block-core.json b/qapi/block-core.json
+index 89875f309c..43281aca79 100644
+--- a/qapi/block-core.json
++++ b/qapi/block-core.json
+@@ -833,6 +833,8 @@
+ #
+ # @encrypt: use encryption ((optional for format 'pbs', defaults to true if there is a keyfile)
+ #
++# @max-workers: see @BackupPerf for details. Default 16.
++#
+ # Returns: the uuid of the backup job
+ #
+ ##
+@@ -851,7 +853,9 @@
+                                     '*format': 'BackupFormat',
+                                     '*config-file': 'str',
+                                     '*firewall-file': 'str',
+-                                    '*devlist': 'str', '*speed': 'int' },
++                                    '*devlist': 'str',
++                                    '*speed': 'int',
++                                    '*max-workers': 'int' },
+   'returns': 'UuidInfo', 'coroutine': true }
+ 
+ ##
+@@ -906,7 +910,8 @@
+             'pbs-dirty-bitmap-savevm': 'bool',
+             'pbs-dirty-bitmap-migration': 'bool',
+             'pbs-masterkey': 'bool',
+-            'pbs-library-version': 'str' } }
++            'pbs-library-version': 'str',
++            'backup-max-workers': 'bool' } }
+ 
+ ##
+ # @query-proxmox-support:

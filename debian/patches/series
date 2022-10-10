@@ -86,3 +86,4 @@ pve/0058-PVE-Backup-avoid-segfault-issues-upon-backup-cancel.patch
 pve/0059-vma-create-support-64KiB-unaligned-input-images.patch
 pve/0060-vma-create-avoid-triggering-assertion-in-error-case.patch
 pve/0061-block-alloc-track-avoid-premature-break.patch
+pve/0062-PVE-Backup-allow-passing-max-workers-performance-set.patch
