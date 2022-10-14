@@ -1,0 +1,233 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wolfgang Bumiller <w.bumiller@proxmox.com>
+Date: Tue, 26 Apr 2022 16:06:28 +0200
+Subject: [PATCH] pbs: namespace support
+
+Signed-off-by: Wolfgang Bumiller <w.bumiller@proxmox.com>
+---
+ block/monitor/block-hmp-cmds.c |  1 +
+ block/pbs.c                    | 25 +++++++++++++++++++++----
+ pbs-restore.c                  | 19 ++++++++++++++++---
+ pve-backup.c                   |  6 +++++-
+ qapi/block-core.json           |  5 ++++-
+ 5 files changed, 47 insertions(+), 9 deletions(-)
+
+diff --git a/block/monitor/block-hmp-cmds.c b/block/monitor/block-hmp-cmds.c
+index 4c799f00d9..0502f42be6 100644
+--- a/block/monitor/block-hmp-cmds.c
++++ b/block/monitor/block-hmp-cmds.c
+@@ -1041,6 +1041,7 @@ void coroutine_fn hmp_backup(Monitor *mon, const QDict *qdict)
+         false, NULL, // PBS key_password
+         false, NULL, // PBS master_keyfile
+         false, NULL, // PBS fingerprint
++        false, NULL, // PBS backup-ns
+         false, NULL, // PBS backup-id
+         false, 0, // PBS backup-time
+         false, false, // PBS use-dirty-bitmap
+diff --git a/block/pbs.c b/block/pbs.c
+index c5eb4d5bad..7471e2ef9d 100644
+--- a/block/pbs.c
++++ b/block/pbs.c
+@@ -14,6 +14,7 @@
+ #include <proxmox-backup-qemu.h>
+ 
+ #define PBS_OPT_REPOSITORY "repository"
++#define PBS_OPT_NAMESPACE "namespace"
+ #define PBS_OPT_SNAPSHOT "snapshot"
+ #define PBS_OPT_ARCHIVE "archive"
+ #define PBS_OPT_KEYFILE "keyfile"
+@@ -27,6 +28,7 @@ typedef struct {
+     int64_t length;
+ 
+     char *repository;
++    char *namespace;
+     char *snapshot;
+     char *archive;
+ } BDRVPBSState;
+@@ -40,6 +42,11 @@ static QemuOptsList runtime_opts = {
+             .type = QEMU_OPT_STRING,
+             .help = "The server address and repository to connect to.",
+         },
++        {
++            .name = PBS_OPT_NAMESPACE,
++            .type = QEMU_OPT_STRING,
++            .help = "Optional: The snapshot's namespace.",
++        },
+         {
+             .name = PBS_OPT_SNAPSHOT,
+             .type = QEMU_OPT_STRING,
+@@ -76,7 +83,7 @@ static QemuOptsList runtime_opts = {
+ 
+ 
+ // filename format:
+-// pbs:repository=<repo>,snapshot=<snap>,password=<pw>,key_password=<kpw>,fingerprint=<fp>,archive=<archive>
++// pbs:repository=<repo>,namespace=<ns>,snapshot=<snap>,password=<pw>,key_password=<kpw>,fingerprint=<fp>,archive=<archive>
+ static void pbs_parse_filename(const char *filename, QDict *options,
+                                      Error **errp)
+ {
+@@ -112,6 +119,7 @@ static int pbs_open(BlockDriverState *bs, QDict *options, int flags,
+     s->archive = g_strdup(qemu_opt_get(opts, PBS_OPT_ARCHIVE));
+     const char *keyfile = qemu_opt_get(opts, PBS_OPT_KEYFILE);
+     const char *password = qemu_opt_get(opts, PBS_OPT_PASSWORD);
++    const char *namespace = qemu_opt_get(opts, PBS_OPT_NAMESPACE);
+     const char *fingerprint = qemu_opt_get(opts, PBS_OPT_FINGERPRINT);
+     const char *key_password = qemu_opt_get(opts, PBS_OPT_ENCRYPTION_PASSWORD);
+ 
+@@ -124,9 +132,12 @@ static int pbs_open(BlockDriverState *bs, QDict *options, int flags,
+     if (!key_password) {
+         key_password = getenv("PBS_ENCRYPTION_PASSWORD");
+     }
++    if (namespace) {
++        s->namespace = g_strdup(namespace);
++    }
+ 
+     /* connect to PBS server in read mode */
+-    s->conn = proxmox_restore_new(s->repository, s->snapshot, password,
++    s->conn = proxmox_restore_new_ns(s->repository, s->snapshot, s->namespace, password,
+         keyfile, key_password, fingerprint, &pbs_error);
+ 
+     /* invalidates qemu_opt_get char pointers from above */
+@@ -171,6 +182,7 @@ static int pbs_file_open(BlockDriverState *bs, QDict *options, int flags,
+ static void pbs_close(BlockDriverState *bs) {
+     BDRVPBSState *s = bs->opaque;
+     g_free(s->repository);
++    g_free(s->namespace);
+     g_free(s->snapshot);
+     g_free(s->archive);
+     proxmox_restore_disconnect(s->conn);
+@@ -252,8 +264,13 @@ static coroutine_fn int pbs_co_pwritev(BlockDriverState *bs,
+ static void pbs_refresh_filename(BlockDriverState *bs)
+ {
+     BDRVPBSState *s = bs->opaque;
+-    snprintf(bs->exact_filename, sizeof(bs->exact_filename), "%s/%s(%s)",
+-             s->repository, s->snapshot, s->archive);
++    if (s->namespace) {
++        snprintf(bs->exact_filename, sizeof(bs->exact_filename), "%s/%s:%s(%s)",
++                 s->repository, s->namespace, s->snapshot, s->archive);
++    } else {
++        snprintf(bs->exact_filename, sizeof(bs->exact_filename), "%s/%s(%s)",
++                 s->repository, s->snapshot, s->archive);
++    }
+ }
+ 
+ static const char *const pbs_strong_runtime_opts[] = {
+diff --git a/pbs-restore.c b/pbs-restore.c
+index 2f834cf42e..f03d9bab8d 100644
+--- a/pbs-restore.c
++++ b/pbs-restore.c
+@@ -29,7 +29,7 @@
+ static void help(void)
+ {
+     const char *help_msg =
+-        "usage: pbs-restore [--repository <repo>] snapshot archive-name target [command options]\n"
++        "usage: pbs-restore [--repository <repo>] [--ns namespace] snapshot archive-name target [command options]\n"
+         ;
+ 
+     printf("%s", help_msg);
+@@ -77,6 +77,7 @@ int main(int argc, char **argv)
+     Error *main_loop_err = NULL;
+     const char *format = "raw";
+     const char *repository = NULL;
++    const char *backup_ns = NULL;
+     const char *keyfile = NULL;
+     int verbose = false;
+     bool skip_zero = false;
+@@ -90,6 +91,7 @@ int main(int argc, char **argv)
+             {"verbose", no_argument, 0, 'v'},
+             {"format", required_argument, 0, 'f'},
+             {"repository", required_argument, 0, 'r'},
++            {"ns", required_argument, 0, 'n'},
+             {"keyfile", required_argument, 0, 'k'},
+             {0, 0, 0, 0}
+         };
+@@ -110,6 +112,9 @@ int main(int argc, char **argv)
+             case 'r':
+                 repository = g_strdup(argv[optind - 1]);
+                 break;
++            case 'n':
++                backup_ns = g_strdup(argv[optind - 1]);
++                break;
+             case 'k':
+                 keyfile = g_strdup(argv[optind - 1]);
+                 break;
+@@ -160,8 +165,16 @@ int main(int argc, char **argv)
+         fprintf(stderr, "connecting to repository '%s'\n", repository);
+     }
+     char *pbs_error = NULL;
+-    ProxmoxRestoreHandle *conn = proxmox_restore_new(
+-        repository, snapshot, password, keyfile, key_password, fingerprint, &pbs_error);
++    ProxmoxRestoreHandle *conn = proxmox_restore_new_ns(
++        repository,
++        snapshot,
++        backup_ns,
++        password,
++        keyfile,
++        key_password,
++        fingerprint,
++        &pbs_error
++    );
+     if (conn == NULL) {
+         fprintf(stderr, "restore failed: %s\n", pbs_error);
+         return -1;
+diff --git a/pve-backup.c b/pve-backup.c
+index 9f6c04a512..f6a5f8c785 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -10,6 +10,8 @@
+ #include "qapi/qmp/qerror.h"
+ #include "qemu/cutils.h"
+ 
++#include <proxmox-backup-qemu.h>
++
+ /* PVE backup state and related function */
+ 
+ /*
+@@ -535,6 +537,7 @@ UuidInfo coroutine_fn *qmp_backup(
+     bool has_key_password, const char *key_password,
+     bool has_master_keyfile, const char *master_keyfile,
+     bool has_fingerprint, const char *fingerprint,
++    bool has_backup_ns, const char *backup_ns,
+     bool has_backup_id, const char *backup_id,
+     bool has_backup_time, int64_t backup_time,
+     bool has_use_dirty_bitmap, bool use_dirty_bitmap,
+@@ -674,8 +677,9 @@ UuidInfo coroutine_fn *qmp_backup(
+         firewall_name = "fw.conf";
+ 
+         char *pbs_err = NULL;
+-        pbs = proxmox_backup_new(
++        pbs = proxmox_backup_new_ns(
+             backup_file,
++            has_backup_ns ? backup_ns : NULL,
+             backup_id,
+             backup_time,
+             dump_cb_block_size,
+diff --git a/qapi/block-core.json b/qapi/block-core.json
+index fc8a125451..cc2ead0b75 100644
+--- a/qapi/block-core.json
++++ b/qapi/block-core.json
+@@ -817,6 +817,8 @@
+ #
+ # @fingerprint: server cert fingerprint (optional for format 'pbs')
+ #
++# @backup-ns: backup namespace (required for format 'pbs')
++#
+ # @backup-id: backup ID (required for format 'pbs')
+ #
+ # @backup-time: backup timestamp (Unix epoch, required for format 'pbs')
+@@ -836,6 +838,7 @@
+                                     '*key-password': 'str',
+                                     '*master-keyfile': 'str',
+                                     '*fingerprint': 'str',
++                                    '*backup-ns': 'str',
+                                     '*backup-id': 'str',
+                                     '*backup-time': 'int',
+                                     '*use-dirty-bitmap': 'bool',
+@@ -3282,7 +3285,7 @@
+ { 'struct': 'BlockdevOptionsPbs',
+   'data': { 'repository': 'str', 'snapshot': 'str', 'archive': 'str',
+             '*keyfile': 'str', '*password': 'str', '*fingerprint': 'str',
+-            '*key_password': 'str' } }
++            '*key_password': 'str', '*namespace': 'str' } }
+ 
+ ##
+ # @BlockdevOptionsNVMe:

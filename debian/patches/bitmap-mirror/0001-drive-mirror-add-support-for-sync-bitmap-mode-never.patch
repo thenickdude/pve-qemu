@@ -36,7 +36,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  5 files changed, 145 insertions(+), 29 deletions(-)
 
 diff --git a/block/mirror.c b/block/mirror.c
-index d8ecb9efa2..d95a7d7940 100644
+index 3c4ab1159d..f2eca983f1 100644
 --- a/block/mirror.c
 +++ b/block/mirror.c
 @@ -51,7 +51,7 @@ typedef struct MirrorBlockJob {
@@ -252,7 +252,7 @@ index d8ecb9efa2..d95a7d7940 100644
                       errp);
      if (!job) {
 diff --git a/blockdev.c b/blockdev.c
-index e46e831212..fa601838a3 100644
+index 9230888e34..9a1a3118ed 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -2951,6 +2951,10 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,
@@ -344,10 +344,10 @@ index e46e831212..fa601838a3 100644
                             has_granularity, granularity,
                             has_buf_size, buf_size,
 diff --git a/include/block/block_int-global-state.h b/include/block/block_int-global-state.h
-index 0f21b0570b..e7f901d048 100644
+index b49f4eb35b..9d744db618 100644
 --- a/include/block/block_int-global-state.h
 +++ b/include/block/block_int-global-state.h
-@@ -148,7 +148,9 @@ void mirror_start(const char *job_id, BlockDriverState *bs,
+@@ -149,7 +149,9 @@ void mirror_start(const char *job_id, BlockDriverState *bs,
                    BlockDriverState *target, const char *replaces,
                    int creation_flags, int64_t speed,
                    uint32_t granularity, int64_t buf_size,
@@ -359,10 +359,10 @@ index 0f21b0570b..e7f901d048 100644
                    BlockdevOnError on_source_error,
                    BlockdevOnError on_target_error,
 diff --git a/qapi/block-core.json b/qapi/block-core.json
-index beeb91952a..fb25c2b245 100644
+index 2173e7734a..e1857e7094 100644
 --- a/qapi/block-core.json
 +++ b/qapi/block-core.json
-@@ -1993,10 +1993,19 @@
+@@ -2000,10 +2000,19 @@
  #        (all the disk, only the sectors allocated in the topmost image, or
  #        only new I/O).
  #
@@ -383,7 +383,7 @@ index beeb91952a..fb25c2b245 100644
  #
  # @buf-size: maximum amount of data in flight from source to
  #            target (since 1.4).
-@@ -2034,7 +2043,9 @@
+@@ -2043,7 +2052,9 @@
  { 'struct': 'DriveMirror',
    'data': { '*job-id': 'str', 'device': 'str', 'target': 'str',
              '*format': 'str', '*node-name': 'str', '*replaces': 'str',
@@ -394,7 +394,7 @@ index beeb91952a..fb25c2b245 100644
              '*speed': 'int', '*granularity': 'uint32',
              '*buf-size': 'int', '*on-source-error': 'BlockdevOnError',
              '*on-target-error': 'BlockdevOnError',
-@@ -2306,10 +2317,19 @@
+@@ -2322,10 +2333,19 @@
  #        (all the disk, only the sectors allocated in the topmost image, or
  #        only new I/O).
  #
@@ -415,7 +415,7 @@ index beeb91952a..fb25c2b245 100644
  #
  # @buf-size: maximum amount of data in flight from source to
  #            target
-@@ -2358,7 +2378,8 @@
+@@ -2375,7 +2395,8 @@
  { 'command': 'blockdev-mirror',
    'data': { '*job-id': 'str', 'device': 'str', 'target': 'str',
              '*replaces': 'str',
@@ -426,10 +426,10 @@ index beeb91952a..fb25c2b245 100644
              '*buf-size': 'int', '*on-source-error': 'BlockdevOnError',
              '*on-target-error': 'BlockdevOnError',
 diff --git a/tests/unit/test-block-iothread.c b/tests/unit/test-block-iothread.c
-index 94718c9319..7977ac14f4 100644
+index 8b55eccc89..f4650be8e5 100644
 --- a/tests/unit/test-block-iothread.c
 +++ b/tests/unit/test-block-iothread.c
-@@ -626,8 +626,8 @@ static void test_propagate_mirror(void)
+@@ -753,8 +753,8 @@ static void test_propagate_mirror(void)
  
      /* Start a mirror job */
      mirror_start("job0", src, target, NULL, JOB_DEFAULT, 0, 0, 0,

@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Wed, 26 May 2021 17:36:55 +0200
+Subject: [PATCH] PVE: savevm-async: register yank before
+ migration_incoming_state_destroy
+
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ migration/savevm-async.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/migration/savevm-async.c b/migration/savevm-async.c
+index e65a5e3482..2ed2536816 100644
+--- a/migration/savevm-async.c
++++ b/migration/savevm-async.c
+@@ -20,6 +20,7 @@
+ #include "qemu/timer.h"
+ #include "qemu/main-loop.h"
+ #include "qemu/rcu.h"
++#include "qemu/yank.h"
+ 
+ /* #define DEBUG_SAVEVM_STATE */
+ 
+@@ -514,6 +515,10 @@ int load_snapshot_from_blockdev(const char *filename, Error **errp)
+     dirty_bitmap_mig_before_vm_start();
+ 
+     qemu_fclose(f);
++
++    /* state_destroy assumes a real migration which would have added a yank */
++    yank_register_instance(MIGRATION_YANK_INSTANCE, &error_abort);
++
+     migration_incoming_state_destroy();
+     if (ret < 0) {
+         error_setg_errno(errp, -ret, "Error while loading VM state");

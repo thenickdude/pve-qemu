@@ -24,7 +24,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 18 insertions(+), 6 deletions(-)
 
 diff --git a/block/mirror.c b/block/mirror.c
-index d95a7d7940..2c79ee41af 100644
+index f2eca983f1..b6475d50ad 100644
 --- a/block/mirror.c
 +++ b/block/mirror.c
 @@ -673,8 +673,6 @@ static int mirror_exit_common(Job *job)

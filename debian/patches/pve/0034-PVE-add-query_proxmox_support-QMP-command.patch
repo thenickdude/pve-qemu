@@ -1,0 +1,74 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Wed, 8 Jul 2020 11:57:53 +0200
+Subject: [PATCH] PVE: add query_proxmox_support QMP command
+
+Generic interface for future use, currently used for PBS dirty-bitmap
+backup support.
+
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+[PVE: query-proxmox-support: include library version]
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+---
+ pve-backup.c         |  9 +++++++++
+ qapi/block-core.json | 29 +++++++++++++++++++++++++++++
+ 2 files changed, 38 insertions(+)
+
+diff --git a/pve-backup.c b/pve-backup.c
+index c15abefdda..4684789813 100644
+--- a/pve-backup.c
++++ b/pve-backup.c
+@@ -1075,3 +1075,12 @@ BackupStatus *qmp_query_backup(Error **errp)
+ 
+     return info;
+ }
++
++ProxmoxSupportStatus *qmp_query_proxmox_support(Error **errp)
++{
++    ProxmoxSupportStatus *ret = g_malloc0(sizeof(*ret));
++    ret->pbs_library_version = g_strdup(proxmox_backup_qemu_version());
++    ret->pbs_dirty_bitmap = true;
++    ret->pbs_dirty_bitmap_savevm = true;
++    return ret;
++}
+diff --git a/qapi/block-core.json b/qapi/block-core.json
+index 96bc696aaa..0b453c61d4 100644
+--- a/qapi/block-core.json
++++ b/qapi/block-core.json
+@@ -863,6 +863,35 @@
+ ##
+ { 'command': 'backup-cancel' }
+ 
++##
++# @ProxmoxSupportStatus:
++#
++# Contains info about supported features added by Proxmox.
++#
++# @pbs-dirty-bitmap: True if dirty-bitmap-incremental backups to PBS are
++#                    supported.
++#
++# @pbs-dirty-bitmap-savevm: True if 'dirty-bitmaps' migration capability can
++#                           safely be set for savevm-async.
++#
++# @pbs-library-version: Running version of libproxmox-backup-qemu0 library.
++#
++##
++{ 'struct': 'ProxmoxSupportStatus',
++  'data': { 'pbs-dirty-bitmap': 'bool',
++            'pbs-dirty-bitmap-savevm': 'bool',
++            'pbs-library-version': 'str' } }
++
++##
++# @query-proxmox-support:
++#
++# Returns information about supported features added by Proxmox.
++#
++# Returns: @ProxmoxSupportStatus
++#
++##
++{ 'command': 'query-proxmox-support', 'returns': 'ProxmoxSupportStatus' }
++
+ ##
+ # @BlockDeviceTimedStats:
+ #

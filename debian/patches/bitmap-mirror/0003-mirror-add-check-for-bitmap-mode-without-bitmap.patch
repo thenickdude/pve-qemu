@@ -16,7 +16,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  1 file changed, 3 insertions(+)
 
 diff --git a/blockdev.c b/blockdev.c
-index fa601838a3..93fd0a61a4 100644
+index 9a1a3118ed..a57b0af2e7 100644
 --- a/blockdev.c
 +++ b/blockdev.c
 @@ -3050,6 +3050,9 @@ static void blockdev_mirror_common(const char *job_id, BlockDriverState *bs,

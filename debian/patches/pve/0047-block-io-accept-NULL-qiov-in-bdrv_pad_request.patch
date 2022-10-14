@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Tue, 2 Mar 2021 16:11:54 +0100
+Subject: [PATCH] block/io: accept NULL qiov in bdrv_pad_request
+
+Some operations, e.g. block-stream, perform reads while discarding the
+results (only copy-on-read matters). In this case they will pass NULL as
+the target QEMUIOVector, which will however trip bdrv_pad_request, since
+it wants to extend its passed vector.
+
+Simply check for NULL and do nothing, there's no reason to pad the
+target if it will be discarded anyway.
+
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ block/io.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/block/io.c b/block/io.c
+index 0a8cbefe86..531b3b7a2d 100644
+--- a/block/io.c
++++ b/block/io.c
+@@ -1734,6 +1734,10 @@ static int bdrv_pad_request(BlockDriverState *bs,
+ {
+     int ret;
+ 
++    if (!qiov) {
++        return 0;
++    }
++
+     bdrv_check_qiov_request(*offset, *bytes, *qiov, *qiov_offset, &error_abort);
+ 
+     if (!bdrv_init_padding(bs, *offset, *bytes, pad)) {

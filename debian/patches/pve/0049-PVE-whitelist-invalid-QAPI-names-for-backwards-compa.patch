@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Stefan Reiter <s.reiter@proxmox.com>
+Date: Wed, 26 May 2021 15:26:30 +0200
+Subject: [PATCH] PVE: whitelist 'invalid' QAPI names for backwards compat
+
+Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
+Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+---
+ qapi/pragma.json | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/qapi/pragma.json b/qapi/pragma.json
+index a2358e303a..9ff5c84ffd 100644
+--- a/qapi/pragma.json
++++ b/qapi/pragma.json
+@@ -15,6 +15,7 @@
+         'device_add',
+         'device_del',
+         'expire_password',
++        'get_link_status',
+         'migrate_cancel',
+         'netdev_add',
+         'netdev_del',
+@@ -64,6 +65,8 @@
+         'SysEmuTarget',             # query-cpu-fast, query-target
+         'UuidInfo',                 # query-uuid
+         'VncClientInfo',            # query-vnc, query-vnc-servers, ...
+-        'X86CPURegister32'          # qom-get of x86 CPU properties
++        'X86CPURegister32',         # qom-get of x86 CPU properties
+                                     # feature-words, filtered-features
++        'BlockdevOptionsPbs',       # for PBS backwards compat
++        'BalloonInfo'
+     ] } }

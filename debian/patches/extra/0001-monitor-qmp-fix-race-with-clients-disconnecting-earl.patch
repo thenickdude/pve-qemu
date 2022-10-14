@@ -48,7 +48,7 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  6 files changed, 59 insertions(+), 5 deletions(-)
 
 diff --git a/include/monitor/monitor.h b/include/monitor/monitor.h
-index cc4cc6c6ad..82f649d9ab 100644
+index a4b40e8391..d64ae8f34e 100644
 --- a/include/monitor/monitor.h
 +++ b/include/monitor/monitor.h
 @@ -16,6 +16,7 @@ extern QemuOptsList qemu_mon_opts;
@@ -78,7 +78,7 @@ index caa2e90ef2..e1596f79ab 100644
  
  /**
 diff --git a/monitor/monitor.c b/monitor/monitor.c
-index 21c7a68758..ad9813567a 100644
+index 86949024f6..c306cadcf4 100644
 --- a/monitor/monitor.c
 +++ b/monitor/monitor.c
 @@ -135,6 +135,21 @@ bool monitor_cur_is_qmp(void)
@@ -189,10 +189,10 @@ index 0990873ec8..e605003771 100644
          aio_bh_schedule_oneshot(qemu_get_aio_context(), do_qmp_dispatch_bh,
                                  &data);
 diff --git a/stubs/monitor-core.c b/stubs/monitor-core.c
-index d058a2a00d..3290b58120 100644
+index afa477aae6..d3ff124bf3 100644
 --- a/stubs/monitor-core.c
 +++ b/stubs/monitor-core.c
-@@ -13,6 +13,11 @@ Monitor *monitor_set_cur(Coroutine *co, Monitor *mon)
+@@ -12,6 +12,11 @@ Monitor *monitor_set_cur(Coroutine *co, Monitor *mon)
      return NULL;
  }
  

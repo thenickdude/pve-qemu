@@ -11,10 +11,10 @@ Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
  3 files changed, 43 insertions(+)
 
 diff --git a/net/net.c b/net/net.c
-index f0d14dbfc1..6d476c47ef 100644
+index 2db160e063..8329347891 100644
 --- a/net/net.c
 +++ b/net/net.c
-@@ -1334,6 +1334,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
+@@ -1343,6 +1343,33 @@ void hmp_info_network(Monitor *mon, const QDict *qdict)
      }
  }
  
@@ -49,7 +49,7 @@ index f0d14dbfc1..6d476c47ef 100644
  {
      NetClientState *nc;
 diff --git a/qapi/net.json b/qapi/net.json
-index b92f3f5fb4..52c7e1f82b 100644
+index 75ba2cb989..a3c93ab88f 100644
 --- a/qapi/net.json
 +++ b/qapi/net.json
 @@ -35,6 +35,21 @@
@@ -75,12 +75,12 @@ index b92f3f5fb4..52c7e1f82b 100644
  # @netdev_add:
  #
 diff --git a/qapi/pragma.json b/qapi/pragma.json
-index e6a021c19c..41139d8645 100644
+index 7f810b0e97..a2358e303a 100644
 --- a/qapi/pragma.json
 +++ b/qapi/pragma.json
-@@ -25,6 +25,7 @@
-         'system_reset',
+@@ -26,6 +26,7 @@
          'system_wakeup' ],
+     # Commands allowed to return a non-dictionary
      'command-returns-exceptions': [
 +        'get_link_status',
          'human-monitor-command',
