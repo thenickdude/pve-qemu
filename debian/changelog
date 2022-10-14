@@ -1,3 +1,11 @@
+pve-qemu-kvm (7.1.0-1) bullseye; urgency=medium
+
+  * update to QEMU stable release 7.1.0
+
+  * add fix for io_uring_register_ring_fd from upstream
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 14 Oct 2022 14:54:09 +0200
+
 pve-qemu-kvm (7.0.0-4) bullseye; urgency=medium
 
   * add revision to version output
