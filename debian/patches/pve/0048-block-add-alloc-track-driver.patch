@@ -24,8 +24,9 @@ once the backing image is removed. It will be replaced by 'file'.
 
 Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
-[adapt to changed function signatures]
-Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+[FE: adapt to changed function signatures
+     make error return value consistent with QEMU]
+Signed-off-by: Fiona Ebner <f.ebner@proxmox.com>
 ---
  block/alloc-track.c | 350 ++++++++++++++++++++++++++++++++++++++++++++
  block/meson.build   |   1 +
@@ -34,7 +35,7 @@ Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
 
 diff --git a/block/alloc-track.c b/block/alloc-track.c
 new file mode 100644
-index 0000000000..6b50fbe537
+index 0000000000..43d40d11af
 --- /dev/null
 +++ b/block/alloc-track.c
 @@ -0,0 +1,350 @@
@@ -181,7 +182,7 @@ index 0000000000..6b50fbe537
 +
 +    if (offset < 0 || bytes < 0) {
 +        fprintf(stderr, "unexpected negative 'offset' or 'bytes' value!\n");
-+        return -EINVAL;
++        return -EIO;
 +    }
 +
 +    /* a read request can span multiple granularity-sized chunks, and can thus

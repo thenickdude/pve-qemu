@@ -7,8 +7,9 @@ Signed-off-by: Stefan Reiter <s.reiter@proxmox.com>
 [error cleanups, file_open implementation]
 Signed-off-by: Dietmar Maurer <dietmar@proxmox.com>
 Signed-off-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
-[adapt to changed function signatures]
-Signed-off-by: Fabian Ebner <f.ebner@proxmox.com>
+[FE: adapt to changed function signatures
+     make pbs_co_preadv return values consistent with QEMU]
+Signed-off-by: Fiona Ebner <f.ebner@proxmox.com>
 ---
  block/meson.build    |   3 +
  block/pbs.c          | 276 +++++++++++++++++++++++++++++++++++++++++++
@@ -34,7 +35,7 @@ index 2783b77e9c..a26a69434e 100644
  
 diff --git a/block/pbs.c b/block/pbs.c
 new file mode 100644
-index 0000000000..0b05ea9080
+index 0000000000..9d1f1f39d4
 --- /dev/null
 +++ b/block/pbs.c
 @@ -0,0 +1,276 @@
@@ -244,7 +245,7 @@ index 0000000000..0b05ea9080
 +
 +    if (offset < 0 || bytes < 0) {
 +        fprintf(stderr, "unexpected negative 'offset' or 'bytes' value!\n");
-+        return -EINVAL;
++        return -EIO;
 +    }
 +
 +    ReadCallbackData rcb = {
@@ -266,7 +267,7 @@ index 0000000000..0b05ea9080
 +    qemu_iovec_from_buf(qiov, 0, buf, bytes);
 +    free(buf);
 +
-+    return ret;
++    return 0;
 +}
 +
 +static coroutine_fn int pbs_co_pwritev(BlockDriverState *bs,
