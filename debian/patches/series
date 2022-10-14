@@ -1,4 +1,7 @@
 extra/0001-monitor-qmp-fix-race-with-clients-disconnecting-earl.patch
+extra/0002-block-io_uring-revert-Use-io_uring_register_ring_fd-.patch
+extra/0003-virtiofsd-use-g_date_time_get_microsecond-to-get-sub.patch
+extra/0004-chardev-fix-segfault-in-finalize.patch
 bitmap-mirror/0001-drive-mirror-add-support-for-sync-bitmap-mode-never.patch
 bitmap-mirror/0002-drive-mirror-add-support-for-conditional-and-always-.patch
 bitmap-mirror/0003-mirror-add-check-for-bitmap-mode-without-bitmap.patch

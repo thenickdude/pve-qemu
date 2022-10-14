@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Maksim Davydov <davydov-max@yandex-team.ru>
+Date: Thu, 25 Aug 2022 19:52:47 +0300
+Subject: [PATCH] chardev: fix segfault in finalize
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+If finalize chardev-msmouse or chardev-wctable is called immediately after
+init it cases QEMU to crash with segfault. This happens because of
+QTAILQ_REMOVE in qemu_input_handler_unregister tries to dereference
+NULL pointer.
+For instance, this error can be reproduced via `qom-list-properties`
+command.
+
+Signed-off-by: Maksim Davydov <davydov-max@yandex-team.ru>
+Reviewed-by: Marc-André Lureau <marcandre.lureau@redhat.com>
+Reviewed-by: Vladimir Sementsov-Ogievskiy <vsementsov@yandex-team.ru>
+Message-Id: <20220825165247.33704-1-davydov-max@yandex-team.ru>
+(trivial backport from fc0c128531ed55f058bfbad4f1348ebd9a0187f2)
+Signed-off-by: Fiona Ebner <f.ebner@proxmox.com>
+---
+ chardev/msmouse.c  | 4 +++-
+ chardev/wctablet.c | 4 +++-
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/chardev/msmouse.c b/chardev/msmouse.c
+index eb9231dcdb..2cc1b16561 100644
+--- a/chardev/msmouse.c
++++ b/chardev/msmouse.c
+@@ -146,7 +146,9 @@ static void char_msmouse_finalize(Object *obj)
+ {
+     MouseChardev *mouse = MOUSE_CHARDEV(obj);
+ 
+-    qemu_input_handler_unregister(mouse->hs);
++    if (mouse->hs) {
++        qemu_input_handler_unregister(mouse->hs);
++    }
+ }
+ 
+ static QemuInputHandler msmouse_handler = {
+diff --git a/chardev/wctablet.c b/chardev/wctablet.c
+index e8b292c43c..43bdf6b608 100644
+--- a/chardev/wctablet.c
++++ b/chardev/wctablet.c
+@@ -319,7 +319,9 @@ static void wctablet_chr_finalize(Object *obj)
+ {
+     TabletChardev *tablet = WCTABLET_CHARDEV(obj);
+ 
+-    qemu_input_handler_unregister(tablet->hs);
++    if (tablet->hs) {
++        qemu_input_handler_unregister(tablet->hs);
++    }
+ }
+ 
+ static void wctablet_chr_open(Chardev *chr,

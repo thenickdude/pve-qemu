@@ -1,0 +1,51 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Yusuke Okada <okada.yusuke@jp.fujitsu.com>
+Date: Thu, 18 Aug 2022 14:46:19 -0400
+Subject: [PATCH] virtiofsd: use g_date_time_get_microsecond to get subsecond
+
+The "%f" specifier in g_date_time_format() is only available in glib
+2.65.2 or later. If combined with older glib, the function returns null
+and the timestamp displayed as "(null)".
+
+For backward compatibility, g_date_time_get_microsecond should be used
+to retrieve subsecond.
+
+In this patch the g_date_time_format() leaves subsecond field as "%06d"
+and let next snprintf to format with g_date_time_get_microsecond.
+
+Signed-off-by: Yusuke Okada <okada.yusuke@jp.fujitsu.com>
+Reviewed-by: Dr. David Alan Gilbert <dgilbert@redhat.com>
+Message-id: 20220818184618.2205172-1-yokada.996@gmail.com
+Signed-off-by: Stefan Hajnoczi <stefanha@redhat.com>
+(cherry-picked from commit f16d15c9276bd8f501f861c39cbd4adc812d0c1d)
+Signed-off-by: Fiona Ebner <f.ebner@proxmox.com>
+---
+ tools/virtiofsd/passthrough_ll.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/tools/virtiofsd/passthrough_ll.c b/tools/virtiofsd/passthrough_ll.c
+index 371a7bead6..20f0f41f99 100644
+--- a/tools/virtiofsd/passthrough_ll.c
++++ b/tools/virtiofsd/passthrough_ll.c
+@@ -4185,6 +4185,7 @@ static void setup_nofile_rlimit(unsigned long rlimit_nofile)
+ static void log_func(enum fuse_log_level level, const char *fmt, va_list ap)
+ {
+     g_autofree char *localfmt = NULL;
++    char buf[64];
+ 
+     if (current_log_level < level) {
+         return;
+@@ -4197,9 +4198,11 @@ static void log_func(enum fuse_log_level level, const char *fmt, va_list ap)
+                                        fmt);
+         } else {
+             g_autoptr(GDateTime) now = g_date_time_new_now_utc();
+-            g_autofree char *nowstr = g_date_time_format(now, "%Y-%m-%d %H:%M:%S.%f%z");
++            g_autofree char *nowstr = g_date_time_format(now,
++                                       "%Y-%m-%d %H:%M:%S.%%06d%z");
++            snprintf(buf, 64, nowstr, g_date_time_get_microsecond(now));
+             localfmt = g_strdup_printf("[%s] [ID: %08ld] %s",
+-                                       nowstr, syscall(__NR_gettid), fmt);
++                                       buf, syscall(__NR_gettid), fmt);
+         }
+         fmt = localfmt;
+     }
