@@ -154,7 +154,7 @@ index 8cac83c06c..0842d00cd2 100644
  ), gnutls)
 diff --git a/migration/savevm-async.c b/migration/savevm-async.c
 new file mode 100644
-index 0000000000..b3692739a0
+index 0000000000..05d394c0e2
 --- /dev/null
 +++ b/migration/savevm-async.c
 @@ -0,0 +1,531 @@
@@ -498,7 +498,7 @@ index 0000000000..b3692739a0
 +    snap_state.bs_pos = 0;
 +    snap_state.total_time = qemu_clock_get_ms(QEMU_CLOCK_REALTIME);
 +    snap_state.blocker = NULL;
-+    snap_state.target_close_wait.to_wake = NULL;
++    snap_state.target_close_wait = (QemuCoSleep){ .to_wake = NULL };
 +
 +    if (snap_state.error) {
 +        error_free(snap_state.error);
