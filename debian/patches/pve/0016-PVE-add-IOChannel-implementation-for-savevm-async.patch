@@ -15,19 +15,19 @@ Additionally, allows tracking the current position from the outside
 
 Signed-off-by: Fiona Ebner <f.ebner@proxmox.com>
 ---
- migration/channel-savevm-async.c | 181 +++++++++++++++++++++++++++++++
+ migration/channel-savevm-async.c | 182 +++++++++++++++++++++++++++++++
  migration/channel-savevm-async.h |  51 +++++++++
  migration/meson.build            |   1 +
- 3 files changed, 233 insertions(+)
+ 3 files changed, 234 insertions(+)
  create mode 100644 migration/channel-savevm-async.c
  create mode 100644 migration/channel-savevm-async.h
 
 diff --git a/migration/channel-savevm-async.c b/migration/channel-savevm-async.c
 new file mode 100644
-index 0000000000..efea3842cf
+index 0000000000..06d5484778
 --- /dev/null
 +++ b/migration/channel-savevm-async.c
-@@ -0,0 +1,181 @@
+@@ -0,0 +1,182 @@
 +/*
 + * QIO Channel implementation to be used by savevm-async QMP calls
 + */
@@ -96,7 +96,7 @@ index 0000000000..efea3842cf
 +    // returns 0 on success
 +    ret = blk_preadv(be, *saioc->bs_pos, size, &qiov, 0);
 +    if (ret < 0) {
-+        error_setg(errp, "blk_preadv returned %d", ret);
++        error_setg_errno(errp, -ret, "blk_preadv failed");
 +        return -1;
 +    }
 +
@@ -129,7 +129,8 @@ index 0000000000..efea3842cf
 +    }
 +
 +    if (ret < 0) {
-+        return ret;
++        error_setg_errno(errp, -ret, "blk(_co)_pwritev failed");
++        return -1;
 +    }
 +
 +    *saioc->bs_pos += qiov.size;
