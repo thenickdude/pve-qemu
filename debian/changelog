@@ -1,3 +1,9 @@
+pve-qemu-kvm (7.1.0-2) bullseye; urgency=medium
+
+  * fix an issue with error handling in async backup code
+
+ -- Proxmox Support Team <support@proxmox.com>  Tue, 18 Oct 2022 15:33:44 +0200
+
 pve-qemu-kvm (7.1.0-1) bullseye; urgency=medium
 
   * update to QEMU stable release 7.1.0
