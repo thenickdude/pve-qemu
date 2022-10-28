@@ -1,3 +1,11 @@
+pve-qemu-kvm (7.1.0-3) bullseye; urgency=medium
+
+  * init: daemonize: defuse PID file resolve error to a warning at max, fixing
+    some usecases that regressed with 7.1, like tracking start up in our
+    file-restore VM.
+
+ -- Proxmox Support Team <support@proxmox.com>  Fri, 28 Oct 2022 10:27:49 +0200
+
 pve-qemu-kvm (7.1.0-2) bullseye; urgency=medium
 
   * fix an issue with error handling in async backup code
