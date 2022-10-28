@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Fiona Ebner <f.ebner@proxmox.com>
+Date: Fri, 28 Oct 2022 10:09:46 +0200
+Subject: [PATCH] init: daemonize: defuse PID file resolve error
+
+When proxmox-file-restore invokes QEMU, the PID file is a (temporary)
+file that's already unlinked, so resolving the absolute path here
+failed.
+
+It should not be a critical error when the PID file unlink handler
+can't be registered, because the path can't be resolved for whatever
+reason. If the file is already gone from QEMU's perspective (i.e.
+errno is ENOENT), silently ignore the error. Otherwise, print a
+warning.
+
+Reported-by: Dominik Csapak <d.csapak@proxmox.com>
+Suggested-by: Thomas Lamprecht <t.lamprecht@proxmox.com>
+Signed-off-by: Fiona Ebner <f.ebner@proxmox.com>
+---
+ softmmu/vl.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/softmmu/vl.c b/softmmu/vl.c
+index 706bd7cff7..3381c56af7 100644
+--- a/softmmu/vl.c
++++ b/softmmu/vl.c
+@@ -2438,10 +2438,11 @@ static void qemu_maybe_daemonize(const char *pid_file)
+ 
+         pid_file_realpath = g_malloc0(PATH_MAX);
+         if (!realpath(pid_file, pid_file_realpath)) {
+-            error_report("cannot resolve PID file path: %s: %s",
+-                         pid_file, strerror(errno));
+-            unlink(pid_file);
+-            exit(1);
++            if (errno != ENOENT) {
++                warn_report("not removing PID file on exit: cannot resolve PID "
++                            "file path: %s: %s", pid_file, strerror(errno));
++            }
++            return;
+         }
+ 
+         qemu_unlink_pidfile_notifier = (struct UnlinkPidfileNotifier) {
